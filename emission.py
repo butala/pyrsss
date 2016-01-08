@@ -24,7 +24,7 @@ def Oplus(pt, oplus=OplusType.charge_neutrality):
                         + k1*pt.nn['O2']/(alpha1*pt.ne) \
                         + k2*pt.nn['N2']/(alpha2*pt.ne))
     else:
-        raise NotImplemented('')
+        raise NotImplemented('Unknown OplusType')
 
 
 def v6300(pt, oplus=OplusType.charge_neutrality):
