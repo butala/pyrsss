@@ -1,6 +1,10 @@
-from datetime import datetime
-from math import exp
+from __future__ import division
 
+from datetime import datetime
+# from math import exp
+
+import sympy as SP
+from sympy import exp
 import numpy as NP
 import pylab as PL
 from pyglow.pyglow import Point
@@ -12,40 +16,82 @@ from enum import Enum
 OplusType = Enum('O2type', 'ne charge_neutrality')
 
 
-def Oplus(pt, oplus=OplusType.charge_neutrality):
-    if oplus == OplusType.ne:
-        return pt.ne
-    elif oplus == OplusType.charge_neutrality:
-        alpha1 = 1.95e-7 * (pt.Te / 300)**(-0.7)
-        alpha2 = 4.00e-7 * (pt.Te / 300)**(-0.9)
-        k1 = 3.23e-12 * exp(3.72/(pt.Ti/300) - 1.87/(pt.Ti/300)**2)
-        k2 = 2.78e-13 * exp(2.07/(pt.Ti/300) - 0.61/(pt.Ti/300)**2)
-        return pt.ne / (1 \
-                        + k1*pt.nn['O2']/(alpha1*pt.ne) \
-                        + k2*pt.nn['N2']/(alpha2*pt.ne))
-    else:
-        raise NotImplemented('Unknown OplusType')
 
+class V6300(object):
+    @staticmethod
+    def alpha1(Te):
+        return 1.95e-7 * (Te / 300)**(-0.7)
 
-def v6300(pt, oplus=OplusType.charge_neutrality):
-    '''Using approximation [O+] = [e]'''
-    pt.run_msis()
-    pt.run_iri()
-    alpha1 = 1.95e-7 * (pt.Te / 300)**(-0.7)
-    alpha2 = 4.00e-7 * (pt.Te / 300)**(-0.9)
-    beta1D = 1.1
-    k1 = 3.23e-12 * exp(3.72/(pt.Ti/300) - 1.87/(pt.Ti/300)**2)
-    k2 = 2.78e-13 * exp(2.07/(pt.Ti/300) - 0.61/(pt.Ti/300)**2)
-    k3 = 2.0e-11 * exp(111.8/pt.Tn_msis)
-    k4 = 2.9e-11 * exp(67.5/pt.Tn_msis)
-    k5 = 1.6e-12 * pt.Tn_msis**(0.91)
-    A1D = 6.81e-3
-    N = 0.76 * beta1D * k1 * pt.nn['O2'] * Oplus(pt, oplus=oplus)
-    D = 1 + (k3 * pt.nn['N2'] + k4 * pt.nn['O2'] + k5 * pt.ne) / A1D
-    return N / D
+    @staticmethod
+    def alpha2(Te):
+        return 4.00e-7 * (Te / 300)**(-0.9)
+
+    @staticmethod
+    def k1(Ti):
+        return 3.23e-12 * exp(3.72/(Ti/300) - 1.87/(Ti/300)**2)
+
+    @staticmethod
+    def k2(Ti):
+        return 2.78e-13 * exp(2.07/(Ti/300) - 0.61/(Ti/300)**2)
+
+    @staticmethod
+    def k3(Tn):
+        return 2.0e-11 * exp(111.8/Tn)
+
+    @staticmethod
+    def k4(Tn):
+        return 2.9e-11 * exp(67.5/Tn)
+
+    @staticmethod
+    def k5(Tn):
+        return 1.6e-12 * Tn**(0.91)
+
+    A_1D = 6.81e-3
+    beta_1D = 1.1
+
+    @staticmethod
+    def Oplus_simple(ne):
+        return ne
+
+    @staticmethod
+    def Oplus(ne,
+              Te,
+              Ti,
+              O2,
+              N2):
+        return ne / (1 \
+                     + V6300.k1(Ti) * O2 / (V6300.alpha1(Te) * ne) \
+                     + V6300.k2(Ti) * N2 / (V6300.alpha2(Te) * ne))
+
+    @staticmethod
+    def emission(ne,
+                 Te,
+                 Ti,
+                 Tn,
+                 O2,
+                 N2,
+                 oplus_type=OplusType.charge_neutrality):
+        if oplus_type == OplusType.ne:
+            oplus = V6300.Oplus_simple(ne)
+        elif oplus_type == OplusType.charge_neutrality:
+            oplus = V6300.Oplus(ne, Te, Ti, O2, N2)
+        else:
+            raise NotImplemented('oplus_type = ' + str(oplus_type))
+        N = 0.76 * V6300.beta_1D * V6300.k1(Ti) * O2 * oplus
+        D = 1 + (V6300.k3(Tn) * N2 + V6300.k4(Tn) * O2 + V6300.k5(Tn) * ne) / V6300.A_1D
+        return N / D
 
 
 if __name__ == '__main__':
+    ne, Te, Ti, Tn, O2, N2 = SP.symbols('ne Te Ti Tn O2 N2')
+    v6300 = V6300.emission(ne, Te, Ti, Tn, O2, N2)
+    v6300_f = SP.lambdify((ne, Te, Ti, Tn, O2, N2),
+                          v6300)
+
+    d_v6300_ne = SP.simplify(SP.diff(v6300, ne))
+    d_v6300_ne_f = SP.lambdify((ne, Te, Ti, Tn, O2, N2),
+                               d_v6300_ne)
+
     dn = datetime(1999, 3, 13)
     lat = 25
     lon = 0
@@ -53,10 +99,38 @@ if __name__ == '__main__':
 
     v6300_ne = []
     v6300_neutrality = []
+    d_v6300_neutrality = []
     for alt in alts:
         pt = Point(dn, lat, lon, alt)
-        v6300_ne.append(v6300(pt, oplus=OplusType.ne))
-        v6300_neutrality.append(v6300(pt, oplus=OplusType.charge_neutrality))
+        pt.run_msis()
+        pt.run_iri()
+        v6300_ne.append(V6300.emission(pt.ne,
+                                       pt.Te,
+                                       pt.Ti,
+                                       pt.Tn_msis,
+                                       pt.nn['O2'],
+                                       pt.nn['N2'],
+                                       oplus_type=OplusType.ne))
+        # v6300_neutrality.append(V6300.emission(pt.ne,
+        #                                        pt.Te,
+        #                                        pt.Ti,
+        #                                        pt.Tn_msis,
+        #                                        pt.nn['O2'],
+        #                                        pt.nn['N2'],
+        #                                        oplus_type=OplusType.charge_neutrality))
+        v6300_neutrality.append(v6300_f(pt.ne,
+                                        pt.Te,
+                                        pt.Ti,
+                                        pt.Tn_msis,
+                                        pt.nn['O2'],
+                                        pt.nn['N2']))
+        d_v6300_neutrality.append(d_v6300_ne_f(pt.ne,
+                                               pt.Te,
+                                               pt.Ti,
+                                               pt.Tn_msis,
+                                               pt.nn['O2'],
+                                               pt.nn['N2']))
+
 
     PL.close('all')
 
@@ -73,5 +147,10 @@ if __name__ == '__main__':
     PL.ylabel('Altitude [km]')
     PL.legend()
     PL.title('630.0 [nm] Emission vs. Altitude')
+
+    fig = PL.figure(figsize=(8.5, 11))
+    PL.plot(d_v6300_neutrality,
+            alts,
+            color='b')
 
     PL.show()
