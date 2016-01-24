@@ -7,6 +7,9 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 class Stats(object):
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.mu = 0
         self.s2 = 0
         self.N = 0
@@ -17,7 +20,7 @@ class Stats(object):
 
     @property
     def var(self):
-        return self.s2 / (self.N-1) if self.N-1 >= 2 else float('nan')
+        return self.s2 / (self.N-1) if self.N >= 2 else float('nan')
 
     @property
     def sigma(self):
