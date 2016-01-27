@@ -1,3 +1,4 @@
+import math
 from datetime import datetime
 
 import scipy.constants as const
@@ -26,3 +27,16 @@ LAMBDA_1 = const.c / F_1
 
 LAMBDA_2 = const.c / F_2
 """GPS carrier 2 wavelength [m]."""
+
+K = const.e**2 / (8 * math.pi**2 * const.epsilon_0 * const.m_e)
+"""Constant used in numerious calculation [m**3 / s**2]. It is related to the
+plasma frequency."""
+
+TECU_TO_NS = K * 10**25 / const.c * (N_1**2 - N_2**2) / (F_0 * N_1 * N_2)**2
+"""Conversion from [TECU] to differential delay [ns]."""
+
+TECU_TO_KM = TECU_TO_NS * (const.c / (1e9 * 1e3))
+"""Conversion factor from [TECU] to [km]."""
+
+M_TO_TECU = 1 / (1000 * TECU_TO_KM)
+"""Conversion factor from [m] to [TECU}."""
