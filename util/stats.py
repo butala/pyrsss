@@ -4,6 +4,27 @@ import sys
 import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
+import scipy.stats
+import numpy as NP
+
+
+def mad(l):
+    """
+    Compute the median absolute deviation (a robust measure of spread)
+    of the list of values *l*.
+    """
+    median = NP.median(l)
+    return NP.median([abs(x - median) for x in l]), median
+
+
+def robust_std(l, alpha=1/scipy.stats.norm.ppf(0.75)):
+    """
+    Compute a robust estimate of the standard deviation for the list
+    of values *l* (by default, for normally distributed samples ---
+    see https://en.wikipedia.org/wiki/Median_absolute_deviation).
+    """
+    return alpha * mad(l)[0]
+
 
 class Stats(object):
     def __init__(self):
