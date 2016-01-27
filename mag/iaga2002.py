@@ -1,7 +1,7 @@
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime, timedelta
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict, namedtuple, defaultdict
 
 
 class Header(namedtuple('Header',
@@ -19,6 +19,12 @@ class Header(namedtuple('Header',
                          'Data_Type',
                          'Comment'])):
     pass
+
+
+HEADER_TYPES = defaultdict(lambda: str,
+                           [('Geodetic_Latitude', float),
+                            ('Geodetic_Longitude', float),
+                            ('Elevation', float)])
 
 
 def convert_float(s):
@@ -50,7 +56,8 @@ def parse(fname):
             elif line.startswith('DATE'):
                 break
             else:
-                header_map[line[:24].strip().replace(' ', '_')] = line[24:69].strip()
+                key = line[:24].strip().replace(' ', '_')
+                header_map[key] = HEADER_TYPES[key](line[24:69].strip())
         header_map['Comment'] = '\n'.join(comment_lines)
         try:
             header = Header(**header_map)
