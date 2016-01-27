@@ -68,7 +68,7 @@ def parse(fname):
         if len(fields) != 7:
             raise RuntimeError('malformed data header record in {} ({})'.format(fname,
                                                                                 line))
-        DataRecord = namedtuple('DataRecord', 'dt ' + ' '.join(fields[3:]))
+        DataRecord = namedtuple('DataRecord', ' '.join(fields[3:]))
         data_map = OrderedDict()
         # parse data records
         for line in fid:
@@ -77,8 +77,7 @@ def parse(fname):
             data2 = convert_float(line[41:50])
             data3 = convert_float(line[51:60])
             data4 = convert_float(line[61:70])
-            data_map[dt] = DataRecord(dt,
-                                      data1,
+            data_map[dt] = DataRecord(data1,
                                       data2,
                                       data3,
                                       data4)
