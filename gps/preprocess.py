@@ -52,7 +52,10 @@ def normalize_rinex(rinex_fname,
     return rinex_fname
 
 
-def main(args):
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
     parser = ArgumentParser('Normalize a given RINEX file.',
                             formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument('rinex_fnames',
@@ -89,7 +92,7 @@ def main(args):
                         type=str,
                         default=None,
                         help='location to store intermediate files')
-    args = parser.parse_args(args)
+    args = parser.parse_args(argv[1:])
 
     for rinex_fname in args.rinex_fnames:
         normalize_rinex(rinex_fname,
@@ -105,4 +108,4 @@ def main(args):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.getLogger('sh').setLevel(logging.WARNING)
-    main(sys.argv[1:])
+    sys.exit(main())

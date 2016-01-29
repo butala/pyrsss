@@ -65,10 +65,13 @@ class Stats(object):
         return str(self.mean) + ' ' + str(self.sigma)
 
 
-def main(args):
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
     parser = ArgumentParser('Report mean and standard deviation for the stream of numbers read from stdin',
                             formatter_class=ArgumentDefaultsHelpFormatter)
-    args = parser.parse_args(args)
+    args = parser.parse_args(argv[1:])
 
     stats = Stats()
     for line in sys.stdin:
@@ -77,4 +80,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    sys.exit(main())
