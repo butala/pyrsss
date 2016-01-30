@@ -8,7 +8,7 @@ import sh
 
 from .. util.path import SmartTempDir
 
-LOGGER = logging.getLogger('pyrsss.gps.preprocess')
+logger = logging.getLogger('pyrsss.gps.preprocess')
 
 
 def normalize_rinex(rinex_fname,
@@ -32,7 +32,7 @@ def normalize_rinex(rinex_fname,
     """
     with SmartTempDir(work_path) as work_path:
         rinex_copy_fname = os.path.join(work_path, os.path.basename(rinex_fname))
-        LOGGER.info('copying {} to {}'.format(rinex_fname,
+        logger.info('copying {} to {}'.format(rinex_fname,
                                               rinex_copy_fname))
         shutil.copyfile(rinex_fname, rinex_copy_fname)
         args = ['+C2']
@@ -45,7 +45,7 @@ def normalize_rinex(rinex_fname,
         args += ['+smtt'] if clockprep else ['-smtt']
         args += ['-O.obs_types', obs_types]
         args += [rinex_copy_fname]
-        LOGGER.info('calling teqc with arguments: {}'.format(' '.join(args)))
+        logger.info('calling teqc with arguments: {}'.format(' '.join(args)))
         sh.teqc(args,
                 _out=rinex_fname,
                 _err=sys.stderr)
