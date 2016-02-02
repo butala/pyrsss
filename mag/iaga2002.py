@@ -48,9 +48,10 @@ def parse(fname):
         header_map = {}
         comment_lines = []
         for line in fid:
-            if line[69] != '|':
-                raise RuntimeError('malformed header line in {} ({})'.format(fname,
-                                                                             line))
+            if line[69] != '|' and line.rstrip()[-1] != '|':
+                raise RuntimeError('malformed header line in {} ({}) --- expected | but found "{}"'.format(fname,
+                                                                                                           line,
+                                                                                                           line[69]))
             elif line[1] == '#':
                 comment_lines += [line[3:69].rstrip()]
             elif line.startswith('DATE'):
