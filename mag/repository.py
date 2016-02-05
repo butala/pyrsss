@@ -10,17 +10,44 @@ from ..util.date import fromJ2000
 logger = logging.getLogger('pyrsss.mag.repository')
 
 
-def get_root(fname=os.path.expanduser('~/etc/intermagnet.json')):
+CONFIG_JSON = os.path.expanduser('~/etc/intermagnet.json')
+"""
+Path to INTERMAGNET repository JSON configuration file.
+"""
+
+
+def get_config(fname=CONFIG_JSON):
     """
-    Return the repository root path found in the JSON configuration
-    file *fname*.
+    Return the configuration mapping specified in the JSON file
+    *fname*.
     """
     if not os.path.isfile(fname):
         raise RuntimeError('could not fined repository configuration file {}'.format(fname))
     logger.info('loading repository root from {}'.format(fname))
     with open(fname) as fid:
-        config = json.load(fid)
-    return config['root']
+        try:
+            config = json.load(fid)
+        except:
+            logger.error('could not parse JSON configuration file {}'.format(fname))
+            raise
+    return config
+
+
+def get_root(fname=CONFIG_JSON):
+    """
+    Return the repository root path found in the JSON configuration
+    file *fname*.
+    """
+    return get_config(fname=fname)['root']
+
+
+def get_login(fname=CONFIG_JSON):
+    """
+    Return the a tuple containing the INTERMAGNET ftp login user name
+    and password stored in the JSON configuration file *fname*.
+    """
+    config = get_config(fname=fname)
+    return config['user'], config['password']
 
 
 PATH_MAP = {'definitive': '{root}/intermagnet',
