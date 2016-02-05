@@ -67,11 +67,33 @@ class Observation(namedtuple('Observation', 'C1 P1 L1 P2 L2 el')):
         return LAMBDA_WL * self.N_WL
 
     @property
+    def P_I(self):
+        """
+        """
+        return self.P2 - self.P1
+
+    @property
+    def L_I(self):
+        """
+        """
+        return self.L1 - self.L2
+
+    @property
+    def L_Im(self):
+        """
+        """
+        return self.L1m - self.L2m
+
+    @property
     def MP1(self):
+        """
+        """
         return self.P1 - MP_A * self.L1m + MP_B * self.L2m
 
     @property
     def MP2(self):
+        """
+        """
         return self.P2 - MP_C * self.L1m + MP_D * self.L2m
 
 
