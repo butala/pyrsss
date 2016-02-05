@@ -3,7 +3,6 @@ from __future__ import division
 from datetime import datetime
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import sys
-import json
 import logging
 import os
 import math
