@@ -1,12 +1,13 @@
 import logging
 import os
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from datetime import datetime
 
 import sh
 from intervals import DateTimeInterval
 
 from ..util.path import SmartTempDir
+from rinex import read_rindump, ObsMap, Observation
 
 logger = logging.getLogger('pyrsss.gps.phase_edit')
 
@@ -214,7 +215,7 @@ def parse_edit_commands(df_fname):
     ???
     """
     time_reject_map = defaultdict(list)
-    phase_adjust_map = defaultdict(lambda: defaultdict(OrderedDict))
+    phase_adjust_map = defaultdict(list)
     start_command = None
     with open(df_fname) as fid:
         for line in fid:
@@ -242,10 +243,50 @@ def parse_edit_commands(df_fname):
                 time_reject_map[sv].append(DateTimeInterval([dt, dt]))
             elif line.startswith('-BD+'):
                 _, sv, obs_type, dt, offset = parse_bias_command(line)
-                phase_adjust_map[sv][obs_type][dt] = offset
+                # phase_adjust_map[sv][obs_type][dt] = offset
+                phase_adjust_map[sv].append((dt, obs_type, offset))
             else:
                 raise NotImplementedError('unhandled edit command {}'.format(line))
     return time_reject_map, phase_adjust_map
+
+
+def filter_obs_map(obs_map,
+                   time_reject_map,
+                   phase_adjust_map):
+    """
+    ???
+    """
+    processed_obs_map = ObsMap()
+    for sat in sorted(obs_map):
+        L1_delta = 0
+        L2_delta = 0
+        reject_list = list(time_reject_map[sat])
+        offset_list = list(phase_adjust_map[sat])
+        for dt, obs in obs_map[sat].iteritems():
+            # time rejection
+            while reject_list and dt > reject_list[0].upper:
+                reject_list.pop(0)
+            if reject_list and dt in reject_list[0]:
+                # delete observation from stream
+                continue
+            # phase adjustment
+            while offset_list and dt >= offset_list[0][0]:
+                _, obs_type, offset = offset_list.pop(0)
+                if obs_type == 'L1':
+                    L1_delta += offset
+                elif obs_type == 'L2':
+                    L2_delta += offset
+                else:
+                    # impossible
+                    assert False
+            # add accepted, adjusted observation to output
+            processed_obs_map[sat][dt] = Observation(obs.C1,
+                                                     obs.P1,
+                                                     obs.L1 + L1_delta,
+                                                     obs.P2,
+                                                     obs.L2 + L2_delta,
+                                                     obs.el)
+    return processed_obs_map
 
 
 if __name__ == '__main__':
@@ -257,3 +298,11 @@ if __name__ == '__main__':
 
     (time_reject_map,
      phase_adjust_map) = phase_edit(rinex_fname, interval)
+
+    rinex_dump = '/Users/butala/src/absolute_tec/jplm0010.14o.dump'
+
+    obs_map = read_rindump(rinex_dump)
+
+    obs_map = filter_obs_map(obs_map,
+                             time_reject_map,
+                             phase_adjust_map)
