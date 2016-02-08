@@ -1,11 +1,17 @@
+from __future__ import division
+
 import logging
-from collections import namedtuple
+import math
+from collections import namedtuple, defaultdict
 from datetime import timedelta
 from itertools import groupby
 
 import numpy as NP
 
+from ..util.stats import weighted_avg_and_std
+from constants import TECU_TO_M, M_TO_TECU
 from rinex import ObsTimeSeries
+from rms_model import RMSModel
 
 logger = logging.getLogger('pyrsss.gps.level')
 
@@ -15,7 +21,8 @@ class Config(namedtuple('Config',
                         'minimum_arc_time '
                         'minimum_arc_points '
                         'scatter_factor '
-                        'scatter_threshold')):
+                        'scatter_threshold '
+                        'p1p2_threshold')):
     pass
 
 
@@ -44,12 +51,22 @@ SCATTER_THRESHOLD = 20
 ??? (in [???])
 """
 
+P1P2_THRESHOLD = 5e-6
+"""
+??? (in in [m])
+"""
+
 
 DEFAULT_CONFIG = Config(MINIMUM_ELEVATION,
                         MINIMUM_ARC_TIME,
                         MINIMUM_ARC_POINTS,
                         SCATTER_FACTOR,
-                        SCATTER_THRESHOLD)
+                        SCATTER_THRESHOLD,
+                        P1P2_THRESHOLD)
+
+
+class LeveledArc(namedtuple('LeveledArc', 'dt stec sprn el L L_scatter')):
+    pass
 
 
 def arc_iter(obs_time_series, gap_length):
@@ -75,6 +92,8 @@ def level_phase_to_code(obs_map,
 
     gap_length should come from phase_edit?
     """
+    arc_map = defaultdict(list)
+    rms_model = RMSModel()
     for sat in sorted(obs_map):
         for arc_index, obs_time_series in arc_iter(obs_map[sat], gap_length):
             arc_time_length = (obs_time_series.keys()[-1] -
@@ -83,7 +102,7 @@ def level_phase_to_code(obs_map,
                 # reject short arc (time)
                 logger.info('rejecting sat={} arc={} --- '
                             'begin={:%Y-%m-%d %H:%M:%S} '
-                            'end={:%Y-%m-%d %H:%N:%S} '
+                            'end={:%Y-%m-%d %H:%M:%S} '
                             'length={} [s] '
                             '< {} [s]'.format(sat,
                                               arc_index,
@@ -100,16 +119,46 @@ def level_phase_to_code(obs_map,
                                              len(obs_time_series),
                                              config.minimum_arc_points))
                 continue
-            print(arc_index)
-            print(len(obs_time_series))
-            print(obs_time_series.items()[0])
-            print(obs_time_series.items()[1])
-            print(obs_time_series.items()[-2])
-            print(obs_time_series.items()[-1])
-            print('  ')
-            print('  ')
-        assert False
-
+            # remove observations below minimum elevation limit
+            el_filter = lambda x: x[1].el >= config.minimum_elevation
+            # remove measurements with |p1 - p2| < threshold
+            p1p2_filter = lambda x: abs(x[1].P1 - x[1].P2) > config.p1p2_threshold
+            dts, obs = zip(*filter(lambda x: el_filter(x) and p1p2_filter(x),
+                                   obs_time_series.iteritems()))
+            P_I = NP.array([x.P_I for x in obs])
+            L_Im = NP.array([x.L_Im for x in obs])
+            diff = P_I - L_Im
+            modeled_var = (NP.array(map(rms_model,
+                                        [x.el for x in obs])) * TECU_TO_M)**2
+            # compute level, level scatter, and modeled scatter
+            N = len(diff)
+            L, L_scatter = weighted_avg_and_std(diff, 1/modeled_var)
+            sigma_scatter = NP.sqrt(NP.sum(modeled_var) / N)
+            # check for excessive leveling uncertainty
+            if L_scatter > config.scatter_factor * sigma_scatter:
+                logger.info('rejecting sat={} arc={} --- L scatter={:.6f} '
+                            '> {:.1f} * {:.6f}'.format(sat,
+                                                       arc_index,
+                                                       L_scatter,
+                                                       config.scatter_factor,
+                                                       sigma_scatter))
+                continue
+            if L_scatter / TECU_TO_M > config.scatter_threshold:
+                logger.info('rejecting sat={} arc={} --- L uncertainty (in '
+                            '[TECU])={:.1f} > '
+                            '{:.1f}'.format(sat,
+                                            arc_index,
+                                            L_scatter * M_TO_TECU,
+                                            config.scatter_threshold))
+                continue
+            # store information
+            arc_map[sat].append(LeveledArc(dts,
+                                           L_Im + L,
+                                           P_I,
+                                           [x.el for x in obs],
+                                           L,
+                                           L_scatter))
+    return arc_map
 
 
 if __name__ == '__main__':
@@ -134,3 +183,25 @@ if __name__ == '__main__':
                              phase_adjust_map)
 
     arc_map = level_phase_to_code(obs_map)
+
+    import matplotlib
+    matplotlib.use('agg')
+    import pylab as PL
+
+    fig = PL.figure(figsize=(11, 8.5))
+
+    for sat, arcs in arc_map.iteritems():
+        fig.clf()
+        for arc in arcs:
+            PL.plot_date(arc.dt,
+                         arc.sprn,
+                         ls='None',
+                         marker='x',
+                         color='r')
+            PL.plot_date(arc.dt,
+                         arc.stec,
+                         ls='-',
+                         marker='None',
+                         color='b')
+        PL.savefig('/tmp/fig/{}.pdf'.format(sat),
+                   bbox_inches='tight')
