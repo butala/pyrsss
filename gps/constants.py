@@ -38,5 +38,8 @@ TECU_TO_NS = K * 10**25 / const.c * (N_1**2 - N_2**2) / (F_0 * N_1 * N_2)**2
 TECU_TO_KM = TECU_TO_NS * (const.c / (1e9 * 1e3))
 """Conversion factor from [TECU] to [km]."""
 
-M_TO_TECU = 1 / (1000 * TECU_TO_KM)
-"""Conversion factor from [m] to [TECU}."""
+TECU_TO_M = TECU_TO_KM * 1e3
+"""Conversion factor from [TECU] to [m]."""
+
+M_TO_TECU = 1 / TECU_TO_M
+"""Conversion factor from [m] to [TECU]."""
