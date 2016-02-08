@@ -26,6 +26,23 @@ def robust_std(l, alpha=1/scipy.stats.norm.ppf(0.75)):
     return alpha * mad(l)[0]
 
 
+def weighted_avg_and_std(values, weights):
+    """
+    Return the weighted average and standard deviation.
+
+    values, weights -- Numpy ndarrays with the same shape.
+
+    References:
+    - http://stackoverflow.com/questions/2413522/weighted-standard-deviation-in-numpy
+    - https://en.wikipedia.org/wiki/Mean_square_weighted_deviation
+
+    Note: The method is biased (division by N and not (N-1)).
+    """
+    average = NP.average(values, weights=weights)
+    variance = NP.average((values-average)**2, weights=weights)  # Fast and numerically precise
+    return (average, math.sqrt(variance))
+
+
 class Stats(object):
     def __init__(self):
         self.reset()
