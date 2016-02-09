@@ -8,6 +8,7 @@ from intervals import DateTimeInterval
 
 from ..util.path import SmartTempDir
 from rinex import read_rindump, ObsMap, Observation
+from teqc import rinex_info
 
 logger = logging.getLogger('pyrsss.gps.phase_edit')
 
@@ -258,6 +259,7 @@ def filter_obs_map(obs_map,
     """
     processed_obs_map = ObsMap()
     for sat in sorted(obs_map):
+        # add C1_delta, P1_delta, P2_delta: cc2noncc happens here
         L1_delta = 0
         L2_delta = 0
         reject_list = list(time_reject_map[sat])
@@ -282,10 +284,14 @@ def filter_obs_map(obs_map,
             # add accepted, adjusted observation to output
             processed_obs_map[sat][dt] = Observation(obs.C1,
                                                      obs.P1,
-                                                     obs.L1 + L1_delta,
                                                      obs.P2,
+                                                     obs.L1 + L1_delta,
                                                      obs.L2 + L2_delta,
-                                                     obs.el)
+                                                     obs.az,
+                                                     obs.el,
+                                                     obs.satx,
+                                                     obs.saty,
+                                                     obs.satz)
     return processed_obs_map
 
 
@@ -294,7 +300,11 @@ if __name__ == '__main__':
     logging.getLogger('sh').setLevel(logging.WARNING)
 
     rinex_fname = '/Users/butala/src/absolute_tec/jplm0010.14o'
-    interval = 30
+    nav_fname = '/Users/butala/src/absolute_tec/jplm0010.14n'
+
+    info = rinex_info(rinex_fname,
+                      nav_fname)
+    interval = info['interval']
 
     (time_reject_map,
      phase_adjust_map) = phase_edit(rinex_fname, interval)
