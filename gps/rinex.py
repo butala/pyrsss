@@ -10,6 +10,7 @@ import sh
 import scipy.constants as const
 
 from constants import EPOCH, F_1, F_2, LAMBDA_1, LAMBDA_2
+from teqc import rinex_info
 
 logger = logging.getLogger('pyrsss.gps.rinex')
 
@@ -46,6 +47,13 @@ they do!).
 """
 
 
+def get_receiver_position(rinex_fname, nav_fname):
+    """
+    ???
+    """
+    return rinex_info(rinex_fname, nav_fname)['xyz']
+
+
 def dump_rinex(dump_fname,
                rinex_fname,
                nav_fname,
@@ -61,7 +69,8 @@ def dump_rinex(dump_fname,
     rin_dump_command = sh.Command(rin_dump)
     stderr_buffer = StringIO()
     if receiver_position is None:
-        reciever_position = get_receiver_position(rinex_fname)
+        receiver_position = get_receiver_position(rinex_fname,
+                                                  nav_fname)
     logger.info('dumping {} to {}'.format(rinex_fname,
                                           dump_fname))
     args = ['--nav', nav_fname,
@@ -257,8 +266,7 @@ if __name__ == '__main__':
 
     dump_rinex('/tmp/jplm0010.14o.dump',
                '/Users/butala/src/absolute_tec/jplm0010.14o',
-               '/Users/butala/src/absolute_tec/jplm0010.14n',
-               receiver_position=[-2493304.6796, -4655215.1032, 3565497.5918])
+               '/Users/butala/src/absolute_tec/jplm0010.14n')
 
     obs_map = read_rindump('/tmp/jplm0010.14o.dump')
 
