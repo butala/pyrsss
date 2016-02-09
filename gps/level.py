@@ -153,11 +153,11 @@ def level_phase_to_code(obs_map,
                 continue
             # store information
             arc_map[sat].append(LeveledArc(dts,
-                                           L_Im + L,
-                                           P_I,
+                                           (L_Im + L) * M_TO_TECU,
+                                           P_I * M_TO_TECU,
                                            [x.el for x in obs],
-                                           L,
-                                           L_scatter))
+                                           L * M_TO_TECU,
+                                           L_scatter * M_TO_TECU))
     return arc_map
 
 
