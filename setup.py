@@ -11,5 +11,6 @@ setup(name='pyrsss',
       packages=['pyrsss',
                 'pyrsss.emission',
                 'pyrsss.gps',
+                'pyrss.ionex',
                 'pyrsss.mag',
                 'pyrsss.util'])
