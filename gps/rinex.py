@@ -1,45 +1,154 @@
 from __future__ import division
 
+import os
+import logging
 from datetime import timedelta
 from collections import OrderedDict, namedtuple
+from cStringIO import StringIO
 
+import sh
 import scipy.constants as const
 
 from constants import EPOCH, F_1, F_2, LAMBDA_1, LAMBDA_2
+
+logger = logging.getLogger('pyrsss.gps.rinex')
+
+
+try:
+    GPSTK_BUILD_PATH = os.environ['GPSTK_BUILD']
+except KeyError:
+    raise RuntimeError('environment variable GPSTK_BUILD not set')
+
+
+RIN_DUMP = os.path.join(GPSTK_BUILD_PATH,
+                        'core',
+                        'apps',
+                        'Rinextools',
+                        'RinDump')
+
+
+
+RINDUMP_OBS_MAP = {'GC1C': 'C1',
+                   'GC1W': 'P1',
+                   'GL1C': 'L1',
+                   'GC2W': 'P2',
+                   'GL2W': 'L2',
+                   'ELE':  'el',
+                   'AZI':  'az',
+                   'SVX':  'satx',
+                   'SVY':  'saty',
+                   'SVZ':  'satz'}
+"""
+???
+
+Unsure why the above do not correlate with the output of RinSum (no,
+they do!).
+"""
+
+
+def dump_rinex(dump_fname,
+               rinex_fname,
+               nav_fname,
+               receiver_position=None,
+               rin_dump=RIN_DUMP):
+    """
+    ???
+
+    currently only dumps GPS observables
+
+    receiver position in [m]
+    """
+    rin_dump_command = sh.Command(rin_dump)
+    stderr_buffer = StringIO()
+    if receiver_position is None:
+        reciever_position = get_receiver_position(rinex_fname)
+    logger.info('dumping {} to {}'.format(rinex_fname,
+                                          dump_fname))
+    args = ['--nav', nav_fname,
+            '--ref', ','.join(map(str, receiver_position)),
+            rinex_fname] + RINDUMP_OBS_MAP.keys()
+    rin_dump_command(*args,
+                     _out=dump_fname,
+                     _err=stderr_buffer)
+    stderr = stderr_buffer.read()
+    if len(stderr) > 0:
+        raise RuntimeError('error dumping the contents of '
+                           '{} with {} ({})'.format(rinex_fname,
+                                                    rin_dump,
+                                                    stderr))
+    return dump_fname
+
+
+"""
+MAKE CONFIG ROBUST
+
+To incorporate RinDump we need:
+- RINEX obs file
+- RINEX nav file
+- site location (ideally from a more robust source than RINEX header)
+- desired observables (hook into GPSTk code that queries RINEX for, e.g., L1 and returns GL1C as appropriate)
+"""
+
+
+"""
+Can use GPSTk to get robust RINEX information (e.g., interval, receiver type, data type mapping):
+"""
+
+
+"""
+Can use GPSTk to find station position, e.g.:
+
+./build-shaolin-v2.8/core/apps/positioning/PRSolve --obs ~/src/absolute_tec/jplm0010.14o --nav ~/src/absolute_tec/jplm0010.14n --sol GPS:12:W
+
+Note that teqc also does this!
+"""
+
+"""
+Note the GPSTk can compute ionospheric pierce points (see
+core/lib/GNSSCore/Position.cpp). It would not be hard to convert this
+t pure python (its just trig and coordinate transformations).
+"""
+
 
 """
 Ideally we would have a cython interface to the GPSTk RINEX reader
 routines.
 """
 
-RINDUMP_OBS_MAP = {'GC1C': 'C1',
-                   'GC1P': 'P1',
-                   'GL1C': 'L1',
-                   'GC2W': 'P2',
-                   'GL2X': 'L2',
-                   'ELE':  'el'}
-
 
 LAMBDA_WL = const.c / (F_1 - F_2)
-""" ??? """
+"""
+???
+"""
 
 ALPHA = (F_1 / F_2)**2
-""" ??? """
+"""
+???
+"""
 
 MP_A = 1 + 2 / (ALPHA - 1)
-""" ??? """
+"""
+???
+"""
 
 MP_B = 2 / (ALPHA - 1)
-""" ??? """
+"""
+???
+"""
 
 MP_C = 2 * ALPHA / (ALPHA - 1)
-""" ??? """
+"""
+???
+"""
 
 MP_D = 2 * ALPHA / (ALPHA - 1) - 1
-""" ??? """
+"""
+???
+"""
 
 
-class Observation(namedtuple('Observation', 'C1 P1 L1 P2 L2 el')):
+class Observation(namedtuple('Observation',
+                             'C1 P1 P2 L1 L2 az el satx saty satz')):
     @property
     def L1m(self):
         """
@@ -121,7 +230,7 @@ def read_rindump(rindump_fname):
                 cols = line.split()
                 data_index_map = {RINDUMP_OBS_MAP[data_id]: i for i, data_id in enumerate(cols[4:])}
                 column_mapping = []
-                for x in ['C1', 'P1', 'L1', 'P2', 'L2', 'el']:
+                for x in Observation._fields:
                     try:
                         column_mapping.append(data_index_map[x])
                     except KeyError:
@@ -143,13 +252,14 @@ def read_rindump(rindump_fname):
 
 
 if __name__ == '__main__':
-    obs_map = read_rindump('/tmp/test/jplm0010.14o.dump')
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger('sh').setLevel(logging.WARNING)
 
-    print(len(obs_map))
-    print(obs_map['G01'].values()[0])
+    dump_rinex('/tmp/jplm0010.14o.dump',
+               '/Users/butala/src/absolute_tec/jplm0010.14o',
+               '/Users/butala/src/absolute_tec/jplm0010.14n',
+               receiver_position=[-2493304.6796, -4655215.1032, 3565497.5918])
 
-    print(obs_map['G01'].values()[0].L1m)
+    obs_map = read_rindump('/tmp/jplm0010.14o.dump')
 
-    # import numpy as NP
-    # print(sorted(set(NP.diff(data_map['G03'].keys()))))
-    # print(data_map['G03'].values()[:3])
+    print(obs_map.values()[0].items()[0])
