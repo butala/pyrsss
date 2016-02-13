@@ -2,14 +2,17 @@ from __future__ import division
 
 import logging
 import math
+from datetime import datetime, timedelta
 
 import numpy as NP
 import scipy.signal
 import pandas as PD
 import pynfftls
+from intervals import DateTimeInterval
 
 from repository import get_data_frame, get_root
 from ..util.date import toJ2000
+from ..util.search import find_le, find_ge
 
 logger = logging.getLogger('pyrsss.mag.love_gannon')
 
@@ -74,11 +77,104 @@ def external_field_variation(series, coeffs):
                      data=series.values - NP.polynomial.chebyshev.chebval(x, coeffs))
 
 
-def remove_active_days(E_series):
+def slice_series_by_dt(series,
+                       min_dt,
+                       max_dt):
     """
     ???
     """
-    pass
+    i1, _ = find_le(series.index, PD.Timestamp(min_dt))
+    i2, _ = find_ge(series.index, PD.Timestamp(max_dt))
+    return series[i1:i2]
+
+
+def remove_active_days(E_series,
+                       min_threshold,
+                       quiet_min,
+                       quiet_max,
+                       delta=timedelta(hours=2)):
+    """
+    ???
+    """
+    Q_series = E_series.copy()
+    active_intervals = []
+    # tic = time.clock()
+    while Q_series.min() < min_threshold:
+        #print('1')
+        # print(tic - time.clock())
+        print(len(Q_series), Q_series.min(), min_threshold)
+        dt_min = Q_series.argmin().to_datetime()
+        Q_series_min = Q_series.index[0].to_datetime()
+        Q_series_max = Q_series.index[-1].to_datetime()
+        # tic = time.clock()
+        active_interval = DateTimeInterval([max(dt_min - timedelta(hours=12),
+                                               Q_series_min),
+                                           min(dt_min + timedelta(hours=12),
+                                               Q_series_max)])
+        # print('2')
+        # print(tic - time.clock())
+        # expand left
+        while True:
+            # tic = time.clock()
+            # Q_series_left = Q_series[(Q_series.index >= PD.Timestamp(active_interval.lower)) &
+            #                          (Q_series.index < PD.Timestamp(active_interval.lower + timedelta(hours=1)))]
+
+            Q_series_left = slice_series_by_dt(Q_series,
+                                               active_interval.lower,
+                                               active_interval.lower + delta)
+            # import ipdb; ipdb.set_trace()
+            # print('3')
+            # print(tic - time.clock())
+            if Q_series_left.min() > quiet_min and Q_series_left.max() < quiet_max:
+                break
+            active_interval = DateTimeInterval([max(active_interval.lower - delta,
+                                                   Q_series_min),
+                                               active_interval.upper])
+            if active_interval.lower == Q_series_min:
+                break
+            # i += 1
+            # print(i)
+        # expand right
+        while True:
+            # tic = time.clock()
+            # Q_series_right = Q_series[(Q_series.index > PD.Timestamp(active_interval.upper) - timedelta(hours=1)) &
+            #                           (Q_series.index <= PD.Timestamp(active_interval.upper))]
+
+            Q_series_right = slice_series_by_dt(Q_series,
+                                                active_interval.upper - delta,
+                                                active_interval.upper)
+            # print('4')
+            # print(tic - time.clock())
+            if Q_series_right.min() > quiet_min and Q_series_right.max() < quiet_max:
+                break
+            active_interval = DateTimeInterval([active_interval.lower,
+                                               min(active_interval.upper + delta,
+                                                   Q_series_max)])
+            if active_interval.upper == Q_series_max:
+                break
+        # remove active period from
+        print(active_interval, active_interval.length.total_seconds() / 60 / 60 / 24)
+        # tic = time.clock()
+        # Q_series_copy = Q_series.copy()
+
+        # Q_series = Q_series[(Q_series.index < PD.Timestamp(active_interval.lower)) |
+        #                     (Q_series.index > PD.Timestamp(active_interval.upper))]
+
+
+        Q_series = PD.concat([slice_series_by_dt(Q_series,
+                                                 Q_series_min,
+                                                 active_interval.lower - timedelta(seconds=1)),
+                              slice_series_by_dt(Q_series,
+                                                 active_interval.upper + timedelta(seconds=1),
+                                                 Q_series_max)])
+
+        # import ipdb; ipdb.set_trace()
+
+        # print(tic - time.clock())
+        active_intervals.append(active_interval)
+        # print('5')
+        # tic = time.clock()
+    return Q_series, active_intervals
 
 
 if __name__ == '__main__':
@@ -121,52 +217,107 @@ if __name__ == '__main__':
     E_series = PD.read_hdf('/tmp/E.hdf')
     E_series = E_series[E_series.notnull()]
 
-    N = 1024
-    days_to_seconds = 60 * 60 * 24
+    summary = E_series.describe()
 
-    periods = NP.linspace(0.9 * days_to_seconds, 1.1 * days_to_seconds, N)
-    freqs = 1 / periods
-    angular_freqs = 2 * math.pi * freqs
-
-    # time = [toJ2000(x.to_datetime()) for x in E_series.index]
-    time = E_series.index.astype(NP.int64) / 1e9
-    time -= time[0]
-
-    # print(time[:10])
-
-    # print(E_series.index[0])
-    # print(toJ2000(E_series.index[0].to_datetime()))
-    # print(toJ2000(E_series.index[1].to_datetime()))
-    # # print(dir(E_series.index[0]))
-    # # print(type(E_series.index[0]))
+    # print(summary)
     # assert False
 
-    # pgram = scipy.signal.lombscargle(time, E_series.values, angular_freqs)
-    # normalized_pgram = NP.sqrt(4 * (pgram / len(E_series)))
+    (Q_series, active_intervals) = remove_active_days(E_series,
+                                                      -30,
+                                                      -10,
+                                                       10)
 
-    ofac = 2
-    hifac = 1
+    from cPickle import dump
 
-    # print('begin nfftls')
-    # (f_nfftls, p_nfftls) = pynfftls.period(time, E_series.values, ofac, hifac)
-    # print('end nfftls')
+    with open('Q_series.pkl', 'w') as fid:
+        dump((Q_series, active_intervals), fid, -1)
 
-    # from cPickle import dump
-    # with open('/tmp/love_gannon.pkl', 'w') as fid:
-    #     dump((f_nfftls, p_nfftls), fid, -1)
+    import ipdb; ipdb.set_trace()
 
-    from cPickle import load
-    with open('/tmp/love_gannon.pkl') as fid:
-        (f_nfftls, p_nfftls) = load(fid)
+    # print(dir(summary))
+
+    # print(E_series.argmin())
+
+
+    hist, bin_edges = NP.histogram(E_series.values,
+                                   bins=1024,
+                                   normed=True)
+
+    delta = bin_edges[1] - bin_edges[0]
+    bin_centers = [x + delta / 2 for x in bin_edges[:-1]]
+
+    cdf = NP.cumsum(hist * delta)
+
+    print(cdf[-1])
+
+    # assert False
+
+    # print(E_series.min())
+    # print(E_series.max())
 
     import pylab as PL
 
-    fig = PL.figure()
-    # PL.plot(1 / f_nfftls / days_to_seconds,
-    #         p_nfftls)
-    PL.semilogy(1 / f_nfftls / days_to_seconds,
-             p_nfftls)
-    # PL.autoscale(axis='x', tight=True)
-    # PL.xlim(0.9, 1.1)
+    PL.plot(bin_centers,
+            cdf)
+
+    PL.autoscale(axis='x', tight=True)
 
     PL.show()
+
+    # print(len(E_series))
+    # print(E_series.min())
+    # print(E_series.max())
+
+    # import pylab as PL
+    # PL.hist(E_series.)
+
+
+    # N = 1024
+    # days_to_seconds = 60 * 60 * 24
+
+    # periods = NP.linspace(0.9 * days_to_seconds, 1.1 * days_to_seconds, N)
+    # freqs = 1 / periods
+    # angular_freqs = 2 * math.pi * freqs
+
+    # # time = [toJ2000(x.to_datetime()) for x in E_series.index]
+    # time = E_series.index.astype(NP.int64) / 1e9
+    # time -= time[0]
+
+    # # print(time[:10])
+
+    # # print(E_series.index[0])
+    # # print(toJ2000(E_series.index[0].to_datetime()))
+    # # print(toJ2000(E_series.index[1].to_datetime()))
+    # # # print(dir(E_series.index[0]))
+    # # # print(type(E_series.index[0]))
+    # # assert False
+
+    # # pgram = scipy.signal.lombscargle(time, E_series.values, angular_freqs)
+    # # normalized_pgram = NP.sqrt(4 * (pgram / len(E_series)))
+
+    # ofac = 2
+    # hifac = 1
+
+    # # print('begin nfftls')
+    # # (f_nfftls, p_nfftls) = pynfftls.period(time, E_series.values, ofac, hifac)
+    # # print('end nfftls')
+
+    # # from cPickle import dump
+    # # with open('/tmp/love_gannon.pkl', 'w') as fid:
+    # #     dump((f_nfftls, p_nfftls), fid, -1)
+
+    # from cPickle import load
+    # with open('/tmp/love_gannon.pkl') as fid:
+    #     (f_nfftls, p_nfftls) = load(fid)
+
+    # import pylab as PL
+
+    # fig = PL.figure()
+    # # PL.plot(1 / f_nfftls / days_to_seconds,
+    # #         p_nfftls)
+    # PL.semilogy(1 / f_nfftls / days_to_seconds,
+    #          p_nfftls)
+    # # PL.autoscale(axis='x', tight=True)
+    # # PL.xlim(0.9, 1.1)
+
+    # PL.show()
