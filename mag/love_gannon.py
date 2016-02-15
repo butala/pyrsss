@@ -92,39 +92,25 @@ def remove_active_days(E_series,
                        min_threshold,
                        quiet_min,
                        quiet_max,
-                       delta=timedelta(hours=2)):
+                       delta=timedelta(hours=4)):
     """
     ???
     """
     Q_series = E_series.copy()
     active_intervals = []
-    # tic = time.clock()
     while Q_series.min() < min_threshold:
-        #print('1')
-        # print(tic - time.clock())
-        print(len(Q_series), Q_series.min(), min_threshold)
         dt_min = Q_series.argmin().to_datetime()
         Q_series_min = Q_series.index[0].to_datetime()
         Q_series_max = Q_series.index[-1].to_datetime()
-        # tic = time.clock()
         active_interval = DateTimeInterval([max(dt_min - timedelta(hours=12),
                                                Q_series_min),
                                            min(dt_min + timedelta(hours=12),
                                                Q_series_max)])
-        # print('2')
-        # print(tic - time.clock())
         # expand left
         while True:
-            # tic = time.clock()
-            # Q_series_left = Q_series[(Q_series.index >= PD.Timestamp(active_interval.lower)) &
-            #                          (Q_series.index < PD.Timestamp(active_interval.lower + timedelta(hours=1)))]
-
             Q_series_left = slice_series_by_dt(Q_series,
                                                active_interval.lower,
                                                active_interval.lower + delta)
-            # import ipdb; ipdb.set_trace()
-            # print('3')
-            # print(tic - time.clock())
             if Q_series_left.min() > quiet_min and Q_series_left.max() < quiet_max:
                 break
             active_interval = DateTimeInterval([max(active_interval.lower - delta,
@@ -132,19 +118,11 @@ def remove_active_days(E_series,
                                                active_interval.upper])
             if active_interval.lower == Q_series_min:
                 break
-            # i += 1
-            # print(i)
         # expand right
         while True:
-            # tic = time.clock()
-            # Q_series_right = Q_series[(Q_series.index > PD.Timestamp(active_interval.upper) - timedelta(hours=1)) &
-            #                           (Q_series.index <= PD.Timestamp(active_interval.upper))]
-
             Q_series_right = slice_series_by_dt(Q_series,
                                                 active_interval.upper - delta,
                                                 active_interval.upper)
-            # print('4')
-            # print(tic - time.clock())
             if Q_series_right.min() > quiet_min and Q_series_right.max() < quiet_max:
                 break
             active_interval = DateTimeInterval([active_interval.lower,
@@ -153,27 +131,13 @@ def remove_active_days(E_series,
             if active_interval.upper == Q_series_max:
                 break
         # remove active period from
-        print(active_interval, active_interval.length.total_seconds() / 60 / 60 / 24)
-        # tic = time.clock()
-        # Q_series_copy = Q_series.copy()
-
-        # Q_series = Q_series[(Q_series.index < PD.Timestamp(active_interval.lower)) |
-        #                     (Q_series.index > PD.Timestamp(active_interval.upper))]
-
-
         Q_series = PD.concat([slice_series_by_dt(Q_series,
                                                  Q_series_min,
                                                  active_interval.lower - timedelta(seconds=1)),
                               slice_series_by_dt(Q_series,
                                                  active_interval.upper + timedelta(seconds=1),
                                                  Q_series_max)])
-
-        # import ipdb; ipdb.set_trace()
-
-        # print(tic - time.clock())
         active_intervals.append(active_interval)
-        # print('5')
-        # tic = time.clock()
     return Q_series, active_intervals
 
 
@@ -223,9 +187,9 @@ if __name__ == '__main__':
     # assert False
 
     (Q_series, active_intervals) = remove_active_days(E_series,
-                                                      -30,
-                                                      -10,
-                                                       10)
+                                                      -100,
+                                                      -20,
+                                                       20)
 
     from cPickle import dump
 
