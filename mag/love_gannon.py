@@ -2,6 +2,7 @@ from __future__ import division
 
 import logging
 import math
+import itertools
 from datetime import datetime, timedelta
 
 import numpy as NP
@@ -11,8 +12,9 @@ import pynfftls
 from intervals import DateTimeInterval
 
 from repository import get_data_frame, get_root
+from constants import LUNAR_SYNODIC_MONTH, SOLAR_TROPICAL_YEAR
 from ..util.date import toJ2000
-from ..util.search import find_le, find_ge
+from ..util.search import find_le, find_ge, find_gt
 
 logger = logging.getLogger('pyrsss.mag.love_gannon')
 
@@ -139,6 +141,73 @@ def remove_active_days(E_series,
                                                  Q_series_max)])
         active_intervals.append(active_interval)
     return Q_series, active_intervals
+
+
+def find_harmonic_peaks(f_range,
+                        q_series_dft,
+                        threshold=10,
+                        center_names=['1', '2', '4', '1/2', '0.8', '4/3', '2/3', '4/7'],
+                        I_year_harmonics=[-4, -2, -1, 0, 1, 2, 4],
+                        I_month_harmonics=[-6, -4, -2, -1, 0, 1, 2, 4, 6],
+                        BETA=1,
+                        DELTA=1000):
+    """
+    """
+    # convert center name to center period
+    def eval_fraction(s):
+        tokens = s.split('/')
+        if len(tokens) == 1:
+            return float(tokens[0])
+        elif len(tokens) == 2:
+            return float(tokens[0]) / float(tokens[1])
+        else:
+            raise ValueError('could not convert {} to float'.format(s))
+    # compute relative difference between inputs
+    def relative_pct_difference(x, y):
+        return (x - y) / y * 100
+    # only consider (strictly) positive frequencies
+    I = f_range > 0
+    f_range = f_range[I]
+    q_series_dft = q_series_dft[I]
+    # expand combinations of harmonics
+    year_harmonics = [i * SOLAR_TROPICAL_YEAR for i in I_year_harmonics]
+    month_harmonics = [i * LUNAR_SYNODIC_MONTH for i in I_month_harmonics]
+    harmonics = list(itertools.product(year_harmonics, month_harmonics))
+    year_names = [str(i) + 'Y' if i != 0 else '' for i in I_year_harmonics]
+    month_names = [str(i) + 'M' if i != 0 else '' for i in I_month_harmonics]
+    harmonic_names = list(itertools.product(year_names, month_names))
+    # compute magnitudes and background level at harmonic frequency
+    # locations
+    center_periods = map(eval_fraction, center_names)
+    magnitudes = {}
+    for center_period, center_name in zip(center_periods, center_names):
+        for (y_harmonic, m_harmonic), (y_name, m_name) in zip(harmonics, harmonic_names):
+            if y_harmonic == m_harmonic == 0:
+                continue
+            # build name
+            name = center_name + 'D'
+            if y_name:
+                name += ' ' + y_name
+            if m_name:
+                name += ' ' + m_name
+            # compute frequency from period
+            freq = 1/center_period
+            if y_harmonic != 0:
+                freq += 1/y_harmonic
+            if m_harmonic != 0:
+                freq += 1/m_harmonic
+            # compute magnitude and background at frequency
+            i, _ = find_gt(f_range, freq)
+            i1 = max(0, i - BETA)
+            i2 = min(len(q_series_dft), i + BETA)
+            magnitude = math.log10(NP.max(NP.abs(q_series_dft[i1:i2+1])))
+            j1 = max(0, i - DELTA)
+            j2 = min(len(q_series_dft), i + DELTA)
+            background = math.log10(NP.median(NP.abs(q_series_dft[j1:j2+1])))
+            # print(relative_difference(magnitude, background))
+            if relative_pct_difference(magnitude, background) >= threshold:
+                magnitudes[name] = (freq, magnitude, background)
+    return magnitudes
 
 
 if __name__ == '__main__':
