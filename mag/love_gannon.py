@@ -10,6 +10,7 @@ import scipy.signal
 import pandas as PD
 import pynfftls
 from intervals import DateTimeInterval
+from pynfft import NFFT
 
 from repository import get_data_frame, get_root
 from constants import LUNAR_SYNODIC_MONTH, SOLAR_TROPICAL_YEAR
@@ -30,6 +31,12 @@ SAMPLES = {'min': 60 * 24}
 """
 Mapping between the number of samples per day for a given sampling
 period.
+"""
+
+
+DAYS_TO_SECONDS = 24 * 60 * 60
+"""
+Conversion factor from [days] to [s].
 """
 
 
@@ -203,11 +210,82 @@ def find_harmonic_peaks(f_range,
             magnitude = math.log10(NP.max(NP.abs(q_series_dft[i1:i2+1])))
             j1 = max(0, i - DELTA)
             j2 = min(len(q_series_dft), i + DELTA)
+            z = NP.abs(q_series_dft[j1:j2+1])
             background = math.log10(NP.median(NP.abs(q_series_dft[j1:j2+1])))
             # print(relative_difference(magnitude, background))
             if relative_pct_difference(magnitude, background) >= threshold:
                 magnitudes[name] = (freq, magnitude, background)
     return magnitudes
+
+
+def is_power_of_2(N):
+    """
+    """
+    log2 = math.log(N, 2)
+    return math.floor(log2) == math.ceil(log2)
+
+
+def zero_pad_series(series):
+    """
+    """
+    N = len(series)
+    next_log2 = math.ceil(math.log(N, 2))
+    M = int(2**next_log2 - N)
+    indices = [series.index[-1] + PD.Timedelta(seconds=x) for x in range(1, M + 1)]
+    zero_series = PD.Series(data=NP.zeros(M),
+                            index=indices)
+    return PD.concat([series, zero_series])
+
+
+def series_nfft(series,
+                oversample=4):
+    """
+    note that output period units are [days] (so is frequency)
+    """
+    M = len(series)
+    if not is_power_of_2(M):
+        raise ValueError('series length {} is not a power of 2'.format(len(series)))
+    N = M
+    if N % 2 == 1:
+        # number of frequency samples must be even
+        N += 1
+    N *= oversample
+    # re-grid time the interval [-1/2, 1/2) as required by nfft
+    time = series.index.astype(NP.int64) / 1e9
+    time -= time[0]
+    b = -0.5
+    a = (M - 1) / (M * time[-1])
+    x = a * time + b
+    # setup for nfft computation
+    plan = NFFT(N, M)
+    plan.x = x
+    plan.f = series.values
+    plan.precompute()
+    # compute nfft (note that conjugation is necessary because of the
+    # difference in transform sign convention)
+    x_nfft = NP.conj(plan.adjoint())
+    # calculate frequencies and periods
+    dt = ((series.index[-1] - series.index[0]) / M).total_seconds() / DAYS_TO_SECONDS
+    f_range = NP.fft.fftshift(NP.fft.fftfreq(N, dt))
+    T_range = 1 / f_range
+    return x_nfft, f_range, T_range
+
+
+def E_series_to_dist(E_series,
+                     min_threshold=-100,
+                     quiet_min=-20,
+                     quiet_max=20,
+                     oversample=4):
+    """
+    """
+    # compute Q_series by removing active periods
+    (Q_series, active_intervals) = remove_active_days(E_series,
+                                                      min_threshold,
+                                                      quiet_min,
+                                                      quiet_max)
+    # calculate DFT of Q_series
+    Q_nfft, f_range, T_range = series_nfft(E_series,
+                                           oversample=oversample)
 
 
 if __name__ == '__main__':
