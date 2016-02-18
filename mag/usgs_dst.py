@@ -1,4 +1,5 @@
 import os
+from itertools import izip
 from datetime import datetime, timedelta
 
 import pandas as PD
