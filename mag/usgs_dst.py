@@ -29,5 +29,5 @@ def read_dst(fname=os.path.join(get_root(),
                      usecols=['month', 'day', 'year', 'minute', 'dst'],
                      date_parser=date_parser)
     df.columns = ['dt', 'dst']
-    return PD.Series(data=usgs_dst['dst'].values,
-                     index=usgs_dst['dt'].values)
+    return PD.Series(data=df['dst'].values,
+                     index=df['dt'].values)
