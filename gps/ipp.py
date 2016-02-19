@@ -1,6 +1,6 @@
 import numpy as np
 
-def cnv_azel2latlon(az, el, ht, site):
+def cnv_azel2latlon(az, el, site, ht=450):
     '''
     Function to convert from an azimuth/elevation grid to a
     latitude/longitude grid given an unwarping height and a site location.
@@ -8,10 +8,10 @@ def cnv_azel2latlon(az, el, ht, site):
     INPUTS:
         az - M x N array of azimuths to be converted [degrees]
         el - M x N array of elevation to be converted [degrees]
-        ht - M x N array of heights to be used in the conversion [km]
         site - 1 x 2 array containing [latitude, longitude] of the site
            [degrees]
-
+        ht - scalar height to be used in the conversion [km] (default is
+             450 [km])
     OUTPUTS:
         lat - M x N array of latitudes [degrees]
         lon - M x N array of longitudes [degrees]
