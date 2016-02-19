@@ -25,10 +25,10 @@ def cnv_azel2latlon(az, el, ht, site):
     Re = 6371.2 # radius of Earth in km
 
     # Convert inputs from degrees to radians
-    el_r = el*np.pi/180.
-    az_r = az*np.pi/180.g
-    lat_r = site[0]*np.pi/180.
-    lon_r = site[1]*np.pi/180.
+    el_r = np.radians(el)
+    az_r = np.radians(az)
+    lat_r = np.radias(site[0])
+    lon_r = np.radians(site[1])
 
     # Calculate the differential angle, alpha
     temp = np.cos(el_r)/(1.+(ht/Re))
@@ -43,7 +43,7 @@ def cnv_azel2latlon(az, el, ht, site):
     lon_r = np.arcsin(temp) + lon_r
 
     # Convert radian measurements to degrees
-    lat = lat_r*180./np.pi
-    lon = lon_r*180./np.pi
+    lat = np.degrees(lat_r)
+    lon = np.degrees(lon_r)
 
-    return lat,lon
+    return lat, lon
