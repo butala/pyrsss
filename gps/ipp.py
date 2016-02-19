@@ -27,7 +27,7 @@ def cnv_azel2latlon(az, el, site, ht=450):
     # Convert inputs from degrees to radians
     el_r = np.radians(el)
     az_r = np.radians(az)
-    lat_r = np.radias(site[0])
+    lat_r = np.radians(site[0])
     lon_r = np.radians(site[1])
 
     # Calculate the differential angle, alpha
