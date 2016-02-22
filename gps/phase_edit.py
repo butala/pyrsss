@@ -60,20 +60,21 @@ def phase_edit(rinex_fname,
     """
     ???
     """
-    # DETERMINE INTERVAL AUTOMATICALLY IF NOT GIVEN
     logger.info('applying GPSTk DiscFix to {} (interval={})'.format(rinex_fname,
                                                                     interval))
     command = sh.Command(disc_fix)
     with SmartTempDir(work_path) as work_path:
         log_fname = os.path.join(work_path, 'df.log')
+        stdout_fname = os.path.join(work_path, 'df.stdout')
+        stderr_fname = os.path.join(work_path, 'df.stderr')
         cmd_fname = os.path.join(work_path, 'df.out')
-        # ADD STDOUT AND STDERR REDIRECT
         command('--inputfile', rinex_fname,
                 '--dt', str(interval),
                 '--logOut', log_fname,
-                '--cmdOut', cmd_fname)
+                '--cmdOut', cmd_fname,
+                _out=stdout_fname,
+                _err=stderr_fname)
         return parse_edit_commands(cmd_fname)
-
 
 
 """
