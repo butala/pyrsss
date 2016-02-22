@@ -18,6 +18,20 @@ def rinex_info(rinex_fname,
             # make sure units are [m]
             assert line.rstrip().endswith('(m)')
             info['xyz'] = map(float, line.split(':')[1].split('(')[0].split())
+        elif line.lstrip().startswith('antenna WGS 84 (geo)'):
+            if line.split(':')[1].lstrip()[0] in ['N', 'S']:
+                # skip arcmin, arcsec line
+                pass
+            else:
+                lat, _, lon, _ = line.split(':')[1].split(None, 3)
+                info['lat'] = float(lat)
+                lon = float(lon)
+                while lon > 180:
+                    lon -= 360
+                info['lon'] = lon
+        elif line.lstrip().startswith('WGS 84 height'):
+            assert line.rstrip().endswith('m')
+            info['height'] = float(line.split(':')[1].rstrip()[:-1])
         elif line.startswith('|qc - header| position'):
             # make sure units are [m]
             assert line.rstrip()[-1] == 'm'
