@@ -7,7 +7,7 @@ import sh
 from intervals import DateTimeInterval
 
 from ..util.path import SmartTempDir
-from rinex import read_rindump, ObsMap, Observation
+from rinex import read_rindump, ObsMap, Observation, dump_rinex
 from teqc import rinex_info
 
 logger = logging.getLogger('pyrsss.gps.phase_edit')
@@ -67,7 +67,7 @@ def phase_edit(rinex_fname,
     with SmartTempDir(work_path) as work_path:
         log_fname = os.path.join(work_path, 'df.log')
         cmd_fname = os.path.join(work_path, 'df.out')
-        # ADD STDOUT AND STDERR REDRIECT
+        # ADD STDOUT AND STDERR REDIRECT
         command('--inputfile', rinex_fname,
                 '--dt', str(interval),
                 '--logOut', log_fname,
@@ -307,11 +307,14 @@ if __name__ == '__main__':
     interval = info['interval']
 
     (time_reject_map,
-     phase_adjust_map) = phase_edit(rinex_fname, interval)
+     phase_adjust_map) = phase_edit(rinex_fname, interval, work_path='/tmp')
 
-    rinex_dump = '/Users/butala/src/absolute_tec/jplm0010.14o.dump'
+    rinex_dump_fname = '/tmp/jplm0010.14o.dump'
+    dump_rinex(rinex_dump_fname,
+               rinex_fname,
+               nav_fname)
 
-    obs_map = read_rindump(rinex_dump)
+    obs_map = read_rindump(rinex_dump_fname)
 
     obs_map = filter_obs_map(obs_map,
                              time_reject_map,
