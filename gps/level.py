@@ -65,7 +65,17 @@ DEFAULT_CONFIG = Config(MINIMUM_ELEVATION,
                         P1P2_THRESHOLD)
 
 
-class LeveledArc(namedtuple('LeveledArc', 'dt stec sprn el L L_scatter')):
+class LeveledArc(namedtuple('LeveledArc',
+                            'dt '
+                            'stec '
+                            'sprn '
+                            'az '
+                            'el '
+                            'satx '
+                            'saty '
+                            'satz '
+                            'L '
+                            'L_scatter')):
     pass
 
 
@@ -156,6 +166,10 @@ def level_phase_to_code(obs_map,
                                            (L_Im + L) * M_TO_TECU,
                                            P_I * M_TO_TECU,
                                            [x.el for x in obs],
+                                           [x.az for x in obs],
+                                           [x.satx for x in obs],
+                                           [x.saty for x in obs],
+                                           [x.satz for x in obs],
                                            L * M_TO_TECU,
                                            L_scatter * M_TO_TECU))
     return arc_map
@@ -163,20 +177,24 @@ def level_phase_to_code(obs_map,
 
 if __name__ == '__main__':
     from phase_edit import phase_edit, filter_obs_map
-    from rinex import read_rindump
+    from rinex import read_rindump, dump_rinex
 
     logging.basicConfig(level=logging.INFO)
     logging.getLogger('sh').setLevel(logging.WARNING)
 
     rinex_fname = '/Users/butala/src/absolute_tec/jplm0010.14o'
+    nav_fname = '/Users/butala/src/absolute_tec/jplm0010.14n'
     interval = 30
 
     (time_reject_map,
      phase_adjust_map) = phase_edit(rinex_fname, interval)
 
-    rinex_dump = '/Users/butala/src/absolute_tec/jplm0010.14o.dump'
+    rinex_dump_fname = '/tmp/jplm0010.14o.dump'
+    dump_rinex(rinex_dump_fname,
+               rinex_fname,
+               nav_fname)
 
-    obs_map = read_rindump(rinex_dump)
+    obs_map = read_rindump(rinex_dump_fname)
 
     obs_map = filter_obs_map(obs_map,
                              time_reject_map,
