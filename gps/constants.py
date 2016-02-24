@@ -43,3 +43,6 @@ TECU_TO_M = TECU_TO_KM * 1e3
 
 M_TO_TECU = 1 / TECU_TO_M
 """Conversion factor from [m] to [TECU]."""
+
+SHELL_HEIGHT = 450
+"""Thin-shell model ionosphere height [km]."""
