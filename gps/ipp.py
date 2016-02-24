@@ -1,6 +1,9 @@
 import numpy as np
 
-def cnv_azel2latlon(az, el, site, ht=450):
+from constants import RE
+
+
+def cnv_azel2latlon(az, el, site, ht=450, Re=RE):
     '''
     Function to convert from an azimuth/elevation grid to a
     latitude/longitude grid given an unwarping height and a site location.
@@ -12,6 +15,7 @@ def cnv_azel2latlon(az, el, site, ht=450):
            [degrees]
         ht - scalar height to be used in the conversion [km] (default is
              450 [km])
+        Re - radius of Earth in km
     OUTPUTS:
         lat - M x N array of latitudes [degrees]
         lon - M x N array of longitudes [degrees]
@@ -22,8 +26,6 @@ def cnv_azel2latlon(az, el, site, ht=450):
         03-Oct-2013: Converted from MATLAB to Python by Brian Harding
         (bhardin2@illinois.edu)
     '''
-    Re = 6371.2 # radius of Earth in km
-
     # Convert inputs from degrees to radians
     el_r = np.radians(el)
     az_r = np.radians(az)

@@ -46,3 +46,6 @@ M_TO_TECU = 1 / TECU_TO_M
 
 SHELL_HEIGHT = 450
 """Thin-shell model ionosphere height [km]."""
+
+RE = 6371.2
+"""Earth radius [km] used in IPP calculations."""
