@@ -1,5 +1,6 @@
 from __future__ import division
 
+import math
 from datetime import datetime
 
 from pyglow.pyglow import Point
@@ -31,22 +32,22 @@ def alpha2(Te):
 
 def k1(Ti):
     """[cm^3 / s]"""
-    return 3.23e-12 * exp(3.72/(Ti/300) - 1.87/(Ti/300)**2)
+    return 3.23e-12 * math.exp(3.72/(Ti/300) - 1.87/(Ti/300)**2)
 
 
 def k2(Ti):
     """[cm^3 / s]"""
-    return 2.78e-13 * exp(2.07/(Ti/300) - 0.61/(Ti/300)**2)
+    return 2.78e-13 * math.exp(2.07/(Ti/300) - 0.61/(Ti/300)**2)
 
 
 def k3(Tn):
     """[cm^3 / s]"""
-    return 2.0e-11 * exp(111.8/Tn)
+    return 2.0e-11 * math.exp(111.8/Tn)
 
 
 def k4(Tn):
     """[cm^3 / s]"""
-    return 2.9e-11 * exp(67.5/Tn)
+    return 2.9e-11 * math.exp(67.5/Tn)
 
 
 def k5(Tn):
