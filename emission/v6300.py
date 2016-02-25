@@ -82,13 +82,13 @@ def Oplus(ne,
                  + k1(Ti) * O2 / (alpha1(Te) * ne) \
                  + k2(Ti) * N2 / (alpha2(Te) * ne))
 
-def emission(ne,
-             Te,
-             Ti,
-             Tn,
-             O2,
-             N2,
-             oplus_type=OplusType.charge_neutrality):
+def emission_v6300(ne,
+                   Te,
+                   Ti,
+                   Tn,
+                   O2,
+                   N2,
+                   oplus_type=OplusType.charge_neutrality):
     """
     """
     if oplus_type == OplusType.ne:
@@ -104,7 +104,7 @@ def emission(ne,
 
 if __name__ == '__main__':
     ne, Te, Ti, Tn, O2, N2 = SP.symbols('ne Te Ti Tn O2 N2')
-    v6300 = emission(ne, Te, Ti, Tn, O2, N2)
+    v6300 = emission_6300(ne, Te, Ti, Tn, O2, N2)
     v6300_f = SP.lambdify((ne, Te, Ti, Tn, O2, N2),
                           v6300)
 
@@ -124,13 +124,13 @@ if __name__ == '__main__':
         pt = Point(dn, lat, lon, alt)
         pt.run_msis()
         pt.run_iri()
-        v6300_ne.append(emission(pt.ne,
-                                 pt.Te,
-                                 pt.Ti,
-                                 pt.Tn_msis,
-                                 pt.nn['O2'],
-                                 pt.nn['N2'],
-                                 oplus_type=OplusType.ne))
+        v6300_ne.append(emission_6300(pt.ne,
+                                      pt.Te,
+                                      pt.Ti,
+                                      pt.Tn_msis,
+                                      pt.nn['O2'],
+                                      pt.nn['N2'],
+                                      oplus_type=OplusType.ne))
         v6300_neutrality.append(v6300_f(pt.ne,
                                         pt.Te,
                                         pt.Ti,
