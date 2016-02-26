@@ -99,7 +99,7 @@ def ionex_stec_map(ionex_fname,
                 i, _ = find_le(dt_list, dt_i)
                 interpolator = interp_map[dt_list[i]]
                 vtec_i = float(interpolator.ev(ipp_lon_i,
-                                               ipp_lon_i))
+                                               ipp_lat_i))
                 ionex_stec.append(vtec_i * el_map_i)
             stec_map[key].append(ionex_stec)
     return stec_map, sat_biases
@@ -146,10 +146,9 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.getLogger('sh').setLevel(logging.WARNING)
 
-    # rinex_fname = '/Users/butala/src/absolute_tec/jplm0010.14o'
-    # nav_fname = '/Users/butala/src/absolute_tec/jplm0010.14n'
-    rinex_fname = '/Users/butala/src/absolute_tec/albh0010.14o'
-    nav_fname = '/Users/butala/src/absolute_tec/albh0010.14n'
+    stn = 'albh'
+    rinex_fname = '/Users/butala/src/absolute_tec/{}0010.14o'.format(stn)
+    nav_fname = '/Users/butala/src/absolute_tec/{}0010.14n'.format(stn)
     interval = 30
 
     ionex_fname = '/Users/butala/src/absolute_tec/JPLH0010.14I'
