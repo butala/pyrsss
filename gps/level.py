@@ -133,8 +133,14 @@ def level_phase_to_code(obs_map,
             el_filter = lambda x: x[1].el >= config.minimum_elevation
             # remove measurements with |p1 - p2| < threshold
             p1p2_filter = lambda x: abs(x[1].P1 - x[1].P2) > config.p1p2_threshold
-            dts, obs = zip(*filter(lambda x: el_filter(x) and p1p2_filter(x),
-                                   obs_time_series.iteritems()))
+            dts_obs = zip(*filter(lambda x: el_filter(x) and p1p2_filter(x),
+                                  obs_time_series.iteritems()))
+            if len(dts_obs) == 0:
+                logger.info('rejecting sat={} arc={} --- el_filer or p1p2 '
+                            'filter'.format(sat, arc_index))
+                continue
+            else:
+                dts, obs = dts_obs
             P_I = NP.array([x.P_I for x in obs])
             L_Im = NP.array([x.L_Im for x in obs])
             diff = P_I - L_Im
