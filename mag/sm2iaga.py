@@ -1,6 +1,7 @@
 import sys
 import os
 import logging
+import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime
 from collections import defaultdict
@@ -15,8 +16,8 @@ HEADER_TEMPLATE = """\
  Geodetic Latitude      XXX                                          |
  Geodetic Longitude     XXX                                          |
  Elevation              XXX                                          |
- Reported               {reported}                                          |
-DATE       TIME         DOY     {stn}{C1}      {stn}{C2}      {stn}{C3}             |
+ Reported               {reported}                                         |
+DATE       TIME         DOY     {stn}{C1}      {stn}{C2}      {stn}{C3}      {stn}F   |
 """
 
 
@@ -34,9 +35,9 @@ def get_reported(df):
     """
     """
     if all([x in df.columns for x in ['N', 'E', 'Z']]):
-        return 'XYZ', {'C1': ('X', 'N'),
-                       'C2': ('Y', 'E'),
-                       'C3': ('Z', 'Z')}
+        return 'XYZF', {'C1': ('X', 'N'),
+                        'C2': ('Y', 'E'),
+                        'C3': ('Z', 'Z')}
     raise ValueError('could not determine coordinate system from columns: ' + ', '.join(df.columns))
 
 
@@ -51,11 +52,16 @@ def dataframe2iaga(fname, stn, df, header_template=HEADER_TEMPLATE):
                                          C2=coord_map['C2'][0],
                                          C3=coord_map['C3'][0]))
         for _, row in df.iterrows():
+            C1 = row[coord_map['C1'][1]]
+            C2 = row[coord_map['C2'][1]]
+            C3 = row[coord_map['C3'][1]]
+            F = math.hypot(math.hypot(C1, C2), C3)
             fid.write('{date:%Y-%m-%d %H:%M:%S.000} {date:%j}'
-                      '    {C1:>9.2f} {C2:>9.2f} {C3:>9.2f}\n'.format(date=row.Date_UTC,
-                                                                                 C1=row[coord_map['C1'][1]],
-                                                                                 C2=row[coord_map['C2'][1]],
-                                                                                 C3=row[coord_map['C3'][1]]))
+                      '    {C1:>9.2f} {C2:>9.2f} {C3:>9.2f} {F:>9.2f}\n'.format(date=row.Date_UTC,
+                                                                                C1=C1,
+                                                                                C2=C2,
+                                                                                C3=C3,
+                                                                                F=F))
     return fname
 
 
@@ -100,7 +106,6 @@ def main(argv=None):
     df_map = read_sm_csv(args.csv_fname)
     df_map2iaga(args.output_path,
                 df_map)
-
 
 
 if __name__ == '__main__':
