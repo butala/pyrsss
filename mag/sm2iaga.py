@@ -91,7 +91,7 @@ def iaga_fname(path, stn, date, cutoff_date=datetime(2007, 1, 1)):
         ext = 'dmin.min'
     else:
         ext = 'd.min'
-    return os.path.join(path, '{stn}{date:%Y%m%d}{ext}'.format(stn=stn,
+    return os.path.join(path, '{stn}{date:%Y%m%d}{ext}'.format(stn=stn.lower(),
                                                                date=date,
                                                                ext=ext))
 
