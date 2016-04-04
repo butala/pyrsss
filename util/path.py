@@ -1,3 +1,4 @@
+import os
 import shutil
 import tempfile
 
@@ -39,3 +40,12 @@ class SmartTempDir(TempDirectory):
     def __exit__(self, type, value, traceback):
         if self.dirname is None:
             super(SmartTempDir, self).__exit__(type, value, traceback)
+
+
+def touch_path(path):
+    """
+    If *path* does not exist, create it. Returns *path*.
+    """
+    if not os.path.isdir(path):
+        os.makedirs(path)
+    return path
