@@ -1,6 +1,9 @@
+import sys
 import logging
 
 import sh
+
+logger = logging.getLogger('pyrsss.gps.teqc')
 
 
 def rinex_info(rinex_fname,
@@ -63,6 +66,19 @@ def rinex_info(rinex_fname,
                            '{} nav={} ({})'.format(rinex_fname,
                                                    nav_fname))
     return info
+
+
+def rinex_merge(output_fname, rinex_fnames, _err=sys.stderr):
+    """
+    Using teqc, merge *rinex_fnames* and store to the file
+    *output_fname*. Returns *output_fname*. Redirect error output to
+    *_err*.
+    """
+    args = ['-pch'] + rinex_fnames
+    sh.teqc(*args,
+            _out=output_fname,
+            _err=_err)
+    return output_fname
 
 
 if __name__ == '__main__':
