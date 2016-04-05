@@ -49,3 +49,10 @@ def touch_path(path):
     if not os.path.isdir(path):
         os.makedirs(path)
     return path
+
+
+def replace_path(path, fname):
+    """
+    Return the replacement the path of *fname* with *path*.
+    """
+    return os.path.join(path, os.path.basename(fname))
