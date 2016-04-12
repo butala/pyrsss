@@ -245,8 +245,19 @@ def read_rindump(rindump_fname):
                         raise RuntimeError('could not find {} observable in {}'.format(x, rindump_fname))
                 def reorder(l):
                     return [l[i] for i in column_mapping]
+            elif line.startswith('# Refpos'):
+                cols = line.split()
+                # [m, m, m]
+                obs_map.xyz = map(float, cols[3:6])
+                lat = float(cols[8][:-1])
+                lon = float(cols[9][:-1])
+                if lon > 180:
+                    lon -= 360
+                alt = float(cols[10])
+                # [deg, deg, m]
+                obs_map.llh = [lat, lon, alt]
             elif line.startswith('#'):
-                # skip header lines
+                # skip other header lines
                 continue
             else:
                 cols = line.split()
