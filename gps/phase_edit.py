@@ -7,6 +7,7 @@ import sh
 from intervals import DateTimeInterval
 
 from ..util.path import SmartTempDir
+from path import GPSTK_BUILD_PATH
 from rinex import read_rindump, ObsMap, Observation, dump_rinex
 from teqc import rinex_info
 
@@ -19,10 +20,14 @@ Called/used by process.py.
 Implement cycle-slip detection and repair.
 """
 
-
-DISC_FIX = '/Users/butala/src/GPSTk/build-shaolin-v2.8/ext/apps/geomatics/cycleslips/DiscFix'
+DISC_FIX = os.path.join(GPSTK_BUILD_PATH,
+                        'ext',
+                        'apps',
+                        'geomatics',
+                        'cycleslips',
+                        'DiscFix')
 """
-MAKE EXEC CONFIG ROBUST
+???
 """
 
 """
