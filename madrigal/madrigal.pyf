@@ -1,0 +1,73 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module madrigal ! in
+    interface  ! in :madrigal
+        subroutine convrt(i,gdlat,gdalt,gclat,rkm) ! in :madrigal:convrt.f
+            integer, intent(in) :: i
+            double precision, intent(in,out) :: gdlat
+            double precision, intent(in,out) :: gdalt
+            double precision, intent(in,out) :: gclat
+            double precision, intent(in,out) :: rkm
+        end subroutine convrt
+        subroutine csconv(x,y,z,r,theta,phi,imode) ! in :madrigal:csconv.f
+            double precision :: x
+            double precision :: y
+            double precision :: z
+            double precision :: r
+            double precision :: theta
+            double precision :: phi
+            integer :: imode
+        end subroutine csconv
+        subroutine look(sr,slat,slon,pr,glat,glon,az,el,range) ! in :madrigal:look.f
+            double precision :: sr
+            double precision :: slat
+            double precision :: slon
+            double precision :: pr
+            double precision :: glat
+            double precision :: glon
+            double precision :: az
+            double precision :: el
+            double precision :: range
+        end subroutine look
+        subroutine point(sr,slat,slon,az,el,range,pr,glat,glon) ! in :madrigal:point.f
+            double precision :: sr
+            double precision :: slat
+            double precision :: slon
+            double precision :: az
+            double precision :: el
+            double precision :: range
+            double precision :: pr
+            double precision :: glat
+            double precision :: glon
+        end subroutine point
+        subroutine vadd(a,b,c) ! in :madrigal:vadd.f
+            double precision dimension(3) :: a
+            double precision dimension(3) :: b
+            double precision dimension(3) :: c
+        end subroutine vadd
+        subroutine vctcnv(fx,fy,fz,x,y,z,fr,ft,fp,r,theta,phi,imode) ! in :madrigal:vctcnv.f
+            double precision :: fx
+            double precision :: fy
+            double precision :: fz
+            double precision :: x
+            double precision :: y
+            double precision :: z
+            double precision :: fr
+            double precision :: ft
+            double precision :: fp
+            double precision :: r
+            double precision :: theta
+            double precision :: phi
+            integer :: imode
+        end subroutine vctcnv
+        subroutine vsub(a,b,c) ! in :madrigal:vsub.f
+            double precision dimension(3) :: a
+            double precision dimension(3) :: b
+            double precision dimension(3) :: c
+        end subroutine vsub
+    end interface
+end python module madrigal
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
