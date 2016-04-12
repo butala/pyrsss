@@ -1,7 +1,9 @@
 from __future__ import division
 
 import os
+import sys
 import logging
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import timedelta
 from collections import OrderedDict, namedtuple
 from cStringIO import StringIO
@@ -10,15 +12,12 @@ import sh
 import scipy.constants as const
 
 from constants import EPOCH, F_1, F_2, LAMBDA_1, LAMBDA_2
+from path import GPSTK_BUILD_PATH
 from teqc import rinex_info
+from preprocess import normalize_rinex
+from ..util.path import SmartTempDir, replace_path
 
 logger = logging.getLogger('pyrsss.gps.rinex')
-
-
-try:
-    GPSTK_BUILD_PATH = os.environ['GPSTK_BUILD']
-except KeyError:
-    raise RuntimeError('environment variable GPSTK_BUILD not set')
 
 
 RIN_DUMP = os.path.join(GPSTK_BUILD_PATH,
@@ -260,14 +259,52 @@ def read_rindump(rindump_fname):
     return obs_map
 
 
+def dump_preprocessed_rinex(dump_fname,
+                            obs_fname,
+                            nav_fname,
+                            work_path=None,
+                            decimate=None):
+    """ ??? """
+    with SmartTempDir(work_path) as work_path:
+        output_rinex_fname = replace_path(work_path, obs_fname)
+        normalize_rinex(output_rinex_fname,
+                        obs_fname,
+                        decimate=decimate)
+        dump_rinex(dump_fname,
+                   output_rinex_fname,
+                   nav_fname)
+    return dump_fname
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
+    parser = ArgumentParser('Dump RINEX observation file.',
+                            formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.add_argument('dump_fname',
+                        type=str,
+                        help='output dump file file.')
+    parser.add_argument('obs_fname',
+                        type=str,
+                        help='input RINEX obs file.')
+    parser.add_argument('nav_fname',
+                        type=str,
+                        help='input RINEX nav file.')
+    preprocess = parser.add_argument_group('RINEX preprocessing options')
+    preprocess.add_argument('--decimate',
+                            '-d',
+                            type=int,
+                            default=None,
+                            help='decimate to time interval in [s]')
+    args = parser.parse_args(argv[1:])
+
+    dump_preprocessed_rinex(args.dump_fname,
+                            args.obs_fname,
+                            args.nav_fname,
+                            decimate=args.decimate)
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.getLogger('sh').setLevel(logging.WARNING)
-
-    dump_rinex('/tmp/jplm0010.14o.dump',
-               '/Users/butala/src/absolute_tec/jplm0010.14o',
-               '/Users/butala/src/absolute_tec/jplm0010.14n')
-
-    obs_map = read_rindump('/tmp/jplm0010.14o.dump')
-
-    print(obs_map.values()[0].items()[0])
+    sys.exit(main())
