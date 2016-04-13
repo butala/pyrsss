@@ -55,9 +55,11 @@ def rinex_info(rinex_fname,
     # work area to avoid intermediate file pollution
     with SmartTempDir(work_path) as work_path:
         intermediate_rinex_fname = replace_path(work_path, rinex_fname)
-        os.symlink(rinex_fname, intermediate_rinex_fname)
+        os.symlink(os.path.abspath(rinex_fname),
+                   intermediate_rinex_fname)
         intermediate_nav_fname = replace_path(work_path, nav_fname)
-        os.symlink(nav_fname, intermediate_nav_fname)
+        os.symlink(os.path.abspath(nav_fname),
+                   intermediate_nav_fname)
         sh.teqc('+qc',
                 '+quiet',
                 '-R',
