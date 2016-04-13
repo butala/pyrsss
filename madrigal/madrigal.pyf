@@ -26,9 +26,9 @@ python module madrigal ! in
             double precision :: pr
             double precision :: glat
             double precision :: glon
-            double precision :: az
-            double precision :: el
-            double precision :: range
+            double precision, intent(out) :: az
+            double precision, intent(out) :: el
+            double precision, intent(out) :: range
         end subroutine look
         subroutine point(sr,slat,slon,az,el,range,pr,glat,glon) ! in :madrigal:point.f
             double precision :: sr
