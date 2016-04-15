@@ -2,11 +2,7 @@
 
 from glob import glob
 
-from numpy.distutils.core import setup, Extension
-
-madrigal_ext = Extension(name='madrigal',
-                         sources=glob('madrigal/*.f') + \
-                                 ['madrigal/madrigal.pyf'])
+from distutils.core import setup
 
 
 setup(name='pyrsss',
@@ -20,5 +16,4 @@ setup(name='pyrsss',
                 'pyrsss.gps',
                 'pyrsss.ionex',
                 'pyrsss.mag',
-                'pyrsss.util'],
-      ext_modules=[madrigal_ext])
+                'pyrsss.util'])

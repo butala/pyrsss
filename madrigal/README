@@ -1,7 +1,0 @@
-Python interface (f2py) to MIT Haystack Madrigal geolib routines.
-
-licence: ???
-
-http://madrigal.haystack.mit.edu/madrigal/madDownload.html
-
-generate signature file with: f2py -h madrigal.pyf -m madrigal *.f
