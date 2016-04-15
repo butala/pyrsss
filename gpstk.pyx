@@ -1,6 +1,12 @@
 from libcpp.string cimport string
+from cython.operator cimport dereference as deref
 
 from enum import Enum
+
+
+cdef extern from 'Triple.hpp' namespace 'gpstk':
+    cdef cppclass Triple:
+        double operator[](const size_t) const
 
 
 cdef extern from 'Position.hpp' namespace 'gpstk::Position':
@@ -13,7 +19,9 @@ cdef extern from 'Position.hpp' namespace 'gpstk::Position':
 
 
 cdef extern from 'Position.hpp' namespace 'gpstk':
-    cdef cppclass Position:
+    cdef cppclass Position(Triple):
+        Position() except +
+
         Position(const double &,
                  const double &,
                  const double &) except +
@@ -26,15 +34,45 @@ cdef extern from 'Position.hpp' namespace 'gpstk':
         Position(const double[3],
                  CoordinateSystem) except +
 
-        string getSystemName()
-        string asString() const
+        string getSystemName() except +
+        string asString() except +
+
+        CoordinateSystem getCoordinateSystem() except +
+
+        Position asGeodetic() except +
+        Position asECEF() except +
+
+        double X() except +
+        double Y() except +
+        double Z() except +
+
+        double geodeticLatitude() except +
+        double geocentricLatitude() except +
+
+        double longitude() except +
+
+        double radius() except +
+        double height() except +
+
+        double theta() except +
+        double phi() except +
+
+        double elevation(const Position &) except +
+        double azimuth(const Position &) except +
+
+        double elevationGeodetic(const Position &) except +
+        double azimuthGeodetic(const Position &) except +
+
+        Position getIonosphericPiercePoint(const double,
+                                           const double,
+                                           const double) except +
 
 
 class PyCoordinateSystem(Enum):
-    Geodetic = 1
+    Geodetic   = 1
     Geocentric = 2
-    Cartesian = 3
-    Spherical = 4
+    Cartesian  = 3
+    Spherical  = 4
 
 
 cdef class PyPosition:
@@ -45,7 +83,115 @@ cdef class PyPosition:
                   double b,
                   double c,
                   CoordinateSystem s=Cartesian):
+        """
+        Note that the reference ellipsoid is WGS84 (overridable, but not
+        yet implemented.)
+        """
         self.thisptr = new Position(a, b, c, s)
 
     def __repr__(self):
         return self.thisptr.asString() + ' (' + self.thisptr.getSystemName() + ')'
+
+    @staticmethod
+    cdef PyPosition toPyPosition(Position p):
+        return PyPosition.toPyPosition(p)
+
+    def asGeodetic(self):
+        """Transform to geodetic coordinate system."""
+        cdef Position p = deref(self.thisptr).asGeodetic()
+        return PyPosition(p[0],
+                          p[1],
+                          p[2],
+                          p.getCoordinateSystem())
+
+    def asECEF(self):
+        """Transform to Cartesian coordinate system."""
+        cdef Position p = deref(self.thisptr).asECEF()
+        return PyPosition.toPyPosition(p)
+
+    @property
+    def X(self):
+        """Return the ECEF X coordinate [m]."""
+        return deref(self.thisptr).X()
+
+    @property
+    def Y(self):
+        """Return the ECEF Y coordinate [m]."""
+        return deref(self.thisptr).Y()
+
+    @property
+    def Z(self):
+        """Return the ECEF Z coordinate [m]."""
+        return deref(self.thisptr).Z()
+
+    @property
+    def geodeticLatitude(self):
+        """Return the geodetic latitude [deg N]."""
+        return deref(self.thisptr).geodeticLatitude()
+
+    @property
+    def geocentricLatitude(self):
+        """Return the geocentric latitude [deg N]."""
+        return deref(self.thisptr).geocentricLatitude()
+
+    @property
+    def longitude(self):
+        """Return the longitude [deg E]."""
+        return deref(self.thisptr).longitude()
+
+    @property
+    def radius(self):
+        """Return the distance from the center of the Earth [m]."""
+        return deref(self.thisptr).radius()
+
+    @property
+    def height(self):
+        """Return the height above the ellipsoid [m]."""
+        return deref(self.thisptr).height()
+
+    @property
+    def theta(self):
+        """Return spherical zenith [deg]."""
+        return deref(self.thisptr).theta()
+
+    @property
+    def phi(self):
+        """Return spherical azimuth [deg]."""
+        return deref(self.thisptr).phi()
+
+    def elevation(self, PyPosition target):
+        """Return the elevation [deg] from this position to *target*."""
+        cdef Position _target = deref(target.thisptr)
+        return deref(self.thisptr).elevation(_target)
+
+    def elevationGeodetic(self, PyPosition target):
+        """
+        Return the elevation [deg] from this position to *target* using a
+        geodetic system.
+        """
+        cdef Position _target = deref(target.thisptr)
+        return deref(self.thisptr).elevation(_target)
+
+    def azimuth(self, PyPosition target):
+        """Return the azimuth [deg] from this position to *target*."""
+        cdef Position _target = deref(target.thisptr)
+        return deref(self.thisptr).azimuth(_target)
+
+    def azimuthGeodetic(self, PyPosition target):
+        """
+        Return the azimuth [deg] from this position to *target* using a
+        geodetic system.
+        """
+        cdef Position _target = deref(target.thisptr)
+        return deref(self.thisptr).azimuthGeodetic(_target)
+
+    def getIPP(self, double elevation, double azimuth, double shell_height=450):
+        """
+        Return the position at which a signal received at this location at
+        *elevation* [deg] and *azimuth* [deg] cross a thin shell
+        ionosphere at height *shell_height* [m].
+        """
+        cdef Position ipp = deref(self.thisptr).getIonosphericPiercePoint(elevation,
+                                                                          azimuth,
+                                                                          shell_height)
+        return PyPosition.toPyPosition(ipp)
