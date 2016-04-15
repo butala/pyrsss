@@ -1,4 +1,5 @@
 from libcpp.string cimport string
+from libcpp.cast cimport dynamic_cast
 from cython.operator cimport dereference as deref
 
 from enum import Enum
@@ -11,7 +12,7 @@ cdef extern from 'Triple.hpp' namespace 'gpstk':
 
 cdef extern from 'Position.hpp' namespace 'gpstk::Position':
     cdef enum CoordinateSystem:
-        Unknown,
+        Unknown = 0,
         Geodetic,
         Geocentric,
         Cartesian,
@@ -68,41 +69,47 @@ cdef extern from 'Position.hpp' namespace 'gpstk':
                                            const double) except +
 
 
-class PyCoordinateSystem(Enum):
-    Geodetic   = 1
-    Geocentric = 2
-    Cartesian  = 3
-    Spherical  = 4
-
-
 cdef class PyPosition:
     cdef Position *thisptr
+
+    CoordinateSystem = {
+        'geodetic'  : 1,
+        'geocentric': 2,
+        'cartesian' : 3,
+        'spherical' : 4
+    }
 
     def __cinit__(self,
                   double a,
                   double b,
                   double c,
-                  CoordinateSystem s=Cartesian):
+                  int s = 3):
         """
         Note that the reference ellipsoid is WGS84 (overridable, but not
         yet implemented.)
         """
-        self.thisptr = new Position(a, b, c, s)
+        if s == PyPosition.CoordinateSystem['geodetic']:
+            self.thisptr = new Position(a, b, c, Geodetic)
+        elif s == PyPosition.CoordinateSystem['geocentric']:
+            self.thisptr = new Position(a, b, c, Geocentric)
+        elif s == PyPosition.CoordinateSystem['cartesian']:
+            self.thisptr = new Position(a, b, c, Cartesian)
+        elif s == PyPosition.CoordinateSystem['spherical']:
+            self.thisptr = new Position(a, b, c, Spherical)
+        else:
+            raise ValueError('Unknown coordinate system {}'.format(s))
 
     def __repr__(self):
         return self.thisptr.asString() + ' (' + self.thisptr.getSystemName() + ')'
 
     @staticmethod
     cdef PyPosition toPyPosition(Position p):
-        return PyPosition.toPyPosition(p)
+       return PyPosition(p[0], p[1], p[2], p.getCoordinateSystem())
 
     def asGeodetic(self):
         """Transform to geodetic coordinate system."""
         cdef Position p = deref(self.thisptr).asGeodetic()
-        return PyPosition(p[0],
-                          p[1],
-                          p[2],
-                          p.getCoordinateSystem())
+        return PyPosition.toPyPosition(p)
 
     def asECEF(self):
         """Transform to Cartesian coordinate system."""
