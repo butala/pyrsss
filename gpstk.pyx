@@ -177,7 +177,7 @@ cdef class PyPosition:
         geodetic system.
         """
         cdef Position _target = deref(target.thisptr)
-        return deref(self.thisptr).elevation(_target)
+        return deref(self.thisptr).elevationGeodetic(_target)
 
     def azimuth(self, PyPosition target):
         """Return the azimuth [deg] from this position to *target*."""
