@@ -1,2 +1,5 @@
 build/
+pyrsss.egg-info/
+dist/
+gpstk.cpp
 *.pyc
