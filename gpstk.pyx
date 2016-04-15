@@ -192,7 +192,7 @@ cdef class PyPosition:
         cdef Position _target = deref(target.thisptr)
         return deref(self.thisptr).azimuthGeodetic(_target)
 
-    def getIPP(self, double elevation, double azimuth, double shell_height=450):
+    def getIPP(self, double elevation, double azimuth, double shell_height=450 * 1e3):
         """
         Return the position at which a signal received at this location at
         *elevation* [deg] and *azimuth* [deg] cross a thin shell
