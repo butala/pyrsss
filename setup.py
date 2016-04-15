@@ -1,8 +1,38 @@
 #!/usr/bin/env python
 
-from glob import glob
+import os
+from setuptools import setup, Extension
 
-from setuptools import setup
+from Cython.Build import cythonize
+
+
+if 'GPSTK_SRC' in os.environ:
+    assert 'GPSTK_BUILD' in os.environ
+    core_lib_path = os.path.join(os.environ['GPSTK_SRC'],
+                                 'core',
+                                 'lib')
+    gpstk_ext = Extension('pyrsss.gpstk',
+                          ['gpstk.pyx'],
+                          include_dirs=[os.path.join(core_lib_path,
+                                                     'GNSSCore'),
+                                        os.path.join(core_lib_path,
+                                                     'Utilities'),
+                                        os.path.join(core_lib_path,
+                                                     'Math'),
+                                        os.path.join(core_lib_path,
+                                                     'Math',
+                                                     'Vector'),
+                                        os.path.join(core_lib_path,
+                                                     'RefTime'),
+                                        os.path.join(core_lib_path,
+                                                     'GNSSEph')],
+                          library_dirs=[os.environ['GPSTK_BUILD']],
+                          runtime_library_dirs=[os.environ['GPSTK_BUILD']],
+                          libraries=['gpstk'],
+                          language='c++')
+    ext_modules = cythonize([gpstk_ext])
+else:
+    ext_modules = []
 
 
 setup(name='pyrsss',
@@ -16,4 +46,5 @@ setup(name='pyrsss',
                 'pyrsss.gps',
                 'pyrsss.ionex',
                 'pyrsss.mag',
-                'pyrsss.util'])
+                'pyrsss.util'],
+      ext_modules=ext_modules)
