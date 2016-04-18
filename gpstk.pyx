@@ -1,7 +1,12 @@
 from libcpp cimport bool
 from libcpp.string cimport string
 from libcpp.cast cimport dynamic_cast
-from cython.operator cimport dereference as deref
+from libcpp.map cimport map as cppmap
+from libcpp.vector cimport vector
+from libcpp.utility cimport pair
+from cython.operator cimport dereference as deref, preincrement as inc
+
+from collections import namedtuple
 
 from enum import Enum
 
@@ -85,7 +90,7 @@ cdef extern from 'Position.hpp' namespace 'gpstk':
                             const Position&) except +
 
 
-cdef class PyPosition:
+cdef class PyPosition(object):
     # TODO: Add tolerance get / set
 
     cdef Position *thisptr
@@ -262,3 +267,131 @@ cdef class PyPosition:
         cdef Position _self = deref(self.thisptr)
         cdef Position _target = deref(target.thisptr)
         return range(_self, _target)
+
+
+################################################################################
+
+
+# cdef extern from "<iostream>" namespace "std::ios":
+#     cdef cppclass openmode:
+#         pass
+
+
+cdef extern from 'RinexObsID.hpp' namespace 'gpstk':
+    cdef cppclass RinexObsID:
+        string asString() const
+
+
+ctypedef vector[RinexObsID] RinexObsVec
+
+
+ctypedef cppmap[string, RinexObsVec] RinexObsMap
+
+
+cdef extern from '<streambuf>' namespace 'std':
+    cdef cppclass streambuf:
+        streambuf()
+
+
+cdef extern from '<iostream>' namespace 'std':
+    cdef cppclass istream:
+        istream(streambuf *)
+
+    cdef cppclass iostream(istream):
+        iostream(streambuf *)
+
+    cdef cppclass fstream(iostream):
+        fstream(const char *)
+
+
+cdef extern from 'FFStream.hpp' namespace 'gpstk':
+   cdef cppclass FFStream(fstream):
+       pass
+
+
+cdef extern from 'FFTextStream.hpp' namespace 'gpstk':
+    cdef cppclass FFTextStream(FFStream):
+        pass
+
+
+cdef extern from 'Rinex3ObsStream.hpp' namespace 'gpstk':
+    cdef cppclass Rinex3ObsStream(FFTextStream):
+        Rinex3ObsStream()
+        Rinex3ObsStream(const char *)
+        Rinex3ObsStream(const string &)
+
+
+cdef extern from 'FFData.hpp' namespace 'gpstk':
+    cdef cppclass FFData:
+        pass
+
+    # note that adding 'except +' causes problems
+    cdef istream & operator>>(istream &,
+                              FFData &)
+
+
+cdef extern from 'Rinex3ObsBase.hpp' namespace 'gpstk':
+    cdef cppclass Rinex3ObsBase(FFData):
+        pass
+
+
+cdef extern from 'Rinex3ObsHeader.hpp' namespace 'gpstk':
+    cdef cppclass Rinex3ObsHeader(Rinex3ObsBase):
+        Rinex3ObsHeader()
+
+        # TODO: Add other members
+
+        double      version
+        string      fileType
+        string      fileSys
+        string      date
+        string      recType
+        Triple      antennaPosition
+        RinexObsMap mapObsTypes
+        double      interval
+
+        bool isValid() const
+
+
+class RinexInfo(namedtuple('RinexInfo',
+                           'version '
+                           'file_type '
+                           'file_sys '
+                           'date '
+                           'rec_type '
+                           'position '
+                           'obs_types '
+                           'interval')):
+    pass
+
+
+cdef obsTypes2dict(RinexObsMap &obs_map):
+    """
+    ???
+    """
+    cdef cppmap[string, RinexObsVec].iterator it = obs_map.begin()
+    obs_dict = {}
+    while it != obs_map.end():
+        obs_dict[deref(it).first] = [x.asString() for x in deref(it).second]
+        inc(it)
+    return obs_dict
+
+
+def rinex_info(string fname):
+    """
+    """
+    cdef Rinex3ObsHeader Rhead
+    cdef Rinex3ObsStream *istrm_ptr = new Rinex3ObsStream(fname)
+    try:
+        deref(istrm_ptr) >> Rhead
+        position = Rhead.antennaPosition
+        return RinexInfo(Rhead.version,
+                         Rhead.fileType,
+                         Rhead.fileSys,
+                         Rhead.date,
+                         Rhead.recType,
+                         [position[i] for i in [0, 1, 2]],
+                         obsTypes2dict(Rhead.mapObsTypes),
+                         Rhead.interval)
+    finally:
+        del istrm_ptr
