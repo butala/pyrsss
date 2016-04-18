@@ -16,7 +16,11 @@ ORDER = 80
 
 def iri_stec(dt, p1, p2, alt1=50, alt2=2000, order=ORDER):
     """
-    ???
+    Integrate IRI electron density for :class:`datetime` *dt* starting
+    at :class:`PyPosition` *p1* and ending at *p2*. Further, limit the
+    altitude range from *alt1* to *alt2* (given in [km]). Use a fixed
+    order quadrature routine with *order*. Return the integrated TEC
+    in [TECU].
     """
     xyz1 = NP.array([p1.x, p1.y, p1.z])
     xyz2 = NP.array([p2.x, p2.y, p2.z])
@@ -64,5 +68,7 @@ if __name__ == '__main__':
     stn_xyz = NP.array([4696.986004,    723.992717,   4239.681595]) * 1e3
     sat_xyz = NP.array([10741.320824,  12456.414622,  21019.082339]) * 1e3
 
-    stec = iri_stec(dt, stn_xyz, sat_xyz)
+    stec = iri_stec(dt,
+                    PyPosition(*stn_xyz),
+                    PyPosition(*sat_xyz))
     print(stec)
