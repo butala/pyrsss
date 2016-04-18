@@ -45,6 +45,7 @@ setup(name='pyrsss',
                 'pyrsss.emission',
                 'pyrsss.gps',
                 'pyrsss.ionex',
+                'pyrsss.iri',
                 'pyrsss.mag',
                 'pyrsss.util'],
       ext_modules=ext_modules)
