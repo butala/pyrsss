@@ -84,18 +84,6 @@ cdef extern from 'Position.hpp' namespace 'gpstk':
     cdef Position operator+(const Position&,
                             const Position&) except +
 
-    cdef Position operator*(const double &,
-                            const Position &) except +
-
-    cdef Position operator*(const Position &,
-                            const double &) except +
-
-    cdef Position operator*(const int &,
-                            const Position &) except +
-
-    cdef Position operator*(const Position &,
-                            const int &) except +
-
 
 cdef class PyPosition:
     # TODO: Add tolerance get / set
@@ -143,14 +131,32 @@ cdef class PyPosition:
         Return true if the distance between this position and *other*
         is less than the tolerance.
         """
-        cdef Position _this = deref(self.thisptr)
+        cdef Position _self = deref(self.thisptr)
         cdef Position _other = deref(other.thisptr)
         if op == 2:  # ==
-            return _this == _other
+            return _self == _other
         elif op == 3:  # !=
-            return _this != _other
+            return _self != _other
         else:
             raise NotImplementedError('only == and != comparisons are currently supported')
+
+    def __add__(PyPosition self, PyPosition other):
+        """
+        Return the sum of this position and *other* (in Cartesian
+        coordinates).
+        """
+        cdef Position _self = deref(self.thisptr)
+        cdef Position _other = deref(other.thisptr)
+        return PyPosition.toPyPosition(_self + _other)
+
+    def __sub__(PyPosition self, PyPosition other):
+        """
+        Return the difference of this position and *other* (in Cartesian
+        coordinates).
+        """
+        cdef Position _self = deref(self.thisptr)
+        cdef Position _other = deref(other.thisptr)
+        return PyPosition.toPyPosition(_self - _other)
 
     def asGeodetic(self):
         """Transform to geodetic coordinate system."""
@@ -253,6 +259,6 @@ cdef class PyPosition:
         """
         Return the distance [m] between this position and *target*.
         """
-        cdef Position _this = deref(self.thisptr)
+        cdef Position _self = deref(self.thisptr)
         cdef Position _target = deref(target.thisptr)
-        return range(_this, _target)
+        return range(_self, _target)
