@@ -377,7 +377,7 @@ cdef obsTypes2dict(RinexObsMap &obs_map):
     return obs_dict
 
 
-def rinex_info(string fname):
+def rinex_header_info(string fname):
     """
     """
     cdef Rinex3ObsHeader Rhead
