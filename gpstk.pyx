@@ -1,3 +1,4 @@
+from libcpp cimport bool
 from libcpp.string cimport string
 from libcpp.cast cimport dynamic_cast
 from cython.operator cimport dereference as deref
@@ -68,8 +69,37 @@ cdef extern from 'Position.hpp' namespace 'gpstk':
                                            const double,
                                            const double) except +
 
+        bool operator==(const Position &) except +
+
+        bool operator!=(const Position &) except +
+
+
+    cdef double range(const Position &,
+                      const Position &) except +
+
+
+    cdef Position operator-(const Position&,
+                            const Position&) except +
+
+    cdef Position operator+(const Position&,
+                            const Position&) except +
+
+    cdef Position operator*(const double &,
+                            const Position &) except +
+
+    cdef Position operator*(const Position &,
+                            const double &) except +
+
+    cdef Position operator*(const int &,
+                            const Position &) except +
+
+    cdef Position operator*(const Position &,
+                            const int &) except +
+
 
 cdef class PyPosition:
+    # TODO: Add tolerance get / set
+
     cdef Position *thisptr
 
     CoordinateSystem = {
@@ -106,6 +136,22 @@ cdef class PyPosition:
     cdef PyPosition toPyPosition(Position p):
        return PyPosition(p[0], p[1], p[2], p.getCoordinateSystem())
 
+    def __richcmp__(PyPosition self, PyPosition other, int op):
+        """
+        See http://docs.cython.org/src/userguide/special_methods.html#rich-comparisons
+
+        Return true if the distance between this position and *other*
+        is less than the tolerance.
+        """
+        cdef Position _this = deref(self.thisptr)
+        cdef Position _other = deref(other.thisptr)
+        if op == 2:  # ==
+            return _this == _other
+        elif op == 3:  # !=
+            return _this != _other
+        else:
+            raise NotImplementedError('only == and != comparisons are currently supported')
+
     def asGeodetic(self):
         """Transform to geodetic coordinate system."""
         cdef Position p = deref(self.thisptr).asGeodetic()
@@ -117,17 +163,17 @@ cdef class PyPosition:
         return PyPosition.toPyPosition(p)
 
     @property
-    def X(self):
+    def x(self):
         """Return the ECEF X coordinate [m]."""
         return deref(self.thisptr).X()
 
     @property
-    def Y(self):
+    def y(self):
         """Return the ECEF Y coordinate [m]."""
         return deref(self.thisptr).Y()
 
     @property
-    def Z(self):
+    def z(self):
         """Return the ECEF Z coordinate [m]."""
         return deref(self.thisptr).Z()
 
@@ -202,3 +248,11 @@ cdef class PyPosition:
                                                                           azimuth,
                                                                           shell_height)
         return PyPosition.toPyPosition(ipp)
+
+    def distance(self, PyPosition target):
+        """
+        Return the distance [m] between this position and *target*.
+        """
+        cdef Position _this = deref(self.thisptr)
+        cdef Position _target = deref(target.thisptr)
+        return range(_this, _target)
