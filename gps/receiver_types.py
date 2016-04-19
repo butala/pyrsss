@@ -53,7 +53,7 @@ def update_receiver_types(receiver_types_fname=RECEIVER_TYPES_FNAME,
     return receiver_types_fname
 
 
-class ReceiverTypeInfo(namedtuple('ReceiverTypesInfo', 'c1p1 fixtags igs')):
+class ReceiverTypeInfo(namedtuple('ReceiverTypeInfo', 'c1p1 fixtags igs')):
     pass
 
 
@@ -64,11 +64,13 @@ class ReceiverTypes(dict):
         receiver type and :class:`ReceiverTypeInfo` classifying the
         receiver.
         """
+        if fname == RECEIVER_TYPES_FNAME and not os.path.isfile(fname):
+            update_receiver_types()
         with open(fname) as fid:
             for line in fid:
-                if line.startswith('#'):
+                if line.startswith('#') or len(line.strip()) == 0:
                     continue
-                self[line[:20].rstrip()] = ReceiverTypeInfo(map(int, line[20:].split()[:3]))
+                self[line[:20].rstrip()] = ReceiverTypeInfo(*map(int, line[20:].split()[:3]))
 
 
 if __name__ == '__main__':
