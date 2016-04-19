@@ -11,13 +11,9 @@ from ..util.path import replace_path
 logger = logging.getLogger('pyrsss.gps.p1c1')
 
 
-DATA_PATH = os.path.dirname(__file__)
-"""
-Path to store the receiver type file and P1-C1 DCB table file.
-"""
 
-
-RECEIVER_TYPE_FNAME = os.path.join(DATA_PATH, 'GPS_Receiver_Types')
+RECEIVER_TYPE_FNAME = os.path.join(os.path.dirname(__file__),
+                                   'GPS_Receiver_Types')
 """
 Full path to the receiver type file.
 """
