@@ -54,6 +54,32 @@ def get_receiver_position(rinex_fname, nav_fname):
     return rinex_info(rinex_fname, nav_fname)['xyz']
 
 
+def get_receiver_type(rinex_fname):
+    """
+    Return the receiver type (header line REC # / TYPE / VERS) found
+    in *rinex_fname*.
+    """
+    with open(rinex_fname) as fid:
+        for line in fid:
+            if line.rstrip().endswith('END OF HEADER'):
+                break
+            elif line.rstrip().endswith('REC # / TYPE / VERS'):
+                return line[20:40].strip()
+    raise ValueError('receiver type not found in header of RINEX file '
+                     '{}'.format(rinex_fname))
+
+
+def append_receiver_type(dump_fname,
+                         rinex_fname):
+    """
+    Append the line "# Receiver type: {receiver_type}" from
+    *rinex_fname* to *dump_fname*. Return *dump_fname*.
+    """
+    with open(dump_fname, 'a') as fid:
+        fid.write('# Receiver type: {}\n'.format(get_receiver_type(rinex_fname)))
+    return dump_fname
+
+
 def dump_rinex(dump_fname,
                rinex_fname,
                nav_fname,
@@ -85,6 +111,8 @@ def dump_rinex(dump_fname,
                            '{} with {} ({})'.format(rinex_fname,
                                                     rin_dump,
                                                     stderr))
+    append_receiver_type(dump_fname,
+                         rinex_fname)
     return dump_fname
 
 
