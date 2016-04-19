@@ -3,6 +3,7 @@ from __future__ import division
 import os
 import sys
 import logging
+from datetime import datetime
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import timedelta
 from collections import OrderedDict, namedtuple
@@ -215,22 +216,62 @@ class Observation(namedtuple('Observation',
 
 
 class ObsTimeSeries(OrderedDict):
+    def __init__(self, receiver_type, p1c1_bias, replace_p1_with_c1=True):
+        """???"""
+        super(ObsTimeSeries, self).__init__()
+        self.receiver_type = receiver_type
+        self.p1c1_bias = p1c1_bias
+        self.replace_p1_with_c1 = replace_p1_with_c1
+
     def __setitem__(self, key, value):
+        if self.receiver_type == 1:
+            # C1 -> C1 + b
+            # P2 -> P2 + b
+            if value[0] != 0.0:
+                value[0] += self.p1c1_bias
+            if value[2] != 0.0:
+                value[2] += self.p1c1_bias
+        elif self.receiver_type == 2:
+            # C1 -> C1 + b
+            if value[0] != 0.0:
+                value[0] += self.p1c1_bias
+        elif self.receiver_type == 3:
+            pass
+        else:
+            raise ValueError('unknown receiver type {}'.format(self.receiver_type))
+        if value[1] == 0.0 and self.replace_p1_with_c1:
+            # replace P1 with C1 (with bias correction if necessary)
+            value[1] = value[0]
+        # replace empty values (==0.0) with None
+        value = [None if x == 0.0 else x for x in value]
+        if None in value:
+            import ipdb; ipdb.set_trace()
+            passv
         super(ObsTimeSeries, self).__setitem__(key,
                                                Observation(*value))
 
 
 class ObsMap(dict):
+    def __init__(self, date, receiver_type, p1c1_date_table):
+        """ ??? """
+        if receiver_type not in [1, 2, 3]:
+            raise ValueError('receiver type {} is unknown (should be 1, 2, or 3 --- see the GPS_Receiver_Type file header)')
+        self.date = date
+        self.receiver_type = receiver_type
+        self.p1c1_table = p1c1_date_table
+
     def __missing__(self, key):
-        self[key] = ObsTimeSeries()
+        prn = int(key[1:])
+        self[key] = ObsTimeSeries(self.receiver_type,
+                                  self.p1c1_table['prn'][prn])
         return self[key]
 
 
-def read_rindump(rindump_fname):
+def read_rindump(rindump_fname, date, receiver_type, p1c1_date_table):
     """
     ???
     """
-    obs_map = ObsMap()
+    obs_map = ObsMap(date, receiver_type, p1c1_date_table)
     with open(rindump_fname) as fid:
         for line in fid:
             if line.startswith('# wk'):
@@ -270,12 +311,37 @@ def read_rindump(rindump_fname):
     return obs_map
 
 
+def fname2date(rinex_fname):
+    """
+    Return the :class:`datetime` associated with the RIENX file
+    *rinex_fname* named according to the standard convention.
+    """
+    basename = os.path.basename(rinex_fname)
+    doy = basename[4:7]
+    daily_or_hour = basename[7]
+    yy = basename[9:11]
+    dt = datetime.strptime(doy + yy, '%j%y')
+    if daily_or_hour == '0':
+        return dt
+    elif daily_or_hour in [chr(x) for x in range(ord('a'), ord('x') + 1)]:
+        return dt + timedelta(hours=ord(daily_or_hour) - ord('a'))
+    else:
+        raise ValueError('could not parse date from RINEX file name '
+                         '{}'.format(rinex_fname))
+
+
 def dump_preprocessed_rinex(dump_fname,
                             obs_fname,
                             nav_fname,
                             work_path=None,
                             decimate=None):
-    """ ??? """
+    """
+    Dump RINEX *obs_fname* and *nav_fname* to *dump_fname*. Preprocess
+    the RNIEX file (i.e., normalization). Use *work_path* for
+    intermediate files (use an automatically cleaned up area if not
+    specified). Reduce the time interval to *decimate* [s] if
+    given. Return *dump_fname*.
+    """
     with SmartTempDir(work_path) as work_path:
         output_rinex_fname = replace_path(work_path, obs_fname)
         normalize_rinex(output_rinex_fname,
