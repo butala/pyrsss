@@ -8,8 +8,7 @@ from gzip import GzipFile
 
 from ..util.path import replace_path
 
-logger = logging.getLogger('pyrsss.gps.p1c1')
-
+logger = logging.getLogger('pyrsss.gps.receiver_type')
 
 
 RECEIVER_TYPE_FNAME = os.path.join(os.path.dirname(__file__),
