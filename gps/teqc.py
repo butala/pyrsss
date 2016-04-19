@@ -18,6 +18,10 @@ def rinex_info(rinex_fname,
     intermediate files in *work_path* (a temporary, automatically
     cleaned up area if not specified).
     """
+    if not os.path.isfile(rinex_fname):
+        raise ValueError('RINEX observation file {} does not exist'.format(rinex_fname))
+    if not os.path.isfile(nav_fname):
+        raise ValueError('RINEX navigation file {} does not exist'.format(nav_fname))
     # information mapping
     info = {}
     def process_output(line):
