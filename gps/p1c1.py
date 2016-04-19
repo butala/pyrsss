@@ -64,6 +64,8 @@ class P1C1Table(OrderedDict):
         :class:`datetime` -> ['svn', 'prn'] -> integer ID.
         """
         super(P1C1Table, self).__init__()
+        if p1c1_fname == P1C1_FNAME and not os.path.isfile(p1c1_fname):
+            update_p1c1()
         with open(p1c1_fname) as fid:
             for line in fid:
                 if line.startswith('#'):
