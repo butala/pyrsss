@@ -8,59 +8,59 @@ from gzip import GzipFile
 
 from ..util.path import replace_path
 
-logger = logging.getLogger('pyrsss.gps.receiver_type')
+logger = logging.getLogger('pyrsss.gps.receiver_types')
 
 
-RECEIVER_TYPE_FNAME = os.path.join(os.path.dirname(__file__),
+RECEIVER_TYPES_FNAME = os.path.join(os.path.dirname(__file__),
                                    'GPS_Receiver_Types')
 """
-Full path to the receiver type file.
+Full path to the receiver types file.
 """
 
 
-RECEIVER_TYPE_SERVER = 'sideshow.jpl.nasa.gov'
+RECEIVER_TYPES_SERVER = 'sideshow.jpl.nasa.gov'
 """
-FTP server for the receiver type file.
-"""
-
-
-RECEIVER_TYPE_SERVER_FNAME = '/pub/gipsy_files/gipsy_params/GPS_Receiver_Types.gz'
-"""
-Path to the remote receiver type file.
+FTP server for the receiver types file.
 """
 
 
-def update_receiver_type(receiver_type_fname=RECEIVER_TYPE_FNAME,
-                         receiver_type_server=RECEIVER_TYPE_SERVER,
-                         receiver_type_server_fname=RECEIVER_TYPE_SERVER_FNAME,
-                         temp_path=gettempdir()):
+RECEIVER_TYPES_SERVER_FNAME = '/pub/gipsy_files/gipsy_params/GPS_Receiver_Types.gz'
+"""
+Path to the remote receiver types file.
+"""
+
+
+def update_receiver_types(receiver_types_fname=RECEIVER_TYPES_FNAME,
+                          receiver_types_server=RECEIVER_TYPES_SERVER,
+                          receiver_types_server_fname=RECEIVER_TYPES_SERVER_FNAME,
+                          temp_path=gettempdir()):
     """
-    Update the receiver type table stored at
-    *receiver_type_fname*. The remote file is accessed via FTP on
-    *receiver_type_server* at *receiver_type_server_fname*. The path
+    Update the receiver types table stored at
+    *receiver_types_fname*. The remote file is accessed via FTP on
+    *receiver_types_server* at *receiver_types_server_fname*. The path
     *temp_path* is used to store intermediate files.
     """
-    dest_fname = replace_path(temp_path, receiver_type_server_fname)
-    logger.info('opening connection to {}'.format(receiver_type_server))
-    with closing(FTP(receiver_type_server)) as ftp, open(dest_fname, 'w') as fid:
+    dest_fname = replace_path(temp_path, receiver_types_server_fname)
+    logger.info('opening connection to {}'.format(receiver_types_server))
+    with closing(FTP(receiver_types_server)) as ftp, open(dest_fname, 'w') as fid:
         logger.info('logging in')
         ftp.login()
         logger.info('writing to {}'.format(dest_fname))
-        ftp.retrbinary('RETR ' + receiver_type_server_fname, fid.write)
-    logger.info('uncompressing file to {}'.format(receiver_type_fname))
-    with GzipFile(dest_fname) as gzip_fid, open(receiver_type_fname, 'w') as fid:
+        ftp.retrbinary('RETR ' + receiver_types_server_fname, fid.write)
+    logger.info('uncompressing file to {}'.format(receiver_types_fname))
+    with GzipFile(dest_fname) as gzip_fid, open(receiver_types_fname, 'w') as fid:
         fid.write(gzip_fid.read())
-    return receiver_type_fname
+    return receiver_types_fname
 
 
-class ReceiverTypeInfo(namedtuple('ReceiverTypeInfo', 'c1p1 fixtags igs')):
+class ReceiverTypeInfo(namedtuple('ReceiverTypesInfo', 'c1p1 fixtags igs')):
     pass
 
 
-class ReceiverType(dict):
-    def __init__(self, fname=RECEIVER_TYPE_FNAME):
+class ReceiverTypes(dict):
+    def __init__(self, fname=RECEIVER_TYPES_FNAME):
         """
-        Parse the receiver type file *fname and store the mapping between
+        Parse the receiver types file *fname and store the mapping between
         receiver type and :class:`ReceiverTypeInfo` classifying the
         receiver.
         """
@@ -68,12 +68,12 @@ class ReceiverType(dict):
             for line in fid:
                 if line.startswith('#'):
                     continue
-                self[line[:20].rstrip()] = map(int, line[20:].split()[:3])
+                self[line[:20].rstrip()] = ReceiverTypeInfo(map(int, line[20:].split()[:3]))
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    update_receiver_type()
+    update_receiver_types()
 
-    receiver_type = ReceiverType()
-    print(len(receiver_type))
+    receiver_types = ReceiverTypes()
+    print(len(receiver_types))
