@@ -52,8 +52,8 @@ def normalize_rinex(output_rinex_fname,
 
 
 def normalize_to_path(path,
-                   rinex_fnames,
-                   **kwds):
+                      rinex_fnames,
+                      **kwds):
     """ ??? """
     output_rinex_fnames = []
     for rinex_fname in rinex_fnames:
