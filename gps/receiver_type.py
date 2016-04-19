@@ -57,24 +57,23 @@ class ReceiverTypeInfo(namedtuple('ReceiverTypeInfo', 'c1p1 fixtags igs')):
     pass
 
 
-def parse_receiver_types(fname=RECEIVER_TYPE_FNAME):
-    """
-    Parse the receiver type file *fname*. Return a mapping between
-    receiver type and :class:`ReceiverTypeInfo` classifying the
-    receiver.
-    """
-    receiver_map = {}
-    with open(fname) as fid:
-        for line in fid:
-            if line.startswith('#'):
-                continue
-            receiver_map[line[:20].rstrip()] = map(int, line[20:].split()[:3])
-    return receiver_map
+class ReceiverType(dict):
+    def __init__(self, fname=RECEIVER_TYPE_FNAME):
+        """
+        Parse the receiver type file *fname and store the mapping between
+        receiver type and :class:`ReceiverTypeInfo` classifying the
+        receiver.
+        """
+        with open(fname) as fid:
+            for line in fid:
+                if line.startswith('#'):
+                    continue
+                self[line[:20].rstrip()] = map(int, line[20:].split()[:3])
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     update_receiver_type()
 
-    receiver_types = parse_receiver_types()
-    print(len(receiver_types))
+    receiver_type = ReceiverType()
+    print(len(receiver_type))
