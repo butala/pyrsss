@@ -9,7 +9,6 @@ from collections import OrderedDict
 
 import numpy as NP
 
-from constants import M_TO_TECU
 from ..util.path import replace_path
 
 logger = logging.getLogger('pyrsss.gps.p1c1')
@@ -75,9 +74,8 @@ class P1C1Table(OrderedDict):
                 prn = int(cols[1])
                 svn = int(cols[2])
                 CA_P_m = float(cols[3])
-                CA_P_tecu = CA_P_m * M_TO_TECU
-                self.setdefault(date, {}).setdefault('prn', {})[prn] = CA_P_tecu
-                self[date].setdefault('svn', {})[svn] = CA_P_tecu
+                self.setdefault(date, {}).setdefault('prn', {})[prn] = CA_P_m
+                self[date].setdefault('svn', {})[svn] = CA_P_m
 
     def __call__(self, date, delta=timedelta(days=32)):
         """
