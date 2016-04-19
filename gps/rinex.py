@@ -244,9 +244,6 @@ class ObsTimeSeries(OrderedDict):
             value[1] = value[0]
         # replace empty values (==0.0) with None
         value = [None if x == 0.0 else x for x in value]
-        if None in value:
-            import ipdb; ipdb.set_trace()
-            passv
         super(ObsTimeSeries, self).__setitem__(key,
                                                Observation(*value))
 
