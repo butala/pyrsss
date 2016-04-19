@@ -16,7 +16,9 @@ from constants import EPOCH, F_1, F_2, LAMBDA_1, LAMBDA_2
 from path import GPSTK_BUILD_PATH
 from teqc import rinex_info
 from preprocess import normalize_rinex
-from ..util.path import SmartTempDir, replace_path
+from receiver_types import ReceiverTypes
+from p1c1 import P1C1Table
+from ..util.path import SmartTempDir, replace_path, tail
 
 logger = logging.getLogger('pyrsss.gps.rinex')
 
@@ -47,9 +49,41 @@ they do!).
 """
 
 
+GPS_RECEIVER_TYPES = ReceiverTypes()
+"""
+Global scope table of GPS receiver types.
+"""
+
+
+P1C1_TABLE = P1C1Table()
+"""
+Global scope table of CODE derived P1-C1 DCBs.
+"""
+
+
+def fname2date(rinex_fname):
+    """
+    Return the :class:`datetime` associated with the RIENX file
+    *rinex_fname* named according to the standard convention.
+    """
+    basename = os.path.basename(rinex_fname)
+    doy = basename[4:7]
+    daily_or_hour = basename[7]
+    yy = basename[9:11]
+    dt = datetime.strptime(doy + yy, '%j%y')
+    if daily_or_hour == '0':
+        return dt
+    elif daily_or_hour in [chr(x) for x in range(ord('a'), ord('x') + 1)]:
+        return dt + timedelta(hours=ord(daily_or_hour) - ord('a'))
+    else:
+        raise ValueError('could not parse date from RINEX file name '
+                         '{}'.format(rinex_fname))
+
+
 def get_receiver_position(rinex_fname, nav_fname):
     """
-    ???
+    Return the receiver position (via teqc) from information found in
+    *rinex_fname* and *nav_fname*.
     """
     return rinex_info(rinex_fname, nav_fname)['xyz']
 
@@ -70,19 +104,39 @@ def get_receiver_type(rinex_fname):
 
 
 def append_receiver_type(dump_fname,
-                         rinex_fname):
+                         rinex_fname,
+                         receiver_types=GPS_RECEIVER_TYPES):
     """
-    Append the line "# Receiver type: {receiver_type}" from
-    *rinex_fname* to *dump_fname*. Return *dump_fname*.
+    Append the lines "# Receiver type: {receiver_type}" and "#
+    Receiver p1c1 type: {p1c1_type}" from *rinex_fname* to
+    *dump_fname*. Return *dump_fname*.
     """
     with open(dump_fname, 'a') as fid:
-        fid.write('# Receiver type: {}\n'.format(get_receiver_type(rinex_fname)))
+        receiver_type = get_receiver_type(rinex_fname)
+        fid.write('# Receiver type: {}\n'.format(receiver_type))
+        fid.write('# Receiver p1c1 type: '
+                  '{}\n'.format(receiver_types[receiver_type].c1p1))
+    return dump_fname
+
+
+def append_p1c1_date_table(dump_fname,
+                           p1c1_date_table):
+    """
+    Append lines "# P1-C1 [m]: G{prn}: {p1c1_bias}" (in [m]) to
+    *dump_fname* from the information found in
+    *p1c1_date_table*. Return *dump_fname*.
+    """
+    with open(dump_fname, 'a') as fid:
+        for prn in sorted(p1c1_date_table['prn']):
+            fid.write('# P1-C1 [m]: G{:02d}: '
+                      '{:8.3f}\n'.format(prn, p1c1_date_table['prn'][prn]))
     return dump_fname
 
 
 def dump_rinex(dump_fname,
                rinex_fname,
                nav_fname,
+               p1c1_table=P1C1_TABLE,
                receiver_position=None,
                rin_dump=RIN_DUMP):
     """
@@ -113,6 +167,8 @@ def dump_rinex(dump_fname,
                                                     stderr))
     append_receiver_type(dump_fname,
                          rinex_fname)
+    append_p1c1_date_table(dump_fname,
+                           p1c1_table(fname2date(rinex_fname)))
     return dump_fname
 
 
@@ -277,26 +333,50 @@ class ObsTimeSeries(OrderedDict):
 
 
 class ObsMap(dict):
-    def __init__(self, date, receiver_type, p1c1_date_table):
+    def __init__(self, receiver_type, receiver_p1c1_type, p1c1_table):
         """ ??? """
-        if receiver_type not in [1, 2, 3]:
-            raise ValueError('receiver type {} is unknown (should be 1, 2, or 3 --- see the GPS_Receiver_Type file header)')
-        self.date = date
         self.receiver_type = receiver_type
-        self.p1c1_table = p1c1_date_table
+        if receiver_p1c1_type not in [1, 2, 3]:
+            raise ValueError('receiver P1-C1 type {} is unknown '
+                             '(should be 1, 2, or 3 --- see the '
+                             'GPS_Receiver_Type file header)')
+        self.receiver_p1c1_type = receiver_p1c1_type
+        self.p1c1_table = p1c1_table
 
     def __missing__(self, key):
         prn = int(key[1:])
-        self[key] = ObsTimeSeries(self.receiver_type,
-                                  self.p1c1_table['prn'][prn])
+        self[key] = ObsTimeSeries(self.receiver_p1c1_type,
+                                  self.p1c1_table[prn])
         return self[key]
 
 
-def read_rindump(rindump_fname, date, receiver_type, p1c1_date_table):
+def read_rindump_footer(rindump_fname):
+    """
+    Return the receiver tuple and P1-C1 bias information found at the
+    end of *rindump_fname*.
+    """
+    receiver_type = None
+    receiver_p1c1_type = None
+    p1c1_table = {}
+    with open(rindump_fname) as fid:
+        for line in tail(fid, window=100):
+            if line.startswith('# Receiver type:'):
+                receiver_type = line[17:].strip()
+            elif line.startswith('# Receiver p1c1 type:'):
+                receiver_p1c1_type = int(line[21:].strip())
+            elif line.startswith('# P1-C1 [m]:'):
+                prn = int(line[14:16])
+                p1c1_table[prn] = float(line[17:])
+            else:
+                continue
+    return receiver_type, receiver_p1c1_type, p1c1_table
+
+
+def read_rindump(rindump_fname):
     """
     ???
     """
-    obs_map = ObsMap(date, receiver_type, p1c1_date_table)
+    obs_map = ObsMap(*read_rindump_footer(rindump_fname))
     with open(rindump_fname) as fid:
         for line in fid:
             if line.startswith('# wk'):
@@ -334,25 +414,6 @@ def read_rindump(rindump_fname, date, receiver_type, p1c1_date_table):
                                        seconds=seconds)
                 obs_map[sat][dt] = reorder(map(float, cols[3:]))
     return obs_map
-
-
-def fname2date(rinex_fname):
-    """
-    Return the :class:`datetime` associated with the RIENX file
-    *rinex_fname* named according to the standard convention.
-    """
-    basename = os.path.basename(rinex_fname)
-    doy = basename[4:7]
-    daily_or_hour = basename[7]
-    yy = basename[9:11]
-    dt = datetime.strptime(doy + yy, '%j%y')
-    if daily_or_hour == '0':
-        return dt
-    elif daily_or_hour in [chr(x) for x in range(ord('a'), ord('x') + 1)]:
-        return dt + timedelta(hours=ord(daily_or_hour) - ord('a'))
-    else:
-        raise ValueError('could not parse date from RINEX file name '
-                         '{}'.format(rinex_fname))
 
 
 def dump_preprocessed_rinex(dump_fname,
