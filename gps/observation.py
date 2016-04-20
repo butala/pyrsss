@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 from collections import OrderedDict, namedtuple, Iterator
 
@@ -6,6 +7,8 @@ from tables import open_file, IsDescription, Time64Col, Float64Col
 
 from ..util.date import UNIX_EPOCH
 from constants import F_1, F_2, LAMBDA_1, LAMBDA_2
+
+logger = logging.getLogger('pyrsss.gps.observation')
 
 
 
@@ -158,6 +161,10 @@ class ObsMap(dict):
         """ ??? """
         h5file = open_file(h5_fname, mode='w', title=title)
         group = h5file.create_group('/', 'phase_arcs', 'Phase connected arcs')
+        if hasattr(self, 'xyz'):
+            group._v_attrs.xyz = self.xyz
+        if hasattr(self, 'llh'):
+            group._v_attrs.llh = self.llh
         for sat in sorted(self):
             assert sat[0] == 'G'
             table = h5file.create_table(group, sat, ObsMap.Table, 'GPS prn={} data'.format(sat[1:]))
@@ -182,6 +189,14 @@ class ObsMap(dict):
         """ ??? """
         h5file = open_file(h5_fname, mode='r')
         group = h5file.root.phase_arcs
+        try:
+            self.xyz = group._v_attrs.xyz
+        except:
+            logger.warning('{} does not contain XYZ position'.format(h5_fname))
+        try:
+            self.llh = group._v_attrs.llh
+        except:
+            logger.warning('{} does not contain LLH position'.format(h5_fname))
         for table in group:
             sat = table.name
             for row in table.iterrows():

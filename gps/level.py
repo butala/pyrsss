@@ -128,6 +128,10 @@ class ArcMap(dict):
         root_group = h5file.create_group('/',
                                          'leveled_phase_arcs',
                                          'Leveled phase connected arcs')
+        if hasattr(self, 'xyz'):
+            root_group._v_attrs.xyz = self.xyz
+        if hasattr(self, 'llh'):
+            root_group._v_attrs.llh = self.llh
         for sat in sorted(self):
             assert sat[0] == 'G'
             sat_group = h5file.create_group(root_group,
@@ -157,6 +161,15 @@ class ArcMap(dict):
     def undump(self, h5_fname):
         """ ??? """
         h5file = open_file(h5_fname, mode='r')
+        root_group = h5file.root
+        try:
+            self.xyz = root_group._v_attrs.xyz
+        except:
+            logger.warning('{} does not contain XYZ position'.format(h5_fname))
+        try:
+            self.llh = root_group._v_attrs.llh
+        except:
+            logger.warning('{} does not contain LLH position'.format(h5_fname))
         for sat_group in h5file.root.leveled_phase_arcs:
             sat = sat_group._v_name
             for arc_table in sat_group:
@@ -201,6 +214,8 @@ def level_phase_to_code(obs_map,
     THIS FUNCTION IS TOO LONG --- BREAK INTO COMPONENTS
     """
     arc_map = ArcMap()
+    arc_map.xyz = obs_map.xyz
+    arc_map.llh = obs_map.llh
     rms_model = RMSModel()
     for sat in sorted(obs_map):
         for arc_index, obs_time_series in arc_iter(obs_map[sat], gap_length):

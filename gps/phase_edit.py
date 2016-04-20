@@ -267,6 +267,9 @@ def filter_obs_map(obs_map,
     ???
     """
     edited_obs_map = ObsMap()
+    # copy receiver position information
+    edited_obs_map.xyz = obs_map.xyz
+    edited_obs_map.llh = obs_map.llh
     for sat in sorted(obs_map):
         # add C1_delta, P1_delta, P2_delta: cc2noncc happens here
         L1_delta = 0
