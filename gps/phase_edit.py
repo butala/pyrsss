@@ -1,14 +1,18 @@
 import logging
+import sys
 import os
-from collections import defaultdict
-from datetime import datetime
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from collections import defaultdict, OrderedDict, Iterator
+from datetime import datetime, timedelta
 
 import sh
 from intervals import DateTimeInterval
+from tables import open_file, IsDescription, Time64Col, StringCol, Float64Col
 
-from ..util.path import SmartTempDir
+from ..util.path import SmartTempDir, replace_path
 from path import GPSTK_BUILD_PATH
-from rinex import read_rindump, ObsMap, Observation, dump_rinex
+from rinex import read_rindump, Observation, dump_rinex
+from preprocess import normalize_rinex
 from teqc import rinex_info
 
 logger = logging.getLogger('pyrsss.gps.phase_edit')
@@ -250,11 +254,113 @@ def parse_edit_commands(df_fname):
                 time_reject_map[sv].append(DateTimeInterval([dt, dt]))
             elif line.startswith('-BD+'):
                 _, sv, obs_type, dt, offset = parse_bias_command(line)
-                # phase_adjust_map[sv][obs_type][dt] = offset
                 phase_adjust_map[sv].append((dt, obs_type, offset))
             else:
                 raise NotImplementedError('unhandled edit command {}'.format(line))
     return time_reject_map, phase_adjust_map
+
+
+""" ??? """
+class EditedObsTimeSeries(OrderedDict):
+    def __setitem__(self, key, value):
+        """ ??? """
+        super(EditedObsTimeSeries, self).__setitem__(key,
+                                                     Observation(*value))
+
+class ObsMapIterator(Iterator):
+    def __init__(self, obs_map):
+        """ ??? """
+        self.obs_map = obs_map
+        sorted_sats = sorted(obs_map)
+        self.obs_dts = OrderedDict([(x, self.obs_map[x].keys()) for x in sorted_sats])
+
+    def next(self):
+        """ ??? """
+        front_dts = [None if len(x) == 0 else x[0] for x in self.obs_dts.itervalues()]
+        if all([x is None for x in front_dts]):
+            raise StopIteration
+        # below is the argmin function that ignores entries that are
+        # None
+        I, min_dt = min(filter(lambda x: x[1] is not None,
+                               enumerate(front_dts)),
+                        key=lambda x: x[1])
+        sat = self.obs_dts.keys()[I]
+        self.obs_dts[sat].pop(0)
+        return min_dt, sat, self.obs_map[sat][min_dt]
+
+
+""" ??? """
+class ObsMapTable(IsDescription):
+    dt   = Time64Col()
+    sat  = StringCol(3)
+    C1   = Float64Col()
+    P1   = Float64Col()
+    P2   = Float64Col()
+    L1   = Float64Col()
+    L2   = Float64Col()
+    az   = Float64Col()
+    el   = Float64Col()
+    satx = Float64Col()
+    saty = Float64Col()
+    satz = Float64Col()
+
+
+""" ??? """
+class EditedObsMap(dict):
+    EPOCH = datetime(1970, 1, 1)
+
+    def __init__(self, h5_fname=None):
+        """ ??? """
+        super(EditedObsMap, self).__init__()
+        if h5_fname:
+            self.undump(h5_fname)
+
+    def __missing__(self, key):
+        """ ??? """
+        self[key] = EditedObsTimeSeries()
+        return self[key]
+
+    def dump(self, h5_fname):
+        """ ??? """
+        h5file = open_file(h5_fname, mode='w', title='pyrsss.gps.phase_edit output')
+        group = h5file.create_group('/', 'phase_arcs', 'Edited phase connected arcs')
+        table = h5file.create_table(group, 'gps', ObsMapTable, 'GPS data')
+        row = table.row
+        for dt, sat, obs in ObsMapIterator(self):
+            row['dt'] = (dt - EditedObsMap.EPOCH).total_seconds()
+            row['sat'] = sat
+            row['C1'] = obs.C1
+            row['P1'] = obs.P1
+            row['P2'] = obs.P2
+            row['L1'] = obs.L1
+            row['L2'] = obs.L2
+            row['az'] = obs.az
+            row['el'] = obs.el
+            row['satx'] = obs.satx
+            row['saty'] = obs.saty
+            row['satz'] = obs.satz
+            row.append()
+        table.flush()
+        return h5_fname
+
+    def undump(self, h5_fname):
+        """ ??? """
+        h5file = open_file(h5_fname, mode='r')
+        table = h5file.root.phase_arcs.gps
+        for row in table.iterrows():
+            dt = EditedObsMap.EPOCH + timedelta(seconds=row['dt'])
+            obs = Observation(*[row[x] for x in ['C1',
+                                                 'P1',
+                                                 'P2',
+                                                 'L1',
+                                                 'L2',
+                                                 'az',
+                                                 'el',
+                                                 'satx',
+                                                 'saty',
+                                                 'satz']])
+            self[row['sat']][dt] = obs
+        return self
 
 
 def filter_obs_map(obs_map,
@@ -263,7 +369,7 @@ def filter_obs_map(obs_map,
     """
     ???
     """
-    processed_obs_map = ObsMap()
+    edited_obs_map = EditedObsMap()
     for sat in sorted(obs_map):
         # add C1_delta, P1_delta, P2_delta: cc2noncc happens here
         L1_delta = 0
@@ -287,41 +393,99 @@ def filter_obs_map(obs_map,
                 else:
                     # impossible
                     assert False
-            # add accepted, adjusted observation to output
-            processed_obs_map[sat][dt] = Observation(obs.C1,
-                                                     obs.P1,
-                                                     obs.P2,
-                                                     obs.L1 + L1_delta,
-                                                     obs.L2 + L2_delta,
-                                                     obs.az,
-                                                     obs.el,
-                                                     obs.satx,
-                                                     obs.saty,
-                                                     obs.satz)
-    return processed_obs_map
+            edited_obs_map[sat][dt] = [obs.C1,
+                                       obs.P1,
+                                       obs.P2,
+                                       None if obs.L1 is None else obs.L1 + L1_delta,
+                                       None if obs.L2 is None else obs.L2 + L2_delta,
+                                       obs.az,
+                                       obs.el,
+                                       obs.satx,
+                                       obs.saty,
+                                       obs.satz]
+    return edited_obs_map
+
+
+def phase_edit_process(h5_fname,
+                       rinex_fname,
+                       nav_fname,
+                       work_path=None,
+                       preprocess=True):
+    """ ??? """
+    info = rinex_info(rinex_fname,
+                      nav_fname)
+    interval = info['interval']
+    with SmartTempDir(work_path) as work_path:
+        # preprocess
+        if preprocess:
+            logger.info('preprocessing {}'.format(rinex_fname))
+            unprocessed_rinex = rinex_fname
+            rinex_fname = replace_path(work_path, rinex_fname)
+            normalize_rinex(rinex_fname,
+                            unprocessed_rinex)
+        # phase edit
+        logger.info('phase edit {}'.format(rinex_fname))
+        (time_reject_map,
+         phase_adjust_map) = phase_edit(rinex_fname,
+                                        interval,
+                                        work_path=work_path)
+        # dump RINEX and read in ObsMap
+        logger.info('dumping {}'.format(rinex_fname))
+        rinex_dump_fname = replace_path(work_path, rinex_fname + '.dump')
+        dump_rinex(rinex_dump_fname,
+                   rinex_fname,
+                   nav_fname)
+        obs_map = read_rindump(rinex_dump_fname)
+        # apply phase edit adjustments to ObsMap
+        logger.info('applying phase edit adjustments')
+        edited_obs_map = filter_obs_map(obs_map,
+                                        time_reject_map,
+                                        phase_adjust_map)
+        # store EditedObsMap to file
+        logger.info('storing output to {}'.format(h5_fname))
+        edited_obs_map.dump(h5_fname)
+    return h5_fname
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
+    parser = ArgumentParser('Preprocess and apply the GPSTk phase editor '
+                            '(DiscFix) to an input RINEX record and produce '
+                            'a dump record suitable for subsequent processing '
+                            '(phase leveling).',
+                            formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.add_argument('dump_fname',
+                        type=str,
+                        help='output dump file')
+    parser.add_argument('rinex_fname',
+                        type=str,
+                        help='input RINEX observation file')
+    parser.add_argument('nav_fname',
+                        type=str,
+                        help='input RINEX navigation file')
+    parser.add_argument('--work-path',
+                        '-w',
+                        type=str,
+                        default=None,
+                        help='path to store intermediate files (use an '
+                             'automatically cleaned up area if not specified)')
+    parser.add_argument('--no-preprocess',
+                        action='store_true',
+                        help='disable RINEX preprocess step (i.e., '
+                             'normalization)')
+    # DECIMATE OPTION?
+    args = parser.parse_args(argv[1:])
+
+    phase_edit_process(args.dump_fname,
+                       args.rinex_fname,
+                       args.nav_fname,
+                       work_path=args.work_path,
+                       preprocess=not args.no_preprocess)
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.getLogger('sh').setLevel(logging.WARNING)
-
-    rinex_fname = '/Users/butala/src/absolute_tec/jplm0010.14o'
-    nav_fname = '/Users/butala/src/absolute_tec/jplm0010.14n'
-
-    info = rinex_info(rinex_fname,
-                      nav_fname)
-    interval = info['interval']
-
-    (time_reject_map,
-     phase_adjust_map) = phase_edit(rinex_fname, interval, work_path='/tmp')
-
-    rinex_dump_fname = '/tmp/jplm0010.14o.dump'
-    dump_rinex(rinex_dump_fname,
-               rinex_fname,
-               nav_fname)
-
-    obs_map = read_rindump(rinex_dump_fname)
-
-    obs_map = filter_obs_map(obs_map,
-                             time_reject_map,
-                             phase_adjust_map)
+    sys.exit(main())
