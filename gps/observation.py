@@ -2,9 +2,10 @@ from datetime import timedelta
 from collections import OrderedDict, namedtuple, Iterator
 
 import scipy.constants as const
-from tables import open_file, IsDescription, Time64Col, StringCol, Float64Col
+from tables import open_file, IsDescription, Time64Col, Float64Col
 
-from constants import EPOCH, F_1, F_2, LAMBDA_1, LAMBDA_2
+from ..util.date import UNIX_EPOCH
+from constants import F_1, F_2, LAMBDA_1, LAMBDA_2
 
 
 
@@ -98,21 +99,6 @@ class Observation(namedtuple('Observation',
         return self.P2 - MP_C * self.L1m + MP_D * self.L2m
 
 
-""" ??? """
-class ObsMapTable(IsDescription):
-    dt   = Time64Col()
-    C1   = Float64Col()
-    P1   = Float64Col()
-    P2   = Float64Col()
-    L1   = Float64Col()
-    L2   = Float64Col()
-    az   = Float64Col()
-    el   = Float64Col()
-    satx = Float64Col()
-    saty = Float64Col()
-    satz = Float64Col()
-
-
 class ObsMapFlatIterator(Iterator):
     def __init__(self, obs_map):
         """ ??? """
@@ -154,16 +140,30 @@ class ObsMap(dict):
         self[key] = ObsTimeSeries()
         return self[key]
 
-    def dump(self, h5_fname):
+    """ ??? """
+    class Table(IsDescription):
+        dt   = Time64Col()
+        C1   = Float64Col()
+        P1   = Float64Col()
+        P2   = Float64Col()
+        L1   = Float64Col()
+        L2   = Float64Col()
+        az   = Float64Col()
+        el   = Float64Col()
+        satx = Float64Col()
+        saty = Float64Col()
+        satz = Float64Col()
+
+    def dump(self, h5_fname, title=''):
         """ ??? """
-        h5file = open_file(h5_fname, mode='w', title='pyrsss.gps.phase_edit output')
-        group = h5file.create_group('/', 'phase_arcs', 'Edited phase connected arcs')
+        h5file = open_file(h5_fname, mode='w', title=title)
+        group = h5file.create_group('/', 'phase_arcs', 'Phase connected arcs')
         for sat in sorted(self):
             assert sat[0] == 'G'
-            table = h5file.create_table(group, sat, ObsMapTable, 'GPS prn={} data'.format(sat[1:]))
+            table = h5file.create_table(group, sat, ObsMap.Table, 'GPS prn={} data'.format(sat[1:]))
             row = table.row
             for dt, obs in self[sat].iteritems():
-                row['dt'] = (dt - EPOCH).total_seconds()
+                row['dt'] = (dt - UNIX_EPOCH).total_seconds()
                 row['C1'] = obs.C1
                 row['P1'] = obs.P1
                 row['P2'] = obs.P2
@@ -185,7 +185,7 @@ class ObsMap(dict):
         for table in group:
             sat = table.name
             for row in table.iterrows():
-                dt = EPOCH + timedelta(seconds=row['dt'])
+                dt = UNIX_EPOCH + timedelta(seconds=row['dt'])
                 obs = Observation(*[row[x] for x in ['C1',
                                                      'P1',
                                                      'P2',
