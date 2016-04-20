@@ -125,16 +125,16 @@ class ArcMap(dict):
     def dump(self, h5_fname):
         """ ??? """
         h5file = open_file(h5_fname, mode='w', title='pyrsss.gps.level output')
-        root_group = h5file.create_group('/',
-                                         'leveled_phase_arcs',
-                                         'Leveled phase connected arcs')
+        leveled_phase_arcs_group = h5file.create_group('/',
+                                                       'leveled_phase_arcs',
+                                                       'Leveled phase connected arcs')
         if hasattr(self, 'xyz'):
-            root_group._v_attrs.xyz = self.xyz
+            leveled_phase_arcs_group._v_attrs.xyz = self.xyz
         if hasattr(self, 'llh'):
-            root_group._v_attrs.llh = self.llh
+            leveled_phase_arcs_group._v_attrs.llh = self.llh
         for sat in sorted(self):
             assert sat[0] == 'G'
-            sat_group = h5file.create_group(root_group,
+            sat_group = h5file.create_group(leveled_phase_arcs_group,
                                             sat,
                                             'Leveled phase connected arcs for {}'.format(sat))
             for i, leveled_arc in enumerate(self[sat]):
@@ -161,16 +161,16 @@ class ArcMap(dict):
     def undump(self, h5_fname):
         """ ??? """
         h5file = open_file(h5_fname, mode='r')
-        root_group = h5file.root
+        leveled_phase_arcs_group = h5file.root.leveled_phase_arcs
         try:
-            self.xyz = root_group._v_attrs.xyz
+            self.xyz = leveled_phase_arcs_group._v_attrs.xyz
         except:
             logger.warning('{} does not contain XYZ position'.format(h5_fname))
         try:
-            self.llh = root_group._v_attrs.llh
+            self.llh = leveled_phase_arcs_group._v_attrs.llh
         except:
             logger.warning('{} does not contain LLH position'.format(h5_fname))
-        for sat_group in h5file.root.leveled_phase_arcs:
+        for sat_group in leveled_phase_arcs_group:
             sat = sat_group._v_name
             for arc_table in sat_group:
                 dt = []
