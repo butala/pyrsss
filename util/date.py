@@ -7,6 +7,10 @@ J2000_EPOCH = datetime(2000, 1, 1, 12)
 """ ??? """
 
 
+UNIX_EPOCH = datetime(1970, 1, 1)
+""" ??? """
+
+
 def toJ2000(dt):
     """
     Convert *dt* to the number of seconds past J2000.
