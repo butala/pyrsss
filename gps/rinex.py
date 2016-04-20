@@ -10,7 +10,7 @@ from cStringIO import StringIO
 
 import sh
 
-from constants import EPOCH
+from constants import GPS_EPOCH
 from path import GPSTK_BUILD_PATH
 from teqc import rinex_info
 from preprocess import normalize_rinex
@@ -328,7 +328,7 @@ def read_rindump(rindump_fname):
                 gps_week = int(cols[0])
                 seconds = float(cols[1])
                 sat = cols[2]
-                dt = EPOCH + timedelta(days=7 * gps_week,
+                dt = GPS_EPOCH + timedelta(days=7 * gps_week,
                                        seconds=seconds)
                 obs_map[sat][dt] = reorder(map(float, cols[3:]))
     return obs_map
