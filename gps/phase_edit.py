@@ -340,7 +340,7 @@ def phase_edit_process(h5_fname,
                                         phase_adjust_map)
         # store ObsMap to file
         logger.info('storing output to {}'.format(h5_fname))
-        edited_obs_map.dump(h5_fname)
+        edited_obs_map.dump(h5_fname, title='pyrsss.gps.phase_edit output')
     return h5_fname
 
 
