@@ -4,7 +4,7 @@ from datetime import datetime
 import scipy.constants as const
 
 
-EPOCH = datetime(1980, 1, 6)
+GPS_EPOCH = datetime(1980, 1, 6)
 """The epoch for GPS time."""
 
 F_0 = 10.23e6
