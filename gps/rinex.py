@@ -6,21 +6,33 @@ import logging
 from datetime import datetime
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import timedelta
-from collections import OrderedDict, namedtuple
 from cStringIO import StringIO
 
 import sh
-import scipy.constants as const
 
-from constants import EPOCH, F_1, F_2, LAMBDA_1, LAMBDA_2
+from constants import EPOCH
 from path import GPSTK_BUILD_PATH
 from teqc import rinex_info
 from preprocess import normalize_rinex
+from observation import Observation, ObsTimeSeries, ObsMap
 from receiver_types import ReceiverTypes
 from p1c1 import P1C1Table
 from ..util.path import SmartTempDir, replace_path, tail
 
 logger = logging.getLogger('pyrsss.gps.rinex')
+
+
+
+GPS_RECEIVER_TYPES = ReceiverTypes()
+"""
+Global scope table of GPS receiver types.
+"""
+
+
+P1C1_TABLE = P1C1Table()
+"""
+Global scope table of CODE derived P1-C1 DCBs.
+"""
 
 
 RIN_DUMP = os.path.join(GPSTK_BUILD_PATH,
@@ -46,18 +58,6 @@ RINDUMP_OBS_MAP = {'GC1C': 'C1',
 
 Unsure why the above do not correlate with the output of RinSum (no,
 they do!).
-"""
-
-
-GPS_RECEIVER_TYPES = ReceiverTypes()
-"""
-Global scope table of GPS receiver types.
-"""
-
-
-P1C1_TABLE = P1C1Table()
-"""
-Global scope table of CODE derived P1-C1 DCBs.
 """
 
 
@@ -209,105 +209,22 @@ routines.
 """
 
 
-LAMBDA_WL = const.c / (F_1 - F_2)
-"""
-???
-"""
-
-ALPHA = (F_1 / F_2)**2
-"""
-???
-"""
-
-MP_A = 1 + 2 / (ALPHA - 1)
-"""
-???
-"""
-
-MP_B = 2 / (ALPHA - 1)
-"""
-???
-"""
-
-MP_C = 2 * ALPHA / (ALPHA - 1)
-"""
-???
-"""
-
-MP_D = 2 * ALPHA / (ALPHA - 1) - 1
-"""
-???
-"""
-
-
-class Observation(namedtuple('Observation',
-                             'C1 P1 P2 L1 L2 az el satx saty satz')):
-    @property
-    def L1m(self):
-        """
-        Return carrier 1 phase in [m].
-        """
-        return self.L1 * LAMBDA_1
-
-    @property
-    def L2m(self):
-        """
-        Return carrier 2 phase in [m].
-        """
-        return self.L2 * LAMBDA_2
-
-    @property
-    def N_WL(self):
-        """
-        """
-        return self.L1 - self.L2 - (F_1 * self.P1 + F_2 * self.P2) / (LAMBDA_WL * (F_1 + F_2))
-
-    @property
-    def L_WL(self):
-        """
-        """
-        return LAMBDA_WL * self.N_WL
-
-    @property
-    def P_I(self):
-        """
-        """
-        return self.P2 - self.P1
-
-    @property
-    def L_I(self):
-        """
-        """
-        return self.L1 - self.L2
-
-    @property
-    def L_Im(self):
-        """
-        """
-        return self.L1m - self.L2m
-
-    @property
-    def MP1(self):
-        """
-        """
-        return self.P1 - MP_A * self.L1m + MP_B * self.L2m
-
-    @property
-    def MP2(self):
-        """
-        """
-        return self.P2 - MP_C * self.L1m + MP_D * self.L2m
-
-
-class ObsTimeSeries(OrderedDict):
+class P1C1ObsTimeSeries(ObsTimeSeries):
     def __init__(self, receiver_type, p1c1_bias, replace_p1_with_c1=True):
-        """???"""
-        super(ObsTimeSeries, self).__init__()
+        """ ??? """
+        super(P1C1ObsTimeSeries, self).__init__()
         self.receiver_type = receiver_type
         self.p1c1_bias = p1c1_bias
         self.replace_p1_with_c1 = replace_p1_with_c1
 
+    def __missing__(self, key):
+        prn = int(key[1:])
+        self[key] = ObsTimeSeries(self.receiver_p1c1_type,
+                                  self.p1c1_table[prn])
+        return self[key]
+
     def __setitem__(self, key, value):
+        """ ??? """
         if self.receiver_type == 1:
             # C1 -> C1 + b
             # P2 -> P2 + b
@@ -328,13 +245,14 @@ class ObsTimeSeries(OrderedDict):
             value[1] = value[0]
         # replace empty values (==0.0) with None
         value = [None if x == 0.0 else x for x in value]
-        super(ObsTimeSeries, self).__setitem__(key,
-                                               Observation(*value))
+        super(P1C1ObsTimeSeries, self).__setitem__(key,
+                                                   Observation(*value))
 
 
-class ObsMap(dict):
-    def __init__(self, receiver_type, receiver_p1c1_type, p1c1_table):
+class P1C1ObsMap(ObsMap):
+    def __init__(self, receiver_type, receiver_p1c1_type, p1c1_table, h5_fname=None):
         """ ??? """
+        super(P1C1ObsMap, self).__init__(h5_fname=h5_fname)
         self.receiver_type = receiver_type
         if receiver_p1c1_type not in [1, 2, 3]:
             raise ValueError('receiver P1-C1 type {} is unknown '
@@ -345,8 +263,8 @@ class ObsMap(dict):
 
     def __missing__(self, key):
         prn = int(key[1:])
-        self[key] = ObsTimeSeries(self.receiver_p1c1_type,
-                                  self.p1c1_table[prn])
+        self[key] = P1C1ObsTimeSeries(self.receiver_p1c1_type,
+                                      self.p1c1_table[prn])
         return self[key]
 
 
@@ -376,7 +294,7 @@ def read_rindump(rindump_fname):
     """
     ???
     """
-    obs_map = ObsMap(*read_rindump_footer(rindump_fname))
+    obs_map = P1C1ObsMap(*read_rindump_footer(rindump_fname))
     with open(rindump_fname) as fid:
         for line in fid:
             if line.startswith('# wk'):
