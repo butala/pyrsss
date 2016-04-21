@@ -356,9 +356,9 @@ def main(argv=None):
                             'a dump record suitable for subsequent processing '
                             '(phase leveling).',
                             formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument('dump_fname',
+    parser.add_argument('h5_fname',
                         type=str,
-                        help='output dump file')
+                        help='output HDF5 file')
     parser.add_argument('rinex_fname',
                         type=str,
                         help='input RINEX observation file')
@@ -378,7 +378,7 @@ def main(argv=None):
     # DECIMATE OPTION?
     args = parser.parse_args(argv[1:])
 
-    phase_edit_process(args.dump_fname,
+    phase_edit_process(args.h5_fname,
                        args.rinex_fname,
                        args.nav_fname,
                        work_path=args.work_path,
