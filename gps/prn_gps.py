@@ -1,10 +1,34 @@
+import logging
+import os
 from datetime import datetime, date
 from collections import namedtuple
 
 from intervals import DateInterval
 
+from sideshow import update_sideshow_file
 
-URL = 'ftp://sideshow.jpl.nasa.gov/pub/gipsy_files/gipsy_params/CA-P.gz'
+
+PRN_GPS_FNAME = os.path.join(os.path.dirname(__file__),
+                               'PRN_GPS')
+"""
+Full path to the SVN/PRN mapping file.
+"""
+
+
+PRN_GPS_SERVER_FNAME = '/pub/gipsy_files/gipsy_params/PRN_GPS.gz'
+"""
+Path to the remote SVN/PRN mapping file.
+"""
+
+
+def update_prn_gps(prn_gps_fname=PRN_GPS_FNAME,
+                   prn_gps_server_fname=PRN_GPS_SERVER_FNAME):
+    """
+    Update the SVN/PRN mapping table stored at *prn_gps_fname*. The
+    remote file is accessed via FTP at *prn_gps_server_fname*.
+    """
+    return update_sideshow_file(prn_gps_fname,
+                                prn_gps_server_fname)
 
 
 class Info(namedtuple('Info',
@@ -19,10 +43,13 @@ class Info(namedtuple('Info',
 
 
 class Table(list):
-    def __init__(self, prn_gps_fname):
+    def __init__(self, prn_gps_fname=PRN_GPS_FNAME):
         """
         ???
         """
+        super(Table, self).__init__()
+        if prn_gps_fname == PRN_GPS_FNAME and not os.path.isfile(prn_gps_fname):
+            update_prn_gps()
         with open(prn_gps_fname) as fid:
             for i, line in enumerate(fid):
                 if i == 0:
@@ -80,6 +107,9 @@ class Table(list):
 
 
 if __name__ == '__main__':
-    prn_gps = Table('/Users/butala/Desktop/PRN_GPS')
+    logging.basicConfig(level=logging.INFO)
+
+    update_prn_gps()
+    prn_gps = Table()
 
     print(prn_gps.svn(7, date(2007, 1, 1)))

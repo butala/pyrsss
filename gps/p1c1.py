@@ -1,29 +1,18 @@
 import logging
 import os
 from datetime import datetime, timedelta
-from ftplib import FTP
-from contextlib import closing
-from tempfile import gettempdir
-from gzip import GzipFile
 from collections import OrderedDict
 
 import numpy as NP
 
 from ..util.path import replace_path
-
-logger = logging.getLogger('pyrsss.gps.p1c1')
+from sideshow import update_sideshow_file
 
 
 P1C1_FNAME = os.path.join(os.path.dirname(__file__),
                           'CA-P')
 """
 Full path to the receiver type file.
-"""
-
-
-P1C1_SERVER = 'sideshow.jpl.nasa.gov'
-"""
-FTP server for the P1-C1 DCB file.
 """
 
 
@@ -34,26 +23,13 @@ Path to the remote P1-C1 DCB file.
 
 
 def update_p1c1(p1c1_fname=P1C1_FNAME,
-                p1c1_server=P1C1_SERVER,
-                p1c1_server_fname=P1C1_SERVER_FNAME,
-                temp_path=gettempdir()):
+                p1c1_server_fname=P1C1_SERVER_FNAME):
     """
     Update the receiver type table stored at *p1c1_fname*. The remote
-    file is accessed via FTP on *p1c1_server* at
-    *p1c1_server_fname*. The path *temp_path* is used to store
-    intermediate files.
+    file is accessed via FTP at *p1c1_server_fname*.
     """
-    dest_fname = replace_path(temp_path, p1c1_server_fname)
-    logger.info('opening connection to {}'.format(p1c1_server))
-    with closing(FTP(p1c1_server)) as ftp, open(dest_fname, 'w') as fid:
-        logger.info('logging in')
-        ftp.login()
-        logger.info('writing to {}'.format(dest_fname))
-        ftp.retrbinary('RETR ' + p1c1_server_fname, fid.write)
-    logger.info('uncompressing file to {}'.format(p1c1_fname))
-    with GzipFile(dest_fname) as gzip_fid, open(p1c1_fname, 'w') as fid:
-        fid.write(gzip_fid.read())
-    return p1c1_fname
+    return update_sideshow_file(p1c1_fname,
+                                p1c1_server_fname)
 
 
 class P1C1Table(OrderedDict):
@@ -93,8 +69,8 @@ class P1C1Table(OrderedDict):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    update_p1c1()
 
+    update_p1c1()
     p1c1_table = P1C1Table()
 
     date = datetime(2016, 1, 25)
