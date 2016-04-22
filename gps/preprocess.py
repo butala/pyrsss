@@ -32,6 +32,8 @@ def normalize_rinex(output_rinex_fname,
     the observations givne in *obs_types*. Return
     *output_rinex_fname*.
     """
+    if not os.path.isfile(rinex_fname):
+        raise ValueError('RINEX observation file {} not found'.format(rinex_fname))
     args = ['+C2']
     args += ['+G'] if gps else ['-G']
     args += ['+R'] if glonass else ['-R']
