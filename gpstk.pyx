@@ -189,6 +189,13 @@ cdef class PyPosition(object):
         return deref(self.thisptr).Z()
 
     @property
+    def xyz(self):
+        """
+        Return the tuple of EXEC coordinates (x, y, z) all in [m].
+        """
+        return (self.x, self.y, self.z)
+
+    @property
     def geodeticLatitude(self):
         """Return the geodetic latitude [deg N]."""
         return deref(self.thisptr).geodeticLatitude()
