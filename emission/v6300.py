@@ -55,11 +55,16 @@ def k5(Tn):
     return 1.6e-12 * Tn**(0.91)
 
 
-A_1D = 6.81e-3
+A_1D = 7.45e-3
 """[1/s]"""
 
 
+A_6300 = 5.63e-3
+"""[1/s]"""
+
 BETA_1D = 1.1
+
+
 
 
 def Oplus_simple(ne):
@@ -94,6 +99,6 @@ def emission_v6300(ne,
         oplus = Oplus(ne, Te, Ti, O2, N2)
     else:
         raise NotImplemented('oplus_type = ' + str(oplus_type))
-    N = 0.76 * BETA_1D * k1(Ti) * O2 * oplus
+    N = (A_1D / A_6300) * BETA_1D * k1(Ti) * O2 * oplus
     D = 1 + (k3(Tn) * N2 + k4(Tn) * O2 + k5(Tn) * ne) / A_1D
     return N / D
