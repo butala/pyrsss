@@ -1,6 +1,11 @@
+from collections import Iterable
+
+import sympy as SYM
 import numpy as NP
 from scipy.integrate import fixed_quad
 from scipy.optimize import minimize_scalar
+
+from pyrsss.gpstk import PyPosition
 
 
 class SlantIntegrator(object):
@@ -66,3 +71,104 @@ class SlantIntegrator(object):
         # integration warning for reasons that were not fully
         # diagnosed
         return fixed_quad(wrapper, s1, s2, n=n, **kwds)[0]
+
+
+def chapman_sym(z, Nm, Hm, H_O):
+    """
+    Return symbolic (i.e., :module:`sympy`) Chapman electron density
+    profile function. The returned value is scaled so that integrated
+    quantities are in [TECU].
+    """
+    return Nm * SYM.exp((1 - ((z - Hm) / H_O) - SYM.exp(-(z - Hm) / H_O)) / 2) / 1e7
+
+
+class ChapmanSI(SlantIntegrator):
+    def __init__(self, stn_xyz, **kwds):
+        """
+        Setup Chapman electron density profile slant integrator.
+        """
+        z, Nm, Hm, H_O = SYM.symbols('z Nm Hm H_O')
+        f_sym = chapman_sym(z, Nm, Hm, H_O)
+        f = SYM.lambdify((z, Nm, Hm, H_O),
+                         f_sym,
+                         modules='numexpr')
+        super(ChapmanSI, self).__init__(f, stn_xyz, **kwds)
+
+    def __call__(self, sat_xyz, Nm, Hm, H_O):
+        """
+        Return the slant integral of the Chapman electron density profile
+        with parameters Nm [cm^-3], Hm [km], and H_O [km].
+        """
+        return super(ChapmanSI, self).__call__(sat_xyz,
+                                               (Nm, Hm, H_O))
+
+
+class DNmChapmanSI(SlantIntegrator):
+    def __init__(self, stn_xyz, **kwds):
+        """
+        Setup Chapman electron density profile F2 peak density derivative
+        slant integrator.
+        """
+        z, Nm, Hm, H_O = SYM.symbols('z Nm Hm H_O')
+        f_sym = chapman_sym(z, Nm, Hm, H_O)
+        DNm_sym = SYM.diff(f_sym, Nm)
+        f = SYM.lambdify((z, Hm, H_O),
+                         DNm_sym,
+                         modules='numexpr')
+        super(DNmChapmanSI, self).__init__(f, stn_xyz, **kwds)
+
+    def __call__(self, sat_xyz, Nm, Hm, H_O):
+        """
+        Return the slant integral of the peak density derivative of the
+        Chapman electron density profile with parameters Nm [cm^-3],
+        Hm [km], and H_O [km].
+        """
+        return super(DNmChapmanSI, self).__call__(sat_xyz,
+                                                  (Hm, H_O))
+
+class DHmChapmanSI(SlantIntegrator):
+    def __init__(self, stn_xyz, **kwds):
+        """
+        Setup Chapman electron density profile F2 peak height derivative
+        slant integrator.
+        """
+        z, Nm, Hm, H_O = SYM.symbols('z Nm Hm H_O')
+        f_sym = chapman_sym(z, Nm, Hm, H_O)
+        DHm_sym = SYM.diff(f_sym, Hm)
+        f = SYM.lambdify((z, Nm, Hm, H_O),
+                         DHm_sym,
+                         modules='numexpr')
+        super(DHmChapmanSI, self).__init__(f, stn_xyz, **kwds)
+
+    def __call__(self, sat_xyz, Nm, Hm, H_O):
+        """
+        Return the slant integral of the peak height derivative of the
+        Chapman electron density profile with parameters Nm [cm^-3],
+        Hm [km], and H_O [km].
+        """
+        return super(DHmChapmanSI, self).__call__(sat_xyz,
+                                                  (Nm, Hm, H_O))
+
+class DH_OChapmanSI(SlantIntegrator):
+    def __init__(self, stn_xyz, **kwds):
+        """
+        Setup Chapman electron density profile plasma scale height
+        derivative slant integrator.
+        """
+        z, Nm, Hm, H_O = SYM.symbols('z Nm Hm H_O')
+        f_sym = chapman_sym(z, Nm, Hm, H_O)
+        DH_O_sym = SYM.diff(f_sym, H_O)
+        f = SYM.lambdify((z, Nm, Hm, H_O),
+                         DH_O_sym,
+                         modules='numexpr')
+        super(DH_OChapmanSI, self).__init__(f, stn_xyz, **kwds)
+
+
+    def __call__(self, sat_xyz, Nm, Hm, H_O):
+        """
+        Return the slant integral of the plasma scale height derivative of
+        the Chapman electron density profile with parameters Nm
+        [cm^-3], Hm [km], and H_O [km].
+        """
+        return super(DH_OChapmanSI, self).__call__(sat_xyz,
+                                                   (Nm, Hm, H_O))
