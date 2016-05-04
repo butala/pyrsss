@@ -30,24 +30,24 @@ def alpha2(Te):
     return 4.00e-7 * (Te / 300.)**(-0.9)
 
 
-def k1(Ti):
+def k1(Ti, exp=math.exp):
     """[cm^3 / s]"""
-    return 3.23e-12 * math.exp(3.72/(Ti/300) - 1.87/(Ti/300)**2)
+    return 3.23e-12 * exp(3.72/(Ti/300) - 1.87/(Ti/300)**2)
 
 
-def k2(Ti):
+def k2(Ti, exp=math.exp):
     """[cm^3 / s]"""
-    return 2.78e-13 * math.exp(2.07/(Ti/300) - 0.61/(Ti/300)**2)
+    return 2.78e-13 * exp(2.07/(Ti/300) - 0.61/(Ti/300)**2)
 
 
-def k3(Tn):
+def k3(Tn, exp=math.exp):
     """[cm^3 / s]"""
-    return 2.0e-11 * math.exp(111.8/Tn)
+    return 2.0e-11 * exp(111.8/Tn)
 
 
-def k4(Tn):
+def k4(Tn, exp=math.exp):
     """[cm^3 / s]"""
-    return 2.9e-11 * math.exp(67.5/Tn)
+    return 2.9e-11 * exp(67.5/Tn)
 
 
 def k5(Tn):
@@ -77,12 +77,13 @@ def Oplus(ne,
           Te,
           Ti,
           O2,
-          N2):
+          N2,
+          exp=math.exp):
     """
     """
     return ne / (1 \
-                 + k1(Ti) * O2 / (alpha1(Te) * ne) \
-                 + k2(Ti) * N2 / (alpha2(Te) * ne))
+                 + k1(Ti, exp=exp) * O2 / (alpha1(Te) * ne) \
+                 + k2(Ti, exp=exp) * N2 / (alpha2(Te) * ne))
 
 def emission_v6300(ne,
                    Te,
@@ -90,15 +91,16 @@ def emission_v6300(ne,
                    Tn,
                    O2,
                    N2,
-                   oplus_type=OplusType.charge_neutrality):
+                   oplus_type=OplusType.charge_neutrality,
+                   exp=math.exp):
     """
     """
     if oplus_type == OplusType.ne:
         oplus = Oplus_simple(ne)
     elif oplus_type == OplusType.charge_neutrality:
-        oplus = Oplus(ne, Te, Ti, O2, N2)
+        oplus = Oplus(ne, Te, Ti, O2, N2, exp=exp)
     else:
         raise NotImplemented('oplus_type = ' + str(oplus_type))
-    N = (A_1D / A_6300) * BETA_1D * k1(Ti) * O2 * oplus
-    D = 1 + (k3(Tn) * N2 + k4(Tn) * O2 + k5(Tn) * ne) / A_1D
+    N = (A_1D / A_6300) * BETA_1D * k1(Ti, exp=exp) * O2 * oplus
+    D = 1 + (k3(Tn, exp=exp) * N2 + k4(Tn, exp=exp) * O2 + k5(Tn) * ne) / A_1D
     return N / D
