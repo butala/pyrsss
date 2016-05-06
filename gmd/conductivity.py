@@ -1,5 +1,8 @@
+from __future__ import division
+
 from collections import OrderedDict
 
+import numpy as NP
 from intervals import FloatInterval
 
 
@@ -73,13 +76,12 @@ def parse_conductivity(fid):
         bounds.append(FloatInterval.closed_open(last_depth, last_depth + depth))
         last_depth += depth
     return OrderedDict(zip(bounds,
-                           resistivites))
+                           1 / NP.array(resistivites)))
 
 
 if __name__ == '__main__':
     from StringIO import StringIO
 
-    import numpy as NP
     import pylab as PL
 
     fid = StringIO(IP_3)
@@ -89,9 +91,9 @@ if __name__ == '__main__':
     depths = NP.logspace(2, 6, N)
     resistivites = NP.empty(N)
 
-    for interval, r in usgs_map.iteritems():
+    for interval, sigma in usgs_map.iteritems():
         I = [i for i, d in enumerate(depths) if d in interval]
-        resistivites[I] = r
+        resistivites[I] = 1 / sigma
 
     fig = PL.figure(figsize=(8.5, 11))
     PL.loglog(resistivites,
