@@ -15,7 +15,7 @@ def rect(t, a):
     return x
 
 
-def next_pow2(N):
+def nextpow2(N):
     """
     Return the power of 2 greater than or equal to *N*.
     """
@@ -29,7 +29,7 @@ def spectrum(x,
     """
     ???
     """
-    N = next_pow2(len(x)) * oversample
+    N = nextpow2(len(x)) * oversample
     X = NP.fft.fft(x, n=N) * T_s
     f = NP.fft.fftfreq(N, d=T_s)
     if n0 != 0:
