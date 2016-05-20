@@ -40,8 +40,8 @@ def get_reported(df):
     """
     """
     if all([x in df.columns for x in ['N', 'E', 'Z']]):
-        return 'HDZF', {'C1': ('H', 'N'),
-                        'C2': ('D', 'E'),
+        return 'XYZF', {'C1': ('X', 'N'),
+                        'C2': ('Y', 'E'),
                         'C3': ('Z', 'Z')}
     raise ValueError('could not determine coordinate system from columns: ' + ', '.join(df.columns))
 
