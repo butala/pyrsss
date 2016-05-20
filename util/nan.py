@@ -15,9 +15,8 @@ def nan_helper(y):
         >>> # linear interpolation of NaNs
         >>> nans, x= nan_helper(y)
         >>> y[nans]= NP.interp(x(nans), x(~nans), y[~nans])
-
-    Source: http://stackoverflow.com/questions/6518811/interpolate-nan-values-in-a-numpy-array
     """
+    # Source: http://stackoverflow.com/questions/6518811/interpolate-nan-values-in-a-numpy-array
     return NP.isnan(y), lambda z: z.nonzero()[0]
 
 
@@ -26,6 +25,7 @@ def nan_interp(y):
     Return a new array with nans found in *y* filled with linear
     interpolants.
     """
+    # Source: http://stackoverflow.com/questions/6518811/interpolate-nan-values-in-a-numpy-array
     nans, x = nan_helper(y)
     z = NP.array(y)
     z[nans]= NP.interp(x(nans), x(~nans), z[~nans])
