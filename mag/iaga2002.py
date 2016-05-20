@@ -1,7 +1,10 @@
+import logging
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime, timedelta
 from collections import OrderedDict, namedtuple, defaultdict
+
+logger = logging.getLogger('pyrsss.mag.iaga2002')
 
 
 class Header(namedtuple('Header',
@@ -58,12 +61,19 @@ def parse(fname):
                 break
             else:
                 key = line[:24].strip().replace(' ', '_')
-                header_map[key] = HEADER_TYPES[key](line[24:69].strip())
+                try:
+                    header_map[key] = HEADER_TYPES[key](line[24:69].strip())
+                except ValueError, e:
+                    logger.warning('could not parse header line {} --- skipping'.format(line))
+                    header_map[key] = None
+                    continue
         header_map['Comment'] = '\n'.join(comment_lines)
         try:
+            # print(header_map.keys())
             header = Header(**header_map)
         except TypeError:
-            raise RuntimeError('unknown header record found in {}'.format(fname))
+            logger.warning('unknown header record found in {} --- setting header to None'.format(fname))
+            header = None
         # parse data header record
         fields = line[:69].split()
         if len(fields) != 7:
