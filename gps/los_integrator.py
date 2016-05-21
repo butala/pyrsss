@@ -5,6 +5,7 @@ import numpy as NP
 from scipy.integrate import fixed_quad
 from scipy.optimize import minimize_scalar
 
+from pyrsss.util.chapman import chapman_sym
 from pyrsss.gpstk import PyPosition
 
 
@@ -73,13 +74,13 @@ class SlantIntegrator(object):
         return fixed_quad(wrapper, s1, s2, n=n, **kwds)[0]
 
 
-def chapman_sym(z, Nm, Hm, H_O):
+def chapman_sym_scaled(z, Nm, Hm, H_O):
     """
     Return symbolic (i.e., :module:`sympy`) Chapman electron density
     profile function. The returned value is scaled so that integrated
     quantities are in [TECU].
     """
-    return Nm * SYM.exp((1 - ((z - Hm) / H_O) - SYM.exp(-(z - Hm) / H_O)) / 2) / 1e7
+    return chapman_sym(z, Nm, Hm, H_O) / 1e7
 
 
 class ChapmanSI(SlantIntegrator):
@@ -88,7 +89,7 @@ class ChapmanSI(SlantIntegrator):
         Setup Chapman electron density profile slant integrator.
         """
         z, Nm, Hm, H_O = SYM.symbols('z Nm Hm H_O')
-        f_sym = chapman_sym(z, Nm, Hm, H_O)
+        f_sym = chapman_sym_scaled(z, Nm, Hm, H_O)
         f = SYM.lambdify((z, Nm, Hm, H_O),
                          f_sym,
                          modules='numexpr')
@@ -110,7 +111,7 @@ class DNmChapmanSI(SlantIntegrator):
         slant integrator.
         """
         z, Nm, Hm, H_O = SYM.symbols('z Nm Hm H_O')
-        f_sym = chapman_sym(z, Nm, Hm, H_O)
+        f_sym = chapman_sym_scaled(z, Nm, Hm, H_O)
         DNm_sym = SYM.diff(f_sym, Nm)
         f = SYM.lambdify((z, Hm, H_O),
                          DNm_sym,
@@ -133,7 +134,7 @@ class DHmChapmanSI(SlantIntegrator):
         slant integrator.
         """
         z, Nm, Hm, H_O = SYM.symbols('z Nm Hm H_O')
-        f_sym = chapman_sym(z, Nm, Hm, H_O)
+        f_sym = chapman_sym_scaled(z, Nm, Hm, H_O)
         DHm_sym = SYM.diff(f_sym, Hm)
         f = SYM.lambdify((z, Nm, Hm, H_O),
                          DHm_sym,
@@ -156,7 +157,7 @@ class DH_OChapmanSI(SlantIntegrator):
         derivative slant integrator.
         """
         z, Nm, Hm, H_O = SYM.symbols('z Nm Hm H_O')
-        f_sym = chapman_sym(z, Nm, Hm, H_O)
+        f_sym = chapman_sym_scaled(z, Nm, Hm, H_O)
         DH_O_sym = SYM.diff(f_sym, H_O)
         f = SYM.lambdify((z, Nm, Hm, H_O),
                          DH_O_sym,
