@@ -217,6 +217,15 @@ CP_2 = """\
 """
 
 
+"""
+Mapping between region name and conductivity model.
+"""
+NAME_MAP = {'CP_2': CP_2,
+            'IP_3': IP_3,
+            'IP_4': IP_4,
+            'PT_1': PT_1}
+
+
 def parse_conductivity(fid):
     """
     Parse a USGS model conductivity file-like object *fid*. Return an
