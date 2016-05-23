@@ -22,6 +22,7 @@ HEADER_TEMPLATE = """\
  Geodetic Longitude     XXX                                          |
  Elevation              XXX                                          |
  Reported               {reported}                                         |
+ Digital Sampling       1-Minute                                     |
 DATE       TIME         DOY     {stn}{C1}      {stn}{C2}      {stn}{C3}      {stn}F   |
 """
 
