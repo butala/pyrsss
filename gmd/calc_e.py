@@ -12,9 +12,9 @@ import scipy.constants
 from scipy.io import savemat
 
 from pyrsss.util.signal import nextpow2
-from pyrsss.gmd.conductivity import (NAME_MAP,
-                                     parse_conductivity,
+from pyrsss.gmd.conductivity import (parse_conductivity,
                                      surface_impedance_1D)
+from pyrsss.gmd.usgs_conductivity import USGS_CONDUCTIVITY_MAP
 from pyrsss.mag.iaga2002 import parse
 from pyrsss.util.nan import nan_interp
 from pyrsss.util.date import toJ2000
@@ -87,7 +87,7 @@ def calc_e(Bx, By, Zw_function, interval):
 def process(output_mat_fname,
             input_iaga2002_fname,
             model,
-            conductivity_map=NAME_MAP,
+            conductivity_map=USGS_CONDUCTIVITY_MAP,
             save_B=False):
     """
     End-to-end processing of an IAGA2002 magnetometer data record
@@ -142,7 +142,7 @@ def main(argv=None):
                         help='input IAGA2002 magnetometer data file')
     parser.add_argument('model',
                         type=str,
-                        choices=sorted(NAME_MAP),
+                        choices=sorted(USGS_CONDUCTIVITY_MAP),
                         help='process use the given 1-D conductivity model')
     args = parser.parse_args(argv[1:])
 
