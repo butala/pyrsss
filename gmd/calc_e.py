@@ -86,12 +86,15 @@ def calc_e(Bx, By, Zw_function, interval):
 
 def process(output_mat_fname,
             input_iaga2002_fname,
-            model):
+            model,
+            conductivity_map=NAME_MAP):
     """
     End-to-end processing of an IAGA2002 magnetometer data record
     *input_iaga2002_fname* to the output file *output_mat_fname*
     containing the calculated E-field. Use the 1-D USGS conductivity
-    model with ID *model*.
+    model with ID *model* identifying the conductivity model to use in
+    *conductivity_map* (keys are the IDs and values are 1-D
+    conductivity models in the USGS format).
     """
     # gather Bx and By magnetometer measurements
     _, data_map = parse(input_iaga2002_fname)
@@ -100,7 +103,7 @@ def process(output_mat_fname,
     Bx = nan_interp([getattr(x, stn_name.upper() + 'X') * 1e-9 for x in data_map.itervalues()])
     By = nan_interp([getattr(x, stn_name.upper() + 'Y') * 1e-9 for x in data_map.itervalues()])
     # setup surface impedance function
-    fid = StringIO(NAME_MAP[model])
+    fid = StringIO(conductivity_map[model])
     usgs_model = parse_conductivity(fid)
     Zw_function = lambda omega: surface_impedance_1D(usgs_model, omega)
     # calculate E field
@@ -109,11 +112,11 @@ def process(output_mat_fname,
                     Zw_function,
                     interval)
     # save E field
-    dt = map(toJ2000, data_map.iterkeys())
+    j2000 = map(toJ2000, data_map.iterkeys())
     savemat(output_mat_fname,
             {'Ex': Ex,
              'Ey': Ey,
-             'dt': dt,
+             'j2000': j2000,
              'input_fname': os.path.abspath(input_iaga2002_fname),
              'model': model})
     return output_mat_fname
