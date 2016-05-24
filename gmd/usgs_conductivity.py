@@ -1115,6 +1115,5 @@ Mapping between USGS region and conductivity specification.
 """
 USGS_MODEL_MAP = {}
 for name, spec in USGS_CONDUCTIVITY_MAP.iteritems():
-    print(name)
     fid = StringIO(spec)
     USGS_MODEL_MAP[name] = parse_conductivity(fid)
