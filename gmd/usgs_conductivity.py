@@ -1,3 +1,8 @@
+from cStringIO import StringIO
+
+from pyrsss.gmd.conductivity import parse_conductivity
+
+
 """
 USGS ground conductivity models are available at
 ftp://hazards.cr.usgs.gov/Rigler/Conductivity_Latest/
@@ -536,7 +541,7 @@ FL_1 = """
 * Text after the numbers is ignored
 *FL1 earth conductivity model
 */     1000,   5000,   34000,  60000.0, 150000.0, 160000.0, 110000.0, 150000.0, 230000.0,      INF,/ ! layer thicknesses in m
-*/    67. ,   224. ,   3162. ,   155. ,   138. ,   34. ,    15.5. ,    4.2 ,    1.2 ,    0.87 ,/ !Resistivities in Ohm-m
+*/    67. ,   224. ,   3162. ,   155. ,   138. ,   34. ,    15.5  ,    4.2 ,    1.2 ,    0.87 ,/ !Resistivities in Ohm-m
 9                             Number of layers from surface
 
 0.0149000                      Conductivity in S/m (layer 1)
@@ -1078,7 +1083,8 @@ SU_1 = """\
 
 
 """
-Mapping between USGS region name and conductivity model.
+Mapping between USGS region name and conductivity string
+specification.
 """
 USGS_CONDUCTIVITY_MAP = {
     'AK_1A': AK_1A,
@@ -1102,3 +1108,13 @@ USGS_CONDUCTIVITY_MAP = {
     'PT_1': PT_1,
     'SL_1': SL_1,
     'SU_1': SU_1}
+
+
+"""
+Mapping between USGS region and conductivity specification.
+"""
+USGS_MODEL_MAP = {}
+for name, spec in USGS_CONDUCTIVITY_MAP.iteritems():
+    print(name)
+    fid = StringIO(spec)
+    USGS_MODEL_MAP[name] = parse_conductivity(fid)
