@@ -122,6 +122,8 @@ def process(output_mat_fname,
     if save_B:
         mdict['Bx'] = Bx
         mdict['By'] = By
+        mdict['Bx_raw'] = getattr(x, stn_name.upper() + 'X') * 1e-9 for x in data_map.itervalues()]
+        mdict['By_raw'] = getattr(x, stn_name.upper() + 'Y') * 1e-9 for x in data_map.itervalues()]
     savemat(output_mat_fname, mdict)
     return output_mat_fname
 
