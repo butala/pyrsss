@@ -87,7 +87,8 @@ def calc_e(Bx, By, Zw_function, interval):
 def process(output_mat_fname,
             input_iaga2002_fname,
             model,
-            conductivity_map=NAME_MAP):
+            conductivity_map=NAME_MAP,
+            save_B=False):
     """
     End-to-end processing of an IAGA2002 magnetometer data record
     *input_iaga2002_fname* to the output file *output_mat_fname*
@@ -113,12 +114,15 @@ def process(output_mat_fname,
                     interval)
     # save E field
     j2000 = map(toJ2000, data_map.iterkeys())
-    savemat(output_mat_fname,
-            {'Ex': Ex,
+    mdict = {'Ex': Ex,
              'Ey': Ey,
              'j2000': j2000,
              'input_fname': os.path.abspath(input_iaga2002_fname),
-             'model': model})
+             'model': model}
+    if save_B:
+        mdict['Bx'] = Bx
+        mdict['By'] = By
+    savemat(output_mat_fname, mdict)
     return output_mat_fname
 
 
