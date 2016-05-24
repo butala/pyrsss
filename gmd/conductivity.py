@@ -56,18 +56,12 @@ def surface_impedance_1D(conductivity_map, omega):
 
 
 if __name__ == '__main__':
-    from StringIO import StringIO
-
-    from pyrsss.gmd.usgs_conductivity import PT_1, IP_4
+    from pyrsss.gmd.usgs_conductivity import USGS_MODEL_MAP
 
     import pylab as PL
 
-    fid_pt1 = StringIO(PT_1)
-    usgs_map_pt1 = parse_conductivity(fid_pt1)
-
-    fid_ip4 = StringIO(IP_4)
-    usgs_map_ip4 = parse_conductivity(fid_ip4)
-
+    usgs_map_pt1 = USGS_MODEL_MAP['PT_1']
+    usgs_map_ip4 = USGS_MODEL_MAP['IP_4']
 
     N = 1000
     depths = NP.logspace(2, 6, N)

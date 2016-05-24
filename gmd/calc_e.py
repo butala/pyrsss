@@ -5,7 +5,6 @@ import sys
 import os
 import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from cStringIO import StringIO
 
 import numpy as NP
 import scipy.constants
@@ -14,7 +13,7 @@ from scipy.io import savemat
 from pyrsss.util.signal import nextpow2
 from pyrsss.gmd.conductivity import (parse_conductivity,
                                      surface_impedance_1D)
-from pyrsss.gmd.usgs_conductivity import USGS_CONDUCTIVITY_MAP
+from pyrsss.gmd.usgs_conductivity import USGS_MODEL_MAP
 from pyrsss.mag.iaga2002 import parse
 from pyrsss.util.nan import nan_interp
 from pyrsss.util.date import toJ2000
@@ -87,7 +86,7 @@ def calc_e(Bx, By, Zw_function, interval):
 def process(output_mat_fname,
             input_iaga2002_fname,
             model,
-            conductivity_map=USGS_CONDUCTIVITY_MAP,
+            model_map=USGS_MODEL_MAP,
             save_B=False):
     """
     End-to-end processing of an IAGA2002 magnetometer data record
@@ -104,8 +103,7 @@ def process(output_mat_fname,
     Bx = nan_interp([getattr(x, stn_name.upper() + 'X') * 1e-9 for x in data_map.itervalues()])
     By = nan_interp([getattr(x, stn_name.upper() + 'Y') * 1e-9 for x in data_map.itervalues()])
     # setup surface impedance function
-    fid = StringIO(conductivity_map[model])
-    usgs_model = parse_conductivity(fid)
+    usgs_model = model_map[model]
     Zw_function = lambda omega: surface_impedance_1D(usgs_model, omega)
     # calculate E field
     Ex, Ey = calc_e(nan_interp(Bx),
