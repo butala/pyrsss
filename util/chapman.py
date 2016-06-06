@@ -29,7 +29,7 @@ def chapman_sym(z, Nm, Hm, H_O):
 def chapman_fit(alt,
                 ne,
                 x0=[1e6, 300, 50],
-                bounds=[(0, None),
+                bounds=[(1, None),
                         (150, 500),
                         (30, 80)],
                 verbose=False,
