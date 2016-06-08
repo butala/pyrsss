@@ -13,7 +13,6 @@ from path import GPSTK_BUILD_PATH
 from rinex import read_rindump, Observation, dump_rinex
 from observation import ObsMap
 from preprocess import normalize_rinex
-from teqc import rinex_info
 
 logger = logging.getLogger('pyrsss.gps.phase_edit')
 
@@ -39,48 +38,53 @@ ADD CONFIG CLASS
 """
 
 """
-GPSTk Discontinuity Corrector (GDC) v.5.3 7/14/2008 configuration:
+GPSTk Discontinuity Corrector (GDC) v.6.3 12/15/2015 configuration:
  DT=-1              : nominal timestep of data (seconds) [required - no default!]
- Debug=0            : level of diagnostic output to log, from none(0) to extreme(7)
+ Debug=0            : level of diagnostic output to log, from 0(none) to 7(extreme)
  GFVariation=16     : expected maximum variation in GF phase in time DT (meters)
  MaxGap=180         : maximum allowed time gap within a segment (seconds)
  MinPts=13          : minimum number of good points in phase segment ()
  OutputDeletes=1    : if non-zero, include delete commands in the output cmd list
- OutputGPSTime=0    : if 0: Y,M,D,H,M,S  else: W,SoW (GPS) in editing commands
+ OutputGPSTime=0    : if 0, output Y,M,D,H,M,S else: W,SoW in edit cmds (log uses SatPass fmt)
+ ResetUnique=0      : if non-zero, reset the unique number to zero
  WLSigma=1.5        : expected WL sigma (WL cycle) [NB = ~0.83*p-range noise(m)]
- useCA=0            : use C/A code pseudorange (C1) ()
+ useCA1=0           : use L1 C/A code pseudorange (C1) ()
+ useCA2=0           : use L2 C/A code pseudorange (C2) ()
+
 For DiscFix, GDC commands are of the form --DC<GDCcmd>, e.g. --DCWLSigma=1.5
 """
 
 """
-# Data configuration
- --decimate <dt>     Decimate data to time interval (sec) dt
- --forceCA           Use C/A code range, NOT P code (default: only if P absent)
- --gap <t>           Minimum data gap (sec) separating satellite passes (600)
- --onlySat <sat>     Process only satellite <sat> (a GPS SatID, e.g. G21)
- --exSat <sat>       Exclude satellite(s) [e.g. --exSat G22]
+# Data config:
+ --decimate <dt>    Decimate data to time interval (sec) dt (0.00)
+ --gap <t>          Minimum gap (sec) between passes [same as --DCMaxGap] (600) (600.00)
+ --noCA1            Fail if L1 P-code is missing, even if L1 CA-code is present (don't)
+ --noCA2            Fail if L2 P-code is missing, even if L2 CA-code is present (don't)
+ --forceCA1         Use C/A L1 range, even if L1 P-code is present (don't)
+ --forceCA2         Use C/A L2 range, even if L2 P-code is present (don't)
+ --onlySat <sat>    Process only satellite <sat> (a SatID, e.g. G21 or R17) ()
+ --exSat <sat>      Exclude satellite(s) [e.g. --exSat G22,R] [repeat] ()
+ --doGLO            Process GLONASS satellites as well as GPS (don't)
+ --GLOfreq <sat:n>  GLO channel #s for each sat [e.g. R17:-4] [repeat] ()
 """
 
 
 def phase_edit(rinex_fname,
-               interval,
                work_path=None,
                disc_fix=DISC_FIX):
     """
     ???
     """
-    logger.info('applying GPSTk DiscFix to {} (interval={})'.format(rinex_fname,
-                                                                    interval))
+    logger.info('applying GPSTk DiscFix to {}'.format(rinex_fname))
     command = sh.Command(disc_fix)
     with SmartTempDir(work_path) as work_path:
         log_fname = os.path.join(work_path, 'df.log')
         stdout_fname = os.path.join(work_path, 'df.stdout')
         stderr_fname = os.path.join(work_path, 'df.stderr')
         cmd_fname = os.path.join(work_path, 'df.out')
-        command('--inputfile', rinex_fname,
-                '--dt', str(interval),
-                '--logOut', log_fname,
-                '--cmdOut', cmd_fname,
+        command('--obs', rinex_fname,
+                '--log', log_fname,
+                '--cmd', cmd_fname,
                 _out=stdout_fname,
                 _err=stderr_fname)
         return parse_edit_commands(cmd_fname)
@@ -312,9 +316,6 @@ def phase_edit_process(h5_fname,
                        work_path=None,
                        preprocess=True):
     """ ??? """
-    info = rinex_info(rinex_fname,
-                      nav_fname)
-    interval = info['interval']
     with SmartTempDir(work_path) as work_path:
         # preprocess
         if preprocess:
@@ -327,7 +328,6 @@ def phase_edit_process(h5_fname,
         logger.info('phase edit {}'.format(rinex_fname))
         (time_reject_map,
          phase_adjust_map) = phase_edit(rinex_fname,
-                                        interval,
                                         work_path=work_path)
         # dump RINEX and read in ObsMap
         logger.info('dumping {}'.format(rinex_fname))
