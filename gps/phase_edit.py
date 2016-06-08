@@ -71,7 +71,8 @@ For DiscFix, GDC commands are of the form --DC<GDCcmd>, e.g. --DCWLSigma=1.5
 
 def phase_edit(rinex_fname,
                work_path=None,
-               disc_fix=DISC_FIX):
+               disc_fix=DISC_FIX,
+               discfix_args=[]):
     """
     ???
     """
@@ -82,9 +83,13 @@ def phase_edit(rinex_fname,
         stdout_fname = os.path.join(work_path, 'df.stdout')
         stderr_fname = os.path.join(work_path, 'df.stderr')
         cmd_fname = os.path.join(work_path, 'df.out')
-        command('--obs', rinex_fname,
+        args = ['--obs', rinex_fname,
                 '--log', log_fname,
-                '--cmd', cmd_fname,
+                '--cmd', cmd_fname]
+        if discfix_args:
+            logger.info('passing options to DiscFix: {}'.format(' '.join(discfix_args)))
+            args += discfix_args
+        command(*args,
                 _out=stdout_fname,
                 _err=stderr_fname)
         return parse_edit_commands(cmd_fname)
@@ -314,7 +319,8 @@ def phase_edit_process(h5_fname,
                        rinex_fname,
                        nav_fname,
                        work_path=None,
-                       preprocess=True):
+                       preprocess=True,
+                       discfix_args=[]):
     """ ??? """
     with SmartTempDir(work_path) as work_path:
         # preprocess
@@ -328,7 +334,8 @@ def phase_edit_process(h5_fname,
         logger.info('phase edit {}'.format(rinex_fname))
         (time_reject_map,
          phase_adjust_map) = phase_edit(rinex_fname,
-                                        work_path=work_path)
+                                        work_path=work_path,
+                                        discfix_args=discfix_args)
         # dump RINEX and read in ObsMap
         logger.info('dumping {}'.format(rinex_fname))
         rinex_dump_fname = replace_path(work_path, rinex_fname + '.dump')
@@ -355,7 +362,8 @@ def main(argv=None):
                             '(DiscFix) to an input RINEX record and produce '
                             'a dump record suitable for subsequent processing '
                             '(phase leveling).',
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+                            formatter_class=ArgumentDefaultsHelpFormatter,
+                            epilog='Unrecognized arguments are passed on to DiscFix. See the DiscFix usage message for accepted options.')
     parser.add_argument('h5_fname',
                         type=str,
                         help='output HDF5 file')
@@ -375,14 +383,14 @@ def main(argv=None):
                         action='store_true',
                         help='disable RINEX preprocess step (i.e., '
                              'normalization)')
-    # DECIMATE OPTION?
-    args = parser.parse_args(argv[1:])
+    args, discfix_args = parser.parse_known_args(argv[1:])
 
     phase_edit_process(args.h5_fname,
                        args.rinex_fname,
                        args.nav_fname,
                        work_path=args.work_path,
-                       preprocess=not args.no_preprocess)
+                       preprocess=not args.no_preprocess,
+                       discfix_args=discfix_args)
 
 
 if __name__ == '__main__':
