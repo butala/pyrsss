@@ -1,16 +1,23 @@
+import sys
 import logging
+import os
+import posixpath
 from collections import namedtuple, defaultdict
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from datetime import datetime
 
 import numpy as NP
 from scipy.interpolate import RectBivariateSpline
 
 from constants import SHELL_HEIGHT, TECU_TO_NS
-from level import LeveledArc
+from level import LeveledArc, ArcMap
 from util import shell_mapping
 from ipp import cnv_azel2latlon
 from teqc import rinex_info
+from sideshow import update_sideshow_file
 from ..ionex.read_ionex import interpolate2D_temporal
 from ..util.search import find_le
+from ..util.path import SmartTempDir
 
 logger = logging.getLogger('pyrsss.gps.bias')
 
@@ -138,51 +145,139 @@ def estimate_receiver_bias(arc_map,
     return bias, sigma
 
 
-if __name__ == '__main__':
-    from phase_edit import phase_edit, filter_obs_map
-    from rinex import read_rindump, dump_rinex
-    from level import level_phase_to_code
+"""
+???
+"""
+JPLH_TEMPLATE = '/pub/iono_daily/IONEX_rapid/JPLH{date:%j}0.{date:%y}I.gz'
 
+
+"""
+???
+"""
+JPLH_ARCHIVE_TEMPLATE = '/pub/iono_daily/IONEX_rapid/archive/JPLH{date:%j}0.{date:%y}I.gz'
+
+
+def fetch_sideshow_ionex(path,
+                         date,
+                         work_path=None,
+                         templates=[JPLH_TEMPLATE, JPLH_ARCHIVE_TEMPLATE]):
+    """
+    ???
+    """
+    with SmartTempDir(work_path) as work_path:
+        for template in templates:
+            server_fname = template.format(date=date)
+            local_fname = os.path.join(path, posixpath.basename(server_fname)[:-3])
+            try:
+                update_sideshow_file(local_fname,
+                                     server_fname)
+                return local_fname
+            except:
+                logger.info('could not download {}'.format(server_fname))
+                continue
+    raise RuntimeError('could not download IONEX file from sideshow for {:%Y-%m-%d}'.format(date))
+
+
+def bias_process(output_h5_fname,
+                 leveled_arc_h5_fname,
+                 ionex_fname):
+    """
+    ???
+    """
+    arc_map = ArcMap(leveled_arc_h5_fname)
+    return output_h5_fname
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
+    parser = ArgumentParser('Estimate receiver bias from phase-leveled data.',
+                            formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.add_argument('output_h5_fname',
+                        type=str,
+                        help='???')
+    parser.add_argument('leveled_arc_h5_fname',
+                        type=str,
+                        help='input H5 file containing leveled phase arcs')
+    parser.add_argument('--work-path',
+                        '-w',
+                        type=str,
+                        default=None,
+                        help='path to store intermediate files (use an '
+                             'automatically cleaned up area if not specified)')
+    calibration_group = parser.add_mutually_exclusive_group(required=True)
+    calibration_group.add_argument('--ionex_fname',
+                                   '-i',
+                                   type=str,
+                                   help='calibrate using the given IONEX file for satellite biases and ionospheric delay (fetch from JPL sideshow if not specified)')
+    calibration_group.add_argument('--date',
+                                   '-d',
+                                   type=lambda x: datetime.strptime(x, '%Y-%m-%d'),
+                                   help='fetch IONEX for the given date')
+    args = parser.parse_args(argv[1:])
+
+
+    with SmartTempDir(args.work_path) as work_path:
+        if args.ionex_fname is None:
+            ionex_fname = fetch_sideshow_ionex(work_path, args.date)
+        else:
+            ionex_fname = args.ionex_fname
+        bias_process(args.output_h5_fname,
+                     args.leveled_arc_h5_fname,
+                     ionex_fname)
+
+
+if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.getLogger('sh').setLevel(logging.WARNING)
+    sys.exit(main())
 
-    stn = 'albh'
-    rinex_fname = '/Users/butala/src/absolute_tec/{}0010.14o'.format(stn)
-    nav_fname = '/Users/butala/src/absolute_tec/{}0010.14n'.format(stn)
-    interval = 30
 
-    ionex_fname = '/Users/butala/src/absolute_tec/JPLH0010.14I'
+# if __name__ == '__main__':
+#     from phase_edit import phase_edit, filter_obs_map
+#     from rinex import read_rindump, dump_rinex
+#     from level import level_phase_to_code
 
-    (time_reject_map,
-     phase_adjust_map) = phase_edit(rinex_fname, interval)
+#     logging.basicConfig(level=logging.INFO)
+#     logging.getLogger('sh').setLevel(logging.WARNING)
+#     stn = 'artu'
+#     rinex_fname = '/Users/butala/Documents/IARPA/absolute_tec/{}0010.14o'.format(stn)
+#     nav_fname = '/Users/butala/Documents/IARPA/absolute_tec/{}0010.14n'.format(stn)
+#     interval = 30
 
-    import os
-    rinex_dump_fname = os.path.join('/tmp', os.path.basename(rinex_fname) + '.dump')
-    dump_rinex(rinex_dump_fname,
-               rinex_fname,
-               nav_fname)
+#     ionex_fname = '/Users/butala/Documents/IARPA/absolute_tec/JPLH0010.14I'
 
-    obs_map = read_rindump(rinex_dump_fname)
+#     (time_reject_map,
+#      phase_adjust_map) = phase_edit(rinex_fname, interval)
 
-    obs_map = filter_obs_map(obs_map,
-                             time_reject_map,
-                             phase_adjust_map)
+#     import os
+#     rinex_dump_fname = os.path.join('/tmp', os.path.basename(rinex_fname) + '.dump')
+#     dump_rinex(rinex_dump_fname,
+#                rinex_fname,
+#                nav_fname)
 
-    arc_map = level_phase_to_code(obs_map)
+#     obs_map = read_rindump(rinex_dump_fname)
 
-    info = rinex_info(rinex_fname,
-                      nav_fname)
+#     obs_map = filter_obs_map(obs_map,
+#                              time_reject_map,
+#                              phase_adjust_map)
 
-    aug_arc_map = augmented_arc_map(arc_map,
-                                    info['lat'],
-                                    info['lon'])
+#     arc_map = level_phase_to_code(obs_map)
 
-    (stec_map,
-     sat_biases) = ionex_stec_map(ionex_fname,
-                                  aug_arc_map)
+#     info = rinex_info(rinex_fname,
+#                       nav_fname)
 
-    bias, sigma = estimate_receiver_bias(aug_arc_map,
-                                         stec_map,
-                                         sat_biases)
+#     aug_arc_map = augmented_arc_map(arc_map,
+#                                     info['lat'],
+#                                     info['lon'])
 
-    print('estimated receiver bias = {:.1f} [TECU]'.format(bias))
+#     (stec_map,
+#      sat_biases) = ionex_stec_map(ionex_fname,
+#                                   aug_arc_map)
+
+#     bias, sigma = estimate_receiver_bias(aug_arc_map,
+#                                          stec_map,
+#                                          sat_biases)
+
+#     print('estimated receiver bias = {:.1f} [TECU]'.format(bias))
