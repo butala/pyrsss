@@ -2,12 +2,13 @@ import sys
 import logging
 import os
 import posixpath
-from collections import namedtuple, defaultdict
+from collections import namedtuple, defaultdict, OrderedDict
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime
 
 import numpy as NP
 from scipy.interpolate import RectBivariateSpline
+from tables import open_file, IsDescription, Time64Col, Float64Col
 
 from constants import SHELL_HEIGHT, TECU_TO_NS
 from level import LeveledArc, ArcMap
@@ -18,6 +19,7 @@ from sideshow import update_sideshow_file
 from ..ionex.read_ionex import interpolate2D_temporal
 from ..util.search import find_le
 from ..util.path import SmartTempDir
+from ..util.date import UNIX_EPOCH
 
 logger = logging.getLogger('pyrsss.gps.bias')
 
@@ -38,32 +40,128 @@ class AugLeveledArc(namedtuple('AugLeveledArc',
                 leveled_arc,
                 site_lat,
                 site_lon,
-                height=SHELL_HEIGHT):
+                shell_height=SHELL_HEIGHT):
         fields = leveled_arc._asdict()
-        fields['el_map'] = [shell_mapping(el_i, h=height) for el_i in fields['el']]
+        fields['el_map'] = [shell_mapping(el_i, h=shell_height) for el_i in fields['el']]
         ipp_lat, ipp_lon = zip(*[cnv_azel2latlon(az_i,
                                                  el_i,
                                                  (site_lat, site_lon),
-                                                 ht=height) for (az_i, el_i) in zip(fields['az'],
-                                                                                    fields['el'])])
+                                                 ht=shell_height) for (az_i, el_i) in zip(fields['az'],
+                                                                                          fields['el'])])
         fields['ipp_lat'] = ipp_lat
         fields['ipp_lon'] = ipp_lon
         return cls._make(fields.values())
 
 
-def augmented_arc_map(arc_map,
-                      site_lat,
-                      site_lon,
-                      height=SHELL_HEIGHT):
-    """
-    """
-    augmented_map = defaultdict(list)
-    for key, arc_list in arc_map.iteritems():
-        augmented_map[key] = [AugLeveledArc(x,
-                                            site_lat,
-                                            site_lon,
-                                            height=height) for x in arc_list]
-    return augmented_map
+class AugmentedArcMap(OrderedDict):
+    def __init__(self, arc_map, shell_height=SHELL_HEIGHT):
+        super(AugmentedArcMap, self).__init__()
+        site_lat, site_lon, _ = arc_map.llh
+        for key, arc_list in arc_map.iteritems():
+            self[key] = [AugLeveledArc(x,
+                                       site_lat,
+                                       site_lon,
+                                       shell_height=shell_height) for x in arc_list]
+        self.xyz = arc_map.xyz
+        self.llh = arc_map.llh
+        self.shell_height = shell_height
+
+
+    def __missing__(self, key):
+        """ ??? """
+        self[key] = list()
+        return self[key]
+
+
+class DebiasedArc(namedtuple('AugLeveledArc',
+                             ' '.join(AugLeveledArc._fields).replace('stec',
+                                                                     'sobs'))):
+    def __new__(cls,
+                aug_leveled_arc,
+                sat_bias,
+                stn_bias):
+        fields = aug_leveled_arc._asdict()
+        fields['stec'] -= sat_bias + stn_bias
+        return cls._make(fields.values())
+
+
+class DebiasedArcMap(OrderedDict):
+    def __init__(self,
+                 aug_arc_map,
+                 sat_biases,
+                 stn_bias,
+                 stn_bias_sigma):
+        """ ??? """
+        super(DebiasedArcMap, self).__init__()
+        for sat, aug_leveled_arcs in aug_arc_map.iteritems():
+            assert sat.startswith('G')
+            sat_bias = -sat_biases['GPS'][int(sat[1:])][0] / TECU_TO_NS
+            self[sat] = [DebiasedArc(x, sat_bias, stn_bias) for x in aug_leveled_arcs]
+        self.llh = aug_arc_map.llh
+        self.xyz = aug_arc_map.xyz
+        self.sat_biases = sat_biases
+        self.stn_bias = stn_bias
+        self.stn_bias_sigma = stn_bias_sigma
+
+    def __missing__(self, key):
+        """ ??? """
+        self[key] = list()
+        return self[key]
+
+    """ ??? """
+    class Table(IsDescription):
+        dt   = Time64Col()
+        sobs = Float64Col()
+        sprn = Float64Col()
+        az   = Float64Col()
+        el   = Float64Col()
+        satx = Float64Col()
+        saty = Float64Col()
+        satz = Float64Col()
+        ipp_lat = Float64Col()
+        ipp_lon = Float64Col()
+
+    def dump(self, h5_fname):
+        """ ??? """
+        h5file = open_file(h5_fname, mode='w', title='pyrsss.gps.bias output')
+        debiased_phase_arcs_group = h5file.create_group('/',
+                                                        'debiased_phase_arcs',
+                                                        'Debiased phase connected arcs')
+        debiased_phase_arcs_group._v_attrs.xyz = self.xyz
+        debiased_phase_arcs_group._v_attrs.llh = self.llh
+        debiased_phase_arcs_group._v_attrs.stn_bias = self.stn_bias
+        debiased_phase_arcs_group._v_attrs.stn_bias_sigma = self.stn_bias_sigma
+        for prn in sorted(self.sat_biases['GPS']):
+            bias, rms = self.sat_biases['GPS'][prn]
+            setattr(debiased_phase_arcs_group._v_attrs, 'G{:02d}'.format(prn), -bias / TECU_TO_NS)
+            setattr(debiased_phase_arcs_group._v_attrs, 'G{:02d}_rms'.format(prn), rms / TECU_TO_NS)
+        for sat in sorted(self):
+            assert sat[0] == 'G'
+            sat_group = h5file.create_group(debiased_phase_arcs_group,
+                                            sat,
+                                            'Debiased phase connected arcs for {}'.format(sat))
+            for i, debiased_arc in enumerate(self[sat]):
+                table = h5file.create_table(sat_group,
+                                            'arc' + str(i),
+                                            DebiasedArcMap.Table,
+                                            'GPS prn={} arc={} data'.format(sat, i))
+                table.attrs.L = debiased_arc.L
+                table.attrs.L_scatter = debiased_arc.L_scatter
+                row = table.row
+                for j in range(len(debiased_arc.dt)):
+                    row['dt'] = (debiased_arc.dt[j] - UNIX_EPOCH).total_seconds()
+                    row['sobs'] = debiased_arc.sobs[j]
+                    row['sprn'] = debiased_arc.sprn[j]
+                    row['az'] = debiased_arc.az[j]
+                    row['el'] = debiased_arc.el[j]
+                    row['satx'] = debiased_arc.satx[j]
+                    row['saty'] = debiased_arc.saty[j]
+                    row['satz'] = debiased_arc.satz[j]
+                    row['ipp_lat'] = debiased_arc.ipp_lat[j]
+                    row['ipp_lon'] = debiased_arc.ipp_lon[j]
+                    row.append()
+                table.flush()
+        return h5_fname
 
 
 def get_dt_list(arc_map):
@@ -184,7 +282,24 @@ def bias_process(output_h5_fname,
     """
     ???
     """
+    # load arc map
     arc_map = ArcMap(leveled_arc_h5_fname)
+    # compute IPPs
+    aug_arc_map = AugmentedArcMap(arc_map)
+    # compute VTEC mapped to STEC for arc map lines of site
+    (stec_map,
+     sat_biases) = ionex_stec_map(ionex_fname,
+                                  aug_arc_map)
+    # estimate receiver bias and uncertainty
+    stn_bias, stn_bias_sigma = estimate_receiver_bias(aug_arc_map,
+                                                      stec_map,
+                                                      sat_biases)
+    # store output
+    debiased_arc_map = DebiasedArcMap(aug_arc_map,
+                                      sat_biases,
+                                      stn_bias,
+                                      stn_bias_sigma)
+    debiased_arc_map.dump(output_h5_fname)
     return output_h5_fname
 
 
