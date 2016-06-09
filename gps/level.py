@@ -99,7 +99,7 @@ def arc_iter(obs_time_series, gap_length):
         yield arc_index_i, ObsTimeSeries(zip(*group)[1])
 
 
-class ArcMap(dict):
+class ArcMap(OrderedDict):
     def __init__(self, h5_fname=None):
         """ ??? """
         super(ArcMap, self).__init__()
