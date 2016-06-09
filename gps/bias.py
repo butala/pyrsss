@@ -4,7 +4,7 @@ import os
 import posixpath
 from collections import namedtuple, defaultdict, OrderedDict
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as NP
 from scipy.interpolate import RectBivariateSpline
@@ -76,37 +76,40 @@ class AugmentedArcMap(OrderedDict):
 class DebiasedArc(namedtuple('AugLeveledArc',
                              ' '.join(AugLeveledArc._fields).replace('stec',
                                                                      'sobs'))):
-    def __new__(cls,
-                aug_leveled_arc,
-                sat_bias,
-                stn_bias):
+    @classmethod
+    def from_aug_leveled_arc(cls,
+                             aug_leveled_arc,
+                             sat_bias,
+                             stn_bias):
         fields = aug_leveled_arc._asdict()
         fields['stec'] -= sat_bias + stn_bias
         return cls._make(fields.values())
 
 
 class DebiasedArcMap(OrderedDict):
-    def __init__(self,
-                 aug_arc_map,
-                 sat_biases,
-                 stn_bias,
-                 stn_bias_sigma):
-        """ ??? """
-        super(DebiasedArcMap, self).__init__()
-        for sat, aug_leveled_arcs in aug_arc_map.iteritems():
-            assert sat.startswith('G')
-            sat_bias = -sat_biases['GPS'][int(sat[1:])][0] / TECU_TO_NS
-            self[sat] = [DebiasedArc(x, sat_bias, stn_bias) for x in aug_leveled_arcs]
-        self.llh = aug_arc_map.llh
-        self.xyz = aug_arc_map.xyz
-        self.sat_biases = sat_biases
-        self.stn_bias = stn_bias
-        self.stn_bias_sigma = stn_bias_sigma
-
     def __missing__(self, key):
         """ ??? """
         self[key] = list()
         return self[key]
+
+    @classmethod
+    def from_aug_arc_map(cls,
+                         aug_arc_map,
+                         sat_biases,
+                         stn_bias,
+                         stn_bias_sigma):
+        """ ??? """
+        debiased_arc_map = cls()
+        for sat, aug_leveled_arcs in aug_arc_map.iteritems():
+             assert sat.startswith('G')
+             sat_bias = -sat_biases['GPS'][int(sat[1:])][0] / TECU_TO_NS
+             debiased_arc_map[sat] = [DebiasedArc.from_aug_leveled_arc(x, sat_bias, stn_bias) for x in aug_leveled_arcs]
+        debiased_arc_map.llh = aug_arc_map.llh
+        debiased_arc_map.xyz = aug_arc_map.xyz
+        debiased_arc_map.sat_biases = sat_biases
+        debiased_arc_map.stn_bias = stn_bias
+        debiased_arc_map.stn_bias_sigma = stn_bias_sigma
+        return debiased_arc_map
 
     """ ??? """
     class Table(IsDescription):
@@ -118,6 +121,7 @@ class DebiasedArcMap(OrderedDict):
         satx = Float64Col()
         saty = Float64Col()
         satz = Float64Col()
+        el_map = Float64Col()
         ipp_lat = Float64Col()
         ipp_lon = Float64Col()
 
@@ -157,11 +161,60 @@ class DebiasedArcMap(OrderedDict):
                     row['satx'] = debiased_arc.satx[j]
                     row['saty'] = debiased_arc.saty[j]
                     row['satz'] = debiased_arc.satz[j]
+                    row['el_map'] = debiased_arc.el_map[j]
                     row['ipp_lat'] = debiased_arc.ipp_lat[j]
                     row['ipp_lon'] = debiased_arc.ipp_lon[j]
                     row.append()
                 table.flush()
         return h5_fname
+
+    @classmethod
+    def undump(cls, h5_fname):
+        debiased_arc_map = cls()
+        h5file = open_file(h5_fname, mode='r')
+        debiased_phase_arcs_group = h5file.root.debiased_phase_arcs
+        for attr in debiased_phase_arcs_group._v_attrs._f_list():
+            setattr(debiased_arc_map, attr, getattr(debiased_phase_arcs_group._v_attrs, attr))
+        for sat_group in debiased_phase_arcs_group:
+            sat = sat_group._v_name
+            for arc_table in sat_group:
+                dt = []
+                sobs = []
+                sprn = []
+                az = []
+                el = []
+                satx = []
+                saty = []
+                satz = []
+                el_map = []
+                ipp_lat = []
+                ipp_lon = []
+                for row in arc_table.iterrows():
+                    dt.append(UNIX_EPOCH + timedelta(seconds=row['dt']))
+                    sobs.append(row['sobs'])
+                    sprn.append(row['sprn'])
+                    az.append(row['az'])
+                    el.append(row['el'])
+                    satx.append(row['satx'])
+                    saty.append(row['saty'])
+                    satz.append(row['satz'])
+                    el_map.append(row['el_map'])
+                    ipp_lat.append(row['ipp_lat'])
+                    ipp_lon.append(row['ipp_lon'])
+                debiased_arc_map[sat].append(DebiasedArc(dt,
+                                                         sobs,
+                                                         sprn,
+                                                         az,
+                                                         el,
+                                                         satx,
+                                                         saty,
+                                                         satz,
+                                                         arc_table.attrs.L,
+                                                         arc_table.attrs.L_scatter,
+                                                         el_map,
+                                                         ipp_lat,
+                                                         ipp_lon))
+        return debiased_arc_map
 
 
 def get_dt_list(arc_map):
@@ -295,10 +348,10 @@ def bias_process(output_h5_fname,
                                                       stec_map,
                                                       sat_biases)
     # store output
-    debiased_arc_map = DebiasedArcMap(aug_arc_map,
-                                      sat_biases,
-                                      stn_bias,
-                                      stn_bias_sigma)
+    debiased_arc_map = DebiasedArcMap.from_aug_arc_map(aug_arc_map,
+                                                       sat_biases,
+                                                       stn_bias,
+                                                       stn_bias_sigma)
     debiased_arc_map.dump(output_h5_fname)
     return output_h5_fname
 
