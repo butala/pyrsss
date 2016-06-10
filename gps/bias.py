@@ -73,9 +73,9 @@ class AugmentedArcMap(OrderedDict):
         return self[key]
 
 
-class DebiasedArc(namedtuple('AugLeveledArc',
-                             ' '.join(AugLeveledArc._fields).replace('stec',
-                                                                     'sobs'))):
+class CalibratedArc(namedtuple('AugLeveledArc',
+                               ' '.join(AugLeveledArc._fields).replace('stec',
+                                                                       'sobs'))):
     @classmethod
     def from_aug_leveled_arc(cls,
                              aug_leveled_arc,
@@ -86,7 +86,7 @@ class DebiasedArc(namedtuple('AugLeveledArc',
         return cls._make(fields.values())
 
 
-class DebiasedArcMap(OrderedDict):
+class CalibratedArcMap(OrderedDict):
     def __missing__(self, key):
         """ ??? """
         self[key] = list()
@@ -99,17 +99,17 @@ class DebiasedArcMap(OrderedDict):
                          stn_bias,
                          stn_bias_sigma):
         """ ??? """
-        debiased_arc_map = cls()
+        calibrated_arc_map = cls()
         for sat, aug_leveled_arcs in aug_arc_map.iteritems():
              assert sat.startswith('G')
              sat_bias = -sat_biases['GPS'][int(sat[1:])][0] / TECU_TO_NS
-             debiased_arc_map[sat] = [DebiasedArc.from_aug_leveled_arc(x, sat_bias, stn_bias) for x in aug_leveled_arcs]
-        debiased_arc_map.llh = aug_arc_map.llh
-        debiased_arc_map.xyz = aug_arc_map.xyz
-        debiased_arc_map.sat_biases = sat_biases
-        debiased_arc_map.stn_bias = stn_bias
-        debiased_arc_map.stn_bias_sigma = stn_bias_sigma
-        return debiased_arc_map
+             calibrated_arc_map[sat] = [CalibratedArc.from_aug_leveled_arc(x, sat_bias, stn_bias) for x in aug_leveled_arcs]
+        calibrated_arc_map.llh = aug_arc_map.llh
+        calibrated_arc_map.xyz = aug_arc_map.xyz
+        calibrated_arc_map.sat_biases = sat_biases
+        calibrated_arc_map.stn_bias = stn_bias
+        calibrated_arc_map.stn_bias_sigma = stn_bias_sigma
+        return calibrated_arc_map
 
     """ ??? """
     class Table(IsDescription):
@@ -128,54 +128,54 @@ class DebiasedArcMap(OrderedDict):
     def dump(self, h5_fname):
         """ ??? """
         h5file = open_file(h5_fname, mode='w', title='pyrsss.gps.bias output')
-        debiased_phase_arcs_group = h5file.create_group('/',
-                                                        'debiased_phase_arcs',
-                                                        'Debiased phase connected arcs')
-        debiased_phase_arcs_group._v_attrs.xyz = self.xyz
-        debiased_phase_arcs_group._v_attrs.llh = self.llh
-        debiased_phase_arcs_group._v_attrs.stn_bias = self.stn_bias
-        debiased_phase_arcs_group._v_attrs.stn_bias_sigma = self.stn_bias_sigma
+        calibrated_phase_arcs_group = h5file.create_group('/',
+                                                        'calibrated_phase_arcs',
+                                                        'Calibrated phase connected arcs')
+        calibrated_phase_arcs_group._v_attrs.xyz = self.xyz
+        calibrated_phase_arcs_group._v_attrs.llh = self.llh
+        calibrated_phase_arcs_group._v_attrs.stn_bias = self.stn_bias
+        calibrated_phase_arcs_group._v_attrs.stn_bias_sigma = self.stn_bias_sigma
         for prn in sorted(self.sat_biases['GPS']):
             bias, rms = self.sat_biases['GPS'][prn]
-            setattr(debiased_phase_arcs_group._v_attrs, 'G{:02d}'.format(prn), -bias / TECU_TO_NS)
-            setattr(debiased_phase_arcs_group._v_attrs, 'G{:02d}_rms'.format(prn), rms / TECU_TO_NS)
+            setattr(calibrated_phase_arcs_group._v_attrs, 'G{:02d}'.format(prn), -bias / TECU_TO_NS)
+            setattr(calibrated_phase_arcs_group._v_attrs, 'G{:02d}_rms'.format(prn), rms / TECU_TO_NS)
         for sat in sorted(self):
             assert sat[0] == 'G'
-            sat_group = h5file.create_group(debiased_phase_arcs_group,
+            sat_group = h5file.create_group(calibrated_phase_arcs_group,
                                             sat,
-                                            'Debiased phase connected arcs for {}'.format(sat))
-            for i, debiased_arc in enumerate(self[sat]):
+                                            'Calibrated phase connected arcs for {}'.format(sat))
+            for i, calibrated_arc in enumerate(self[sat]):
                 table = h5file.create_table(sat_group,
                                             'arc' + str(i),
-                                            DebiasedArcMap.Table,
+                                            CalibratedArcMap.Table,
                                             'GPS prn={} arc={} data'.format(sat, i))
-                table.attrs.L = debiased_arc.L
-                table.attrs.L_scatter = debiased_arc.L_scatter
+                table.attrs.L = calibrated_arc.L
+                table.attrs.L_scatter = calibrated_arc.L_scatter
                 row = table.row
-                for j in range(len(debiased_arc.dt)):
-                    row['dt'] = (debiased_arc.dt[j] - UNIX_EPOCH).total_seconds()
-                    row['sobs'] = debiased_arc.sobs[j]
-                    row['sprn'] = debiased_arc.sprn[j]
-                    row['az'] = debiased_arc.az[j]
-                    row['el'] = debiased_arc.el[j]
-                    row['satx'] = debiased_arc.satx[j]
-                    row['saty'] = debiased_arc.saty[j]
-                    row['satz'] = debiased_arc.satz[j]
-                    row['el_map'] = debiased_arc.el_map[j]
-                    row['ipp_lat'] = debiased_arc.ipp_lat[j]
-                    row['ipp_lon'] = debiased_arc.ipp_lon[j]
+                for j in range(len(calibrated_arc.dt)):
+                    row['dt'] = (calibrated_arc.dt[j] - UNIX_EPOCH).total_seconds()
+                    row['sobs'] = calibrated_arc.sobs[j]
+                    row['sprn'] = calibrated_arc.sprn[j]
+                    row['az'] = calibrated_arc.az[j]
+                    row['el'] = calibrated_arc.el[j]
+                    row['satx'] = calibrated_arc.satx[j]
+                    row['saty'] = calibrated_arc.saty[j]
+                    row['satz'] = calibrated_arc.satz[j]
+                    row['el_map'] = calibrated_arc.el_map[j]
+                    row['ipp_lat'] = calibrated_arc.ipp_lat[j]
+                    row['ipp_lon'] = calibrated_arc.ipp_lon[j]
                     row.append()
                 table.flush()
         return h5_fname
 
     @classmethod
     def undump(cls, h5_fname):
-        debiased_arc_map = cls()
+        calibrated_arc_map = cls()
         h5file = open_file(h5_fname, mode='r')
-        debiased_phase_arcs_group = h5file.root.debiased_phase_arcs
-        for attr in debiased_phase_arcs_group._v_attrs._f_list():
-            setattr(debiased_arc_map, attr, getattr(debiased_phase_arcs_group._v_attrs, attr))
-        for sat_group in debiased_phase_arcs_group:
+        calibrated_phase_arcs_group = h5file.root.calibrated_phase_arcs
+        for attr in calibrated_phase_arcs_group._v_attrs._f_list():
+            setattr(calibrated_arc_map, attr, getattr(calibrated_phase_arcs_group._v_attrs, attr))
+        for sat_group in calibrated_phase_arcs_group:
             sat = sat_group._v_name
             for arc_table in sat_group:
                 dt = []
@@ -201,7 +201,7 @@ class DebiasedArcMap(OrderedDict):
                     el_map.append(row['el_map'])
                     ipp_lat.append(row['ipp_lat'])
                     ipp_lon.append(row['ipp_lon'])
-                debiased_arc_map[sat].append(DebiasedArc(dt,
+                calibrated_arc_map[sat].append(CalibratedArc(dt,
                                                          sobs,
                                                          sprn,
                                                          az,
@@ -214,7 +214,7 @@ class DebiasedArcMap(OrderedDict):
                                                          el_map,
                                                          ipp_lat,
                                                          ipp_lon))
-        return debiased_arc_map
+        return calibrated_arc_map
 
 
 def get_dt_list(arc_map):
@@ -348,11 +348,11 @@ def bias_process(output_h5_fname,
                                                       stec_map,
                                                       sat_biases)
     # store output
-    debiased_arc_map = DebiasedArcMap.from_aug_arc_map(aug_arc_map,
+    calibrated_arc_map = CalibratedArcMap.from_aug_arc_map(aug_arc_map,
                                                        sat_biases,
                                                        stn_bias,
                                                        stn_bias_sigma)
-    debiased_arc_map.dump(output_h5_fname)
+    calibrated_arc_map.dump(output_h5_fname)
     return output_h5_fname
 
 
@@ -364,7 +364,7 @@ def main(argv=None):
                             formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument('output_h5_fname',
                         type=str,
-                        help='???')
+                        help='output H5 files containing calibrated, leveled phase arcs')
     parser.add_argument('leveled_arc_h5_fname',
                         type=str,
                         help='input H5 file containing leveled phase arcs')
