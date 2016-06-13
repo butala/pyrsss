@@ -1,3 +1,4 @@
+from libc.math cimport sin, cos, M_PI
 from libcpp cimport bool
 from libcpp.string cimport string
 from libcpp.cast cimport dynamic_cast
@@ -23,6 +24,17 @@ cdef extern from 'Position.hpp' namespace 'gpstk::Position':
         Geocentric,
         Cartesian,
         Spherical
+
+"""
+enum CoordinateSystem
+      {
+         Unknown=0,  ///< unknown coordinate system
+         Geodetic,   ///< geodetic latitude, longitude, and height above ellipsoid
+         Geocentric, ///< geocentric (regular spherical coordinates)
+         Cartesian,  ///< cartesian (Earth-centered, Earth-fixed)
+         Spherical   ///< spherical coordinates (theta,phi,radius)
+      };
+"""
 
 
 cdef extern from 'Position.hpp' namespace 'gpstk':
@@ -274,6 +286,41 @@ cdef class PyPosition(object):
         cdef Position _self = deref(self.thisptr)
         cdef Position _target = deref(target.thisptr)
         return range(_self, _target)
+
+
+################################################################################
+
+
+def point(PyPosition stn_point, double target_az, double target_el, double target_range):
+   """
+   Return the :class:`PyPosition` to the point given by the target
+   azimuth *target_az* [deg], elevation *target_el* [deg], and range
+   *target_range* [km] relative to the station :class:`PyPosition`
+   *stn_point*.
+
+   The function replicates the Fortran POINT subroutine implemented in
+   Madrigal (http://madrigal.haystack.edu/madrigal/madDownload.html).
+   """
+   cdef sr = stn_point.radius / 1e3
+   cdef slat = stn_point.geocentricLatitude
+   cdef slon = stn_point.longitude
+   cdef Position pos = Position(90 - target_el, 180 - target_az, target_range, Spherical)
+   cdef double rt = pos.X()
+   cdef double rp = pos.Y()
+   cdef double rr = pos.Z()
+   cdef Position pos_vctcnv = Position(90 - slat, slon, sr, Spherical)
+   cdef double theta = slat * M_PI / 180
+   cdef double phi = slon * M_PI / 180
+   cdef double ct = cos(theta)
+   cdef double st = sin(theta)
+   cdef double cp = cos(phi)
+   cdef double sp = sin(phi)
+   cdef double fx = ct*cp*rr + st*cp*rt - sp*rp
+   cdef double fy = ct*sp*rr + st*sp*rt + cp*rp
+   cdef double fz = st*rr - ct*rt
+   return PyPosition((pos_vctcnv.X() + fx) * 1e3,
+                     (pos_vctcnv.Y() + fy) * 1e3,
+                     (pos_vctcnv.Z() + fz) * 1e3)
 
 
 ################################################################################
