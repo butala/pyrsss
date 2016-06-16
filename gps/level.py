@@ -81,7 +81,13 @@ class LeveledArc(namedtuple('LeveledArc',
                             'satz '
                             'L '
                             'L_scatter')):
-    pass
+    def timeiter(self, skip_fields=['L', 'L_scatter']):
+        """
+        ???
+        """
+        I_fields, fields = zip(*[(i, x) for i, x in enumerate(self._fields) if x not in skip_fields])
+        for i in range(len(self.dt)):
+            yield OrderedDict(zip(fields, [self[i_field][i] for i_field in I_fields]))
 
 
 def arc_iter(obs_time_series, gap_length):
