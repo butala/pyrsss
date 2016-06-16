@@ -2,6 +2,8 @@ from __future__ import division
 
 from datetime import datetime, timedelta, time
 
+import dateutil.parser
+
 
 J2000_EPOCH = datetime(2000, 1, 1, 12)
 """ ??? """
@@ -47,3 +49,10 @@ def date2dt(date):
     """
     return datetime.combine(date,
                             time())
+
+
+def dt_parser(s):
+    """
+    Interpret *s* as a :class:`datetime`.
+    """
+    return dateutil.parser.parse(s, yearfirst=True)
