@@ -24,8 +24,6 @@ from ..util.date import UNIX_EPOCH
 logger = logging.getLogger('pyrsss.gps.bias')
 
 """
-Instead, call this unbias or debias?
-
 Remove transmitter and receiver biases from phase-connected arcs. Use
 Attila's method to estimate the receiver bias (using IGS IONEX records
 containing satellite biases and modeled VTEC maps).
@@ -35,7 +33,8 @@ containing satellite biases and modeled VTEC maps).
 class AugLeveledArc(namedtuple('AugLeveledArc',
                                ' '.join(LeveledArc._fields + ('el_map',
                                                               'ipp_lat',
-                                                              'ipp_lon')))):
+                                                              'ipp_lon'))),
+                    LeveledArc):
     def __new__(cls,
                 leveled_arc,
                 site_lat,
@@ -43,6 +42,8 @@ class AugLeveledArc(namedtuple('AugLeveledArc',
                 shell_height=SHELL_HEIGHT):
         fields = leveled_arc._asdict()
         fields['el_map'] = [shell_mapping(el_i, h=shell_height) for el_i in fields['el']]
+        # NOTE: We do not account for station height! Instead, we
+        # should be using PyPosition facilities.
         ipp_lat, ipp_lon = zip(*[cnv_azel2latlon(az_i,
                                                  el_i,
                                                  (site_lat, site_lon),
@@ -73,9 +74,10 @@ class AugmentedArcMap(OrderedDict):
         return self[key]
 
 
-class CalibratedArc(namedtuple('AugLeveledArc',
+class CalibratedArc(namedtuple('CalibratedArc',
                                ' '.join(AugLeveledArc._fields).replace('stec',
-                                                                       'sobs'))):
+                                                                       'sobs')),
+                    AugLeveledArc):
     @classmethod
     def from_aug_leveled_arc(cls,
                              aug_leveled_arc,
