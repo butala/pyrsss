@@ -1,6 +1,11 @@
+import logging
 import os
 import shutil
 import tempfile
+import gzip
+import shutil
+
+logger = logging.getLogger('pyrsss.util.path')
 
 
 class TempDirectory(object):
@@ -47,6 +52,7 @@ def touch_path(path):
     If *path* does not exist, create it. Returns *path*.
     """
     if not os.path.isdir(path):
+        logger.info('creating directory {}'.format(path))
         os.makedirs(path)
     return path
 
@@ -88,3 +94,22 @@ def tail(f, window=20):
         bytes_i -= BUFSIZ
         block -= 1
     return ''.join(data).splitlines()[-window:]
+
+
+def decompress(fname, remove_compressed=True):
+    """
+    Decompress *fname* and return the file name without the
+    compression suffix, e.g., .gz. If *remove_compressed*, the
+    compressed file is deleted after it is decompressed.
+    """
+    if fname.endswith('.gz'):
+        uncompressed_fname = fname[:-3]
+        logger.info('gunzip {} to {}'.format(fname, uncompressed_fname))
+        with gzip.open(fname) as in_fid, open(uncompressed_fname, 'w') as out_fid:
+            shutil.copyfileobj(in_fid, out_fid)
+        if remove_compressed:
+            logger.debug('removing {}'.format(fname))
+            os.remove(fname)
+        return uncompressed_fname
+    else:
+        return fname
