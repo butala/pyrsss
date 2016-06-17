@@ -26,6 +26,26 @@ def chapman_sym(z, Nm, Hm, H_O):
     return chapman(z, Nm, Hm, H_O, exp=SYM.exp)
 
 
+def chapman_vec(z_vec, Nm_vec, Hm_vec, H_O_vec):
+    """
+    Vectorized implementation of the Chapman function evaluation
+    routine :func:`chapman`. The input arguments must be sequences
+    with the same length and the output is an :class:`NP.ndarray` with
+    that length.
+    """
+    try:
+        chapman_vec._chapman_sym_f
+    except AttributeError:
+        sym_vars = SYM.symbols('z Nm Hm H_O')
+        chapman_vec._chapman_sym_f = SYM.lambdify(sym_vars,
+                                                  chapman_sym(*sym_vars),
+                                                  modules='numexpr')
+    return chapman_vec._chapman_sym_f(z_vec,
+                                      Nm_vec,
+                                      Hm_vec,
+                                      H_O_vec)
+
+
 def chapman_fit(alt,
                 ne,
                 x0=[1e6, 300, 50],
