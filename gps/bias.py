@@ -217,6 +217,7 @@ class CalibratedArcMap(OrderedDict):
                                                          el_map,
                                                          ipp_lat,
                                                          ipp_lon))
+        h5file.close()
         return calibrated_arc_map
 
 

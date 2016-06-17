@@ -207,6 +207,7 @@ class ArcMap(OrderedDict):
                                             satz,
                                             arc_table.attrs.L,
                                             arc_table.attrs.L_scatter))
+        h5file.close()
         return self
 
 
