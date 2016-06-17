@@ -183,6 +183,7 @@ class ObsMap(dict):
                 row['satz'] = obs.satz
                 row.append()
             table.flush()
+        h5file.close()
         return h5_fname
 
     def undump(self, h5_fname):
@@ -212,4 +213,5 @@ class ObsMap(dict):
                                                      'saty',
                                                      'satz']])
                 self[sat][dt] = obs
+        h5file.close()
         return self

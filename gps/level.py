@@ -162,6 +162,7 @@ class ArcMap(OrderedDict):
                     row['satz'] = leveled_arc.satz[j]
                     row.append()
                 table.flush()
+        h5file.close()
         return h5_fname
 
     def undump(self, h5_fname):
@@ -312,13 +313,14 @@ def level_phase_to_code(obs_map,
 
 
 def level_process(output_h5_fname,
-                  input_h5_fname):
+                  input_h5_fname,
+                  config=DEFAULT_CONFIG):
     """
     """
     logger.info('reading phase connected arcs from {}'.format(input_h5_fname))
     obs_map = ObsMap(input_h5_fname)
     logger.info('beginning level phase to code process')
-    arc_map = level_phase_to_code(obs_map)
+    arc_map = level_phase_to_code(obs_map, config=config)
     logger.info('storing leveled phase arcs to {}'.format(output_h5_fname))
     arc_map.dump(output_h5_fname)
     return output_h5_fname

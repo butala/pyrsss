@@ -104,6 +104,7 @@ def dump_stec_map(h5_fname, stec_map):
             row['satz'] = stec_info.satz
             row.append()
         table.flush()
+    h5file.close()
     return h5_fname
 
 

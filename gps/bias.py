@@ -168,6 +168,7 @@ class CalibratedArcMap(OrderedDict):
                     row['ipp_lon'] = calibrated_arc.ipp_lon[j]
                     row.append()
                 table.flush()
+        h5file.close()
         return h5_fname
 
     @classmethod
