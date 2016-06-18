@@ -13,13 +13,15 @@ from tables import open_file, IsDescription, Time64Col, Float64Col
 from constants import SHELL_HEIGHT, TECU_TO_NS
 from level import LeveledArc, ArcMap
 from util import shell_mapping
-from ipp import cnv_azel2latlon
+from ipp import ipp_from_azel
 from teqc import rinex_info
 from sideshow import update_sideshow_file
+from ..gpstk import PyPosition
 from ..ionex.read_ionex import interpolate2D_temporal
 from ..util.search import find_le
 from ..util.path import SmartTempDir
 from ..util.date import UNIX_EPOCH
+from ..util.angle import convert_lon
 
 logger = logging.getLogger('pyrsss.gps.bias')
 
@@ -37,31 +39,25 @@ class AugLeveledArc(namedtuple('AugLeveledArc',
                     LeveledArc):
     def __new__(cls,
                 leveled_arc,
-                site_lat,
-                site_lon,
+                stn_pos,
                 shell_height=SHELL_HEIGHT):
         fields = leveled_arc._asdict()
         fields['el_map'] = [shell_mapping(el_i, h=shell_height) for el_i in fields['el']]
-        # NOTE: We do not account for station height! Instead, we
-        # should be using PyPosition facilities.
-        ipp_lat, ipp_lon = zip(*[cnv_azel2latlon(az_i,
-                                                 el_i,
-                                                 (site_lat, site_lon),
-                                                 ht=shell_height) for (az_i, el_i) in zip(fields['az'],
-                                                                                          fields['el'])])
-        fields['ipp_lat'] = ipp_lat
-        fields['ipp_lon'] = ipp_lon
+        ipp_pos = [ipp_from_azel(stn_pos, az_i, el_i) for az_i, el_i in zip(fields['az'],
+                                                                            fields['el'])]
+        fields['ipp_lat'] = [x.geodeticLatitude for x in ipp_pos]
+        fields['ipp_lon'] = [convert_lon(x.longitude) for x in ipp_pos]
         return cls._make(fields.values())
 
 
 class AugmentedArcMap(OrderedDict):
     def __init__(self, arc_map, shell_height=SHELL_HEIGHT):
         super(AugmentedArcMap, self).__init__()
-        site_lat, site_lon, _ = arc_map.llh
+        stn_pos = PyPosition(*arc_map.llh,
+                             s=PyPosition.CoordinateSystem['geodetic'])
         for key, arc_list in arc_map.iteritems():
             self[key] = [AugLeveledArc(x,
-                                       site_lat,
-                                       site_lon,
+                                       stn_pos,
                                        shell_height=shell_height) for x in arc_list]
         self.xyz = arc_map.xyz
         self.llh = arc_map.llh
@@ -342,12 +338,15 @@ def bias_process(output_h5_fname,
     # load arc map
     arc_map = ArcMap(leveled_arc_h5_fname)
     # compute IPPs
+    logger.info('computing IPPs')
     aug_arc_map = AugmentedArcMap(arc_map)
     # compute VTEC mapped to STEC for arc map lines of site
+    logger.info('computing STEC from IONEX')
     (stec_map,
      sat_biases) = ionex_stec_map(ionex_fname,
                                   aug_arc_map)
     # estimate receiver bias and uncertainty
+    logger.info('least squares estimate of receiver bias')
     stn_bias, stn_bias_sigma = estimate_receiver_bias(aug_arc_map,
                                                       stec_map,
                                                       sat_biases)
