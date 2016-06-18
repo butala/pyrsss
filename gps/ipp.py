@@ -1,51 +1,25 @@
-import numpy as np
+import numpy as NP
+import scipy.optimize
 
-from constants import RE
+from ..gpstk import PyPosition, point
 
 
-def cnv_azel2latlon(az, el, site, ht=450, Re=RE):
-    '''
-    Function to convert from an azimuth/elevation grid to a
-    latitude/longitude grid given an unwarping height and a site location.
-    For elevations below the horizon, returns NaN.
-    INPUTS:
-        az - M x N array of azimuths to be converted [degrees]
-        el - M x N array of elevation to be converted [degrees]
-        site - 1 x 2 array containing [latitude, longitude] of the site
-           [degrees]
-        ht - scalar height to be used in the conversion [km] (default is
-             450 [km])
-        Re - radius of Earth in km
-    OUTPUTS:
-        lat - M x N array of latitudes [degrees]
-        lon - M x N array of longitudes [degrees]
-
-    HISTORY:
-        17-Oct-2006: Converted from IDL by Jonathan J. Makela
-        (jmakela@uiuc.edu)
-        03-Oct-2013: Converted from MATLAB to Python by Brian Harding
-        (bhardin2@illinois.edu)
-    '''
-    # Convert inputs from degrees to radians
-    el_r = np.radians(el)
-    az_r = np.radians(az)
-    lat_r = np.radians(site[0])
-    lon_r = np.radians(site[1])
-
-    # Calculate the differential angle, alpha
-    temp = np.cos(el_r)/(1.+(ht/Re))
-    alpha = np.arccos(temp) - el_r
-
-    # Calculate the pierce point latitude
-    temp = np.sin(lat_r) * np.cos(alpha) + np.cos(lat_r)*np.cos(az_r)*np.sin(alpha)
-    lat_r = np.arcsin(temp)
-
-    # Calculate the pierce point longitude
-    temp = np.sin(alpha) * np.sin(az_r) / np.cos(lat_r)
-    lon_r = np.arcsin(temp) + lon_r
-
-    # Convert radian measurements to degrees
-    lat = np.degrees(lat_r)
-    lon = np.degrees(lon_r)
-
-    return lat, lon
+def ipp_from_azel(stn_pos, az, el, ht=450, tol=1e-5):
+    """
+    Compute the :class:`PyPosition` IPP for line-of-sight specified by
+    the :class:`PyPosition` receiver position *stn_pos* and azimuth
+    *az* (in degrees)and elevation *el* (in degrees) at height *ht*
+    (in [km]). Use tolerance *tol* in the cost function minimization.
+    """
+    end_pos = point(stn_pos, az, el, 1.1 * ht * 1e3)
+    stn_pos_xyz = NP.array(stn_pos.xyz)
+    end_pos_xyz = NP.array(end_pos.xyz)
+    def los_pos(s):
+        los_xyz = (1 - s) * stn_pos_xyz + s * end_pos_xyz
+        return PyPosition(*los_xyz)
+    def J(s):
+        return abs(los_pos(s).height - ht * 1e3)
+    res = scipy.optimize.minimize_scalar(J, bounds=(0, 1), tol=tol)
+    assert res.success
+    s_star = res.x
+    return los_pos(s_star)
