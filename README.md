@@ -1,4 +1,4 @@
-[![Coverage Status](https://coveralls.io/repos/github/butala/pyrsss/badge.svg?branch=master)](https://coveralls.io/github/butala/pyrsss?branch=master)
+[![Build Status](https://travis-ci.org/butala/pyrsss.svg?branch=master)](https://travis-ci.org/butala/pyrsss)
 
 # pyrsss
 Python remote sensing and space science tools
