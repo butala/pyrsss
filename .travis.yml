@@ -4,7 +4,7 @@ python:
 before_install:
   - git clone https://github.com/SGL-UT/GPSTk.git
   - cd GPSTk
-  - ./build.sh -b build -e -x
+  - ./build.sh -e -x
   - cd ..
   - export GPSTK_SRC="$HOME/GPSTk"
   - export GPSTK_BUILD="$HOME/GPSTk/build"
