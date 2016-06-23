@@ -7,9 +7,9 @@ before_install:
   - git clone https://github.com/SGL-UT/GPSTk.git
   - cd GPSTk
   - ./build.sh -b build -e -x
+  - export GPSTK_SRC=$(pwd)
+  - export GPSTK_BUILD=$(pwd)/build
   - cd ..
-  - export GPSTK_SRC=$HOME/GPSTk
-  - export GPSTK_BUILD=$HOME/GPSTk/build
   - pip install -r requirements.txt
 script:
   - python setup.py build
