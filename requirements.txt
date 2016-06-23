@@ -1,2 +1,7 @@
 Cython
 numpy
+scipy
+pandas
+matplotlib
+pyproj
+sh
