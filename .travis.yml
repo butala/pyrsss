@@ -4,8 +4,8 @@ language: python
 python:
   - "2.7"
 before_install:
-  - sudo apt-get install -qq libopenblas-dev
-  - sudo apt-get install -qq liblapack-dev
+  - sudo apt-get -qq install libopenblas-dev
+  - sudo apt-get -qq install liblapack-dev
   - git clone https://github.com/SGL-UT/GPSTk.git
   - cd GPSTk
   - ./build.sh -b build -e -x
