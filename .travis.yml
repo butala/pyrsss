@@ -7,6 +7,8 @@ before_install:
   - sudo apt-get -qq install gfortran
   - sudo apt-get -qq install libopenblas-dev
   - sudo apt-get -qq install liblapack-dev
+  - sudo apt-get -qq install python-numpy
+  - sudo apt-get -qq install python-scipy
   - git clone https://github.com/SGL-UT/GPSTk.git
   - cd GPSTk
   - ./build.sh -b build -e -x
