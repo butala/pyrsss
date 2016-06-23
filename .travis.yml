@@ -2,13 +2,11 @@ language: python
 python:
   - "2.7"
 before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install cmake
-script:
   - git clone https://github.com/SGL-UT/GPSTk.git
   - cd GPSTk
   - ./build.sh -b build -e -x
   - cd ..
   - export GPSTK_SRC="$HOME/GPSTk"
   - export GPSTK_BUILD="$HOME/GPSTk/build"
+script:
   - pip install -r requirements.txt"
