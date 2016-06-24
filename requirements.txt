@@ -1,2 +1,11 @@
 Cython
 numpy
+scipy
+pandas
+matplotlib
+sympy
+tables
+netCDF4
+python-dateutil
+pyproj
+sh
