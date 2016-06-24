@@ -9,6 +9,8 @@ before_install:
   - sudo apt-get -qq install liblapack-dev
   - sudo apt-get -qq install python-numpy
   - sudo apt-get -qq install python-scipy
+  - sudo apt-get -qq install libhdf5-dev
+  - sudo apt-get -qq install libnetcdf-dev
   - git clone https://github.com/SGL-UT/GPSTk.git
   - cd GPSTk
   - ./build.sh -b build -e -x
