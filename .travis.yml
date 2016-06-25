@@ -30,5 +30,6 @@ install:
   - ./build.sh -b build -e -x
   - export GPSTK_SRC=$(pwd)
   - export GPSTK_BUILD=$(pwd)/build
+  - cd ..
 script:
   - python setup.py install
