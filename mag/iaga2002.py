@@ -1,10 +1,22 @@
+from __future__ import division
 import logging
 import sys
+import os
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime, timedelta
 from collections import OrderedDict, namedtuple, defaultdict
+from abc import ABCMeta, abstractmethod, abstractproperty
+
 
 logger = logging.getLogger('pyrsss.mag.iaga2002')
+
+
+def fname2date(iaga2002_fname):
+    """
+    ???
+    """
+    return datetime.strptime(os.path.basename(iaga2002_fname)[3:11],
+                             '%Y%m%d')
 
 
 class Header(namedtuple('Header',
@@ -41,6 +53,131 @@ def convert_float(s):
     return f
 
 
+class IAGARecord(object):
+    __metaclass__ = ABCMeta
+
+    @abstractproperty
+    def x(self):
+        pass
+
+    @abstractproperty
+    def y(self):
+        pass
+
+    @abstractproperty
+    def z(self):
+        pass
+
+    @abstractproperty
+    def f(self):
+        pass
+
+    @abstractproperty
+    def H(self):
+        pass
+
+    @abstractproperty
+    def D(self):
+        pass
+
+
+class XYZRecord(IAGARecord):
+    def __init__(self, x, y, z, f):
+        self._x = x
+        self._y = y
+        self._z = z
+        self._f = f
+
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
+
+    @property
+    def z(self):
+        return self._z
+
+    @property
+    def f(self):
+        return self._f
+
+    @property
+    def H(self):
+        return math.hypot(self._x, self._y)
+
+    @property
+    def D(self):
+        return math.degrees(math.atan2(self._y, self._x))
+
+    def __repr__(self):
+        return 'XYZRecord(x={} y={} z={} f={})'.format(self._x,
+                                                       self._y,
+                                                       self._z,
+                                                       self._f)
+
+
+def HDZRecord(IAGARecord):
+    def __init__(self, H, D_arcmin, z, f):
+        self._H = H
+        self._D_deg = D_arcmin / 60
+        self._D_rad = math.radians(self._D_deg)
+        self._z = z
+        self._f = f
+
+    @property
+    def x(self):
+        return self._H * math.cos(self._D_rad)
+
+    @property
+    def y(self):
+        return self._H * math.sin(self._D_rad)
+
+    @property
+    def z(self):
+        return self._z
+
+    @property
+    def f(self):
+        return self._f
+
+    @property
+    def H(self):
+        return self._H
+
+    @property
+    def D(self):
+        return self._D_deg
+
+    def __repr__(self):
+        return 'HDZRecord(H={} D={} [deg] z={} f={})'.format(self._H,
+                                                             self._D_deg,
+                                                             self._z,
+                                                             self._f)
+
+
+def record_factory(reported, data):
+    """
+    ???
+
+    What exists in the INTERMAGNET data record:
+    Reported               HDZ                                          |
+    Reported               HDZF                                         |
+    Reported               XYZ                                          |
+    Reported               xyzf                                         |
+    Reported               XYZF                                         |
+    Reported               XYZG                                         |
+    """
+    if reported.startswith('HDZ'):
+        return HDZRecord(*data)
+    elif reported.startswith('XYZ'):
+        return XYZRecord(*data)
+    else:
+        raise NotImplementedError('unknown record type {}'.format(reported))
+
+
 def parse(fname):
     """
     Parser the IAGA2002 format file *fname* and return a tuple with a
@@ -69,7 +206,6 @@ def parse(fname):
                     continue
         header_map['Comment'] = '\n'.join(comment_lines)
         try:
-            # print(header_map.keys())
             header = Header(**header_map)
         except TypeError:
             logger.warning('unknown header record found in {} --- setting header to None'.format(fname))
@@ -79,7 +215,6 @@ def parse(fname):
         if len(fields) != 7:
             raise RuntimeError('malformed data header record in {} ({})'.format(fname,
                                                                                 line))
-        DataRecord = namedtuple('DataRecord', ' '.join(fields[3:]))
         data_map = OrderedDict()
         # parse data records
         for line in fid:
@@ -88,10 +223,11 @@ def parse(fname):
             data2 = convert_float(line[41:50])
             data3 = convert_float(line[51:60])
             data4 = convert_float(line[61:70])
-            data_map[dt] = DataRecord(data1,
-                                      data2,
-                                      data3,
-                                      data4)
+            data_map[dt] = record_factory(header_map['Reported'],
+                                          [data1,
+                                           data2,
+                                           data3,
+                                           data4])
     return header, data_map
 
 
