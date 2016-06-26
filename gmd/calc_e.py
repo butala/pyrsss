@@ -100,8 +100,8 @@ def process(output_mat_fname,
     _, data_map = parse(input_iaga2002_fname)
     stn_name = os.path.basename(input_iaga2002_fname)[:3]
     interval = int((data_map.keys()[1] - data_map.keys()[0]).total_seconds())
-    Bx = nan_interp([getattr(x, stn_name.upper() + 'X') * 1e-9 for x in data_map.itervalues()])
-    By = nan_interp([getattr(x, stn_name.upper() + 'Y') * 1e-9 for x in data_map.itervalues()])
+    Bx = nan_interp([record.x * 1e-9 for record in data_map.itervalues()])
+    By = nan_interp([record.y * 1e-9 for record in data_map.itervalues()])
     # setup surface impedance function
     usgs_model = model_map[model]
     Zw_function = lambda omega: surface_impedance_1D(usgs_model, omega)
