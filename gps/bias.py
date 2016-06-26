@@ -201,18 +201,18 @@ class CalibratedArcMap(OrderedDict):
                     ipp_lat.append(row['ipp_lat'])
                     ipp_lon.append(row['ipp_lon'])
                 calibrated_arc_map[sat].append(CalibratedArc(dt,
-                                                         sobs,
-                                                         sprn,
-                                                         az,
-                                                         el,
-                                                         satx,
-                                                         saty,
-                                                         satz,
-                                                         arc_table.attrs.L,
-                                                         arc_table.attrs.L_scatter,
-                                                         el_map,
-                                                         ipp_lat,
-                                                         ipp_lon))
+                                                             sobs,
+                                                             sprn,
+                                                             az,
+                                                             el,
+                                                             satx,
+                                                             saty,
+                                                             satz,
+                                                             arc_table.attrs.L,
+                                                             arc_table.attrs.L_scatter,
+                                                             el_map,
+                                                             ipp_lat,
+                                                             ipp_lon))
         h5file.close()
         return calibrated_arc_map
 
