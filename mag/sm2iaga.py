@@ -12,6 +12,8 @@ import pandas as PD
 
 from pyglow.pyglow import Point
 
+from sm_stations import STATION_MAP
+
 
 """
 NOTE: This code assumes that the input and output data are 1-minute interval.
@@ -121,11 +123,14 @@ def iaga_fname(path, stn, date, cutoff_date=datetime(2007, 1, 1)):
                                                                ext=ext))
 
 
-def df_map2iaga(path, df_map, lat, lon, elevation=None, nez=False):
+def df_map2iaga(path, df_map, nez=False):
     """
     """
     output_map = defaultdict(dict)
     for stn, df in df_map.iteritems():
+        station_info = STATION_MAP[stn.upper()]
+        lat = station_info.glat
+        lon = station_info.glon
         for date, df_date in df.groupby(df['Date_UTC'].map(lambda x: x.date())):
             output_fname = iaga_fname(path, stn, date)
             dataframe2iaga(output_fname,
@@ -134,7 +139,7 @@ def df_map2iaga(path, df_map, lat, lon, elevation=None, nez=False):
                            df_date,
                            lat,
                            lon,
-                           elevation=elevation,
+                           elevation=0,
                            nez=nez)
             output_map[stn][date] = output_fname
     return output_map
@@ -152,17 +157,6 @@ def main(argv=None):
     parser.add_argument('csv_fname',
                         type=str,
                         help='SuperMAG CSV file')
-    parser.add_argument('latitude',
-                        type=float,
-                        help='site geodetic latitude [deg]')
-    parser.add_argument('longitude',
-                        type=float,
-                        help='site longitude [deg]')
-    parser.add_argument('--elevation',
-                        '-e',
-                        type=float,
-                        default=None,
-                        help='site elevation [m]')
     parser.add_argument('--nez',
                         action='store_true',
                         help='store (raw) HEZ components (aligned to local magnetic field) instead of XYZ components')
@@ -171,9 +165,6 @@ def main(argv=None):
     df_map = read_sm_csv(args.csv_fname)
     df_map2iaga(args.output_path,
                 df_map,
-                args.latitude,
-                args.longitude,
-                elevation=args.elevation,
                 nez=args.nez)
 
 
