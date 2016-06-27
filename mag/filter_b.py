@@ -13,15 +13,21 @@ from tables import open_file, IsDescription, Time64Col, Float64Col
 from iaga2002 import parse, fname2date
 from ..util.signal import nextpow2
 from ..util.date import UNIX_EPOCH
+from ..util.nan import nan_interp
+
+logger = logging.getLogger('pyrsss.mag.filter_b')
 
 
 def load_data(iaga2002_fnames):
     """ ??? """
     assert len(iaga2002_fnames) == 3
     headers, records = zip(*map(parse, iaga2002_fnames))
-    site = set([x.IAGA_CODE for x in headers])
-    if len(site) != 1:
-        raise ValueError('data must all originate from the same site')
+    try:
+        site = set([x.IAGA_CODE for x in headers])
+        if len(site) != 1:
+            raise ValueError('data must all originate from the same site')
+    except AttributeError:
+        logger.warning('could not validate that data are from the same station')
     dates = map(fname2date, iaga2002_fnames)
     if (dates[2] - dates[0] + timedelta(days=1)).days != 3:
         raise ValueError('date must span 3 consecutive days')
@@ -87,9 +93,9 @@ def filter_b(Bx, By, Bz):
     K = len(h) + len(Bx) - 1
     N = nextpow2(K)
     H = NP.fft.fft(h, n=N)
-    F_Bx = NP.fft.fft(Bx, n=N)
-    F_By = NP.fft.fft(By, n=N)
-    F_Bz = NP.fft.fft(Bz, n=N)
+    F_Bx = NP.fft.fft(nan_interp(Bx), n=N)
+    F_By = NP.fft.fft(nan_interp(By), n=N)
+    F_Bz = NP.fft.fft(nan_interp(Bz), n=N)
     M = len(Bx)
     return (NP.real(NP.fft.ifft(H * F_Bx))[:M],
             NP.real(NP.fft.ifft(H * F_By))[:M],
