@@ -94,8 +94,12 @@ def dataframe2iaga(fname,
                 C1 = N
                 C2 = E
             else:
-                C1 = cos_dec * N - sin_dec * E
-                C2 = sin_dec * N + cos_dec * E
+                if N in [88888, 99999] or E in [88888, 99999]:
+                    C1 = 88888
+                    C2 = 88888
+                else:
+                    C1 = cos_dec * N - sin_dec * E
+                    C2 = sin_dec * N + cos_dec * E
             fid.write('{date:%Y-%m-%d %H:%M:%S.000} {date:%j}'
                       '    {C1:>9.2f} {C2:>9.2f} {Z:>9.2f} {F:>9.2f}\n'.format(date=dt,
                                                                                C1=C1,
