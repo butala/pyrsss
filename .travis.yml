@@ -23,7 +23,16 @@ install:
   # Replace dep1 dep2 ... with your dependencies
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION openblas numpy scipy cython pandas sympy pytables netcdf4 python-dateutil pytz pyproj sh
   - source activate test-environment
-  
+
+  # Library dependencies
+  - sudo apt-get install gfortran libfftw3-dev libnfft3-dev
+
+  # pyglow
+  - git clone git://github.com/timduly4/pyglow.git
+  - cd pyglow
+  - ./pyglow_install.sh
+  - cd ..
+
   # GPSTk
   - git clone https://github.com/SGL-UT/GPSTk.git
   - cd GPSTk
