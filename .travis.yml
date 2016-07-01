@@ -25,7 +25,7 @@ install:
   - source activate test-environment
 
   # Library dependencies
-  - sudo apt-get install gfortran libfftw3-dev libnfft3-dev
+  - sudo apt-get install -qq gfortran libfftw3-dev libnfft3-dev
 
   # pyglow
   - git clone git://github.com/timduly4/pyglow.git
