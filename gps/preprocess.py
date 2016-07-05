@@ -34,6 +34,9 @@ def normalize_rinex(output_rinex_fname,
     """
     if not os.path.isfile(rinex_fname):
         raise ValueError('RINEX observation file {} not found'.format(rinex_fname))
+    if os.path.abspath(output_rinex_fname) == os.path.abspath(rinex_fname):
+        raise ValueError('input RINEX file ({}) and output RINEX file ({}) are '
+                         'the same'.format(rinex_fname, output_rinex_fname))
     args = ['+C2']
     args += ['+G'] if gps else ['-G']
     args += ['+R'] if glonass else ['-R']
