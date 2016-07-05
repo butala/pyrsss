@@ -79,10 +79,11 @@ def phase_edit(rinex_fname,
     logger.info('applying GPSTk DiscFix to {}'.format(rinex_fname))
     command = sh.Command(disc_fix)
     with SmartTempDir(work_path) as work_path:
-        log_fname = os.path.join(work_path, 'df.log')
-        stdout_fname = os.path.join(work_path, 'df.stdout')
-        stderr_fname = os.path.join(work_path, 'df.stderr')
-        cmd_fname = os.path.join(work_path, 'df.out')
+        basename = os.path.basename(rinex_fname)
+        log_fname = os.path.join(work_path, basename + '.df.log')
+        stdout_fname = os.path.join(work_path, basename + '.df.stdout')
+        stderr_fname = os.path.join(work_path, basename + '.df.stderr')
+        cmd_fname = os.path.join(work_path, basename + '.df.out')
         args = ['--obs', rinex_fname,
                 '--log', log_fname,
                 '--cmd', cmd_fname]
