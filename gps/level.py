@@ -5,12 +5,13 @@ import sys
 import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import timedelta
-from collections import namedtuple, OrderedDict
+from collections import namedtuple, OrderedDict, Iterator
 from datetime import timedelta
 from itertools import groupby
 
 import numpy as NP
 from tables import open_file, IsDescription, Time64Col, Float64Col
+from more_itertools import peekable
 
 from ..util.stats import weighted_avg_and_std
 from ..util.date import UNIX_EPOCH
@@ -85,9 +86,10 @@ class LeveledArc(namedtuple('LeveledArc',
         """
         ???
         """
+        ArcPoint = namedtuple('ArcPoint', filter(lambda x: x not in skip_fields, self._fields))
         I_fields, fields = zip(*[(i, x) for i, x in enumerate(self._fields) if x not in skip_fields])
         for i in range(len(self.dt)):
-            yield OrderedDict(zip(fields, [self[i_field][i] for i_field in I_fields]))
+            yield ArcPoint(*[self[i_field][i] for i_field in I_fields])
 
 
 def arc_iter(obs_time_series, gap_length):
@@ -105,6 +107,37 @@ def arc_iter(obs_time_series, gap_length):
         yield arc_index_i, ObsTimeSeries(zip(*group)[1])
 
 
+class ArcMapFlatIterator(Iterator):
+    def __init__(self, arc_map):
+        """ ??? """
+        self.arc_map = arc_map
+        sorted_sats = sorted(arc_map)
+        self.flat_iters = [peekable(arc_map[x].flat) for x in sorted_sats]
+
+    def next(self):
+        """ ??? """
+        front_entries = [x.peek(None) for x in self.flat_iters]
+        if all([x is None for x in front_entries]):
+            raise StopIteration
+        # below is the argmin function that ignores entries that are
+        # None
+        I, _ = min(filter(lambda x: x[1] is not None,
+                          enumerate(front_entries)),
+                   key=lambda x: x[1].dt)
+        return self.flat_iters[I].next()
+
+
+"""
+???
+"""
+class ArcList(list):
+    @property
+    def flat(self):
+        for arc in self:
+            for x in arc.timeiter():
+                yield x
+
+
 class ArcMap(OrderedDict):
     def __init__(self, h5_fname=None):
         """ ??? """
@@ -114,8 +147,12 @@ class ArcMap(OrderedDict):
 
     def __missing__(self, key):
         """ ??? """
-        self[key] = list()
+        self[key] = ArcList()
         return self[key]
+
+    @property
+    def flat(self):
+        return ArcMapFlatIterator(self)
 
     """ ??? """
     class Table(IsDescription):
