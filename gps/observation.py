@@ -131,7 +131,7 @@ class ObsTimeSeries(OrderedDict):
                                                Observation(*value))
 
 
-class ObsMap(dict):
+class ObsMap(OrderedDict):
     def __init__(self, h5_fname=None):
         """ ??? """
         super(ObsMap, self).__init__()
@@ -142,6 +142,9 @@ class ObsMap(dict):
         prn = int(key[1:])
         self[key] = ObsTimeSeries()
         return self[key]
+
+    def timeiter(self):
+        return ObsMapFlatIterator(self)
 
     """ ??? """
     class Table(IsDescription):
