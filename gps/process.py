@@ -16,6 +16,7 @@ def process(path,
             nav_fname,
             work_path=None,
             discfix_args=[],
+            leveling_config_overrides=[],
             ionex_fname=None):
     """
     ???
@@ -45,7 +46,8 @@ def process(path,
                 level_h5.append(
                     level_process(replace_path(work_path,
                                                rinex_fname + '.level.h5'),
-                                  phase_edit_h5_i))
+                                  phase_edit_h5_i,
+                                  config_overrides=leveling_config_overrides))
             except Exception as e:
                 logger.warning('level step failed for {} ({}) --- '
                                'skipping'.format(phase_edit_h5_i, e))
@@ -116,6 +118,13 @@ def main(argv=None):
                         type=add_dashes,
                         default=[],
                         help='options to pass to the GPSTk discontinuity fixer (see help message for pyrsss.gps.phase_edit) --- do not include the dashes')
+    parser.add_argument('--leveling-config-overrides',
+                        '-l',
+                        metavar='leveling_config_override',
+                        type=str,
+                        nargs='+',
+                        default=[],
+                        help='overrides to default leveling configuration (see the help message fro pyrsss.gps.level for the possibilities)')
     parser.add_argument('--ionex-fname',
                         '-i',
                         type=str,
@@ -128,6 +137,7 @@ def main(argv=None):
             args.nav_fname,
             work_path=args.work_path,
             discfix_args=args.discfix_options,
+            leveling_config_overrides=args.leveling_config_overrides,
             ionex_fname=args.ionex_fname)
 
 if __name__ == '__main__':
