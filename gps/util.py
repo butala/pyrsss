@@ -1,6 +1,9 @@
 from __future__ import division
 
 import math
+from datetime import timedelta
+
+from ..util.date import GPS_EPOCH
 
 
 def shell_mapping(el_deg,
@@ -11,3 +14,11 @@ def shell_mapping(el_deg,
     """
     el_rad = math.radians(el_deg)
     return 1 / math.sqrt(1 - (R_mean * math.cos(el_rad) / (h + R_mean))**2)
+
+
+def convert_gps_week(week, seconds=0):
+    """
+    Convert GPS *week* and *seconds* past the beginning of the week to
+    a :class:`datetime`.
+    """
+    return GPS_EPOCH + timedelta(seconds=week * 60 * 60 * 24 * 7) + timedelta(seconds=seconds)
