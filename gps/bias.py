@@ -71,8 +71,8 @@ class AugmentedArcMap(ArcMap):
 
 
 class CalibratedArc(namedtuple('CalibratedArc',
-                               ' '.join(AugLeveledArc._fields).replace('sobs',
-                                                                       'stec')),
+                               ' '.join(AugLeveledArc._fields).replace('stec',
+                                                                       'sobs')),
                     AugLeveledArc):
     @classmethod
     def from_aug_leveled_arc(cls,
