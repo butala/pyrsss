@@ -11,7 +11,7 @@ from scipy.interpolate import RectBivariateSpline
 from tables import open_file, IsDescription, Time64Col, Float64Col
 
 from constants import SHELL_HEIGHT, TECU_TO_NS
-from level import LeveledArc, ArcMap
+from level import LeveledArc, ArcMap, ArcList, ArcMapFlatIterator
 from util import shell_mapping
 from ipp import ipp_from_azel
 from teqc import rinex_info
@@ -50,7 +50,7 @@ class AugLeveledArc(namedtuple('AugLeveledArc',
         return cls._make(fields.values())
 
 
-class AugmentedArcMap(OrderedDict):
+class AugmentedArcMap(ArcMap):
     def __init__(self, arc_map, shell_height=SHELL_HEIGHT):
         super(AugmentedArcMap, self).__init__()
         stn_pos = PyPosition(*arc_map.llh,
@@ -63,16 +63,16 @@ class AugmentedArcMap(OrderedDict):
         self.llh = arc_map.llh
         self.shell_height = shell_height
 
+    def dump(self, *args, **kwds):
+        raise NotImplementedError()
 
-    def __missing__(self, key):
-        """ ??? """
-        self[key] = list()
-        return self[key]
+    def undump(self, *args, **kwds):
+        raise NotImplementedError()
 
 
 class CalibratedArc(namedtuple('CalibratedArc',
-                               ' '.join(AugLeveledArc._fields).replace('stec',
-                                                                       'sobs')),
+                               ' '.join(AugLeveledArc._fields).replace('sobs',
+                                                                       'stec')),
                     AugLeveledArc):
     @classmethod
     def from_aug_leveled_arc(cls,
@@ -84,12 +84,7 @@ class CalibratedArc(namedtuple('CalibratedArc',
         return cls._make(fields.values())
 
 
-class CalibratedArcMap(OrderedDict):
-    def __missing__(self, key):
-        """ ??? """
-        self[key] = list()
-        return self[key]
-
+class CalibratedArcMap(ArcMap):
     @classmethod
     def from_aug_arc_map(cls,
                          aug_arc_map,
