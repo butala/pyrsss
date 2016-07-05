@@ -8,7 +8,7 @@ def ipp_from_azel(stn_pos, az, el, ht=450, tol=1e-5):
     """
     Compute the :class:`PyPosition` IPP for line-of-sight specified by
     the :class:`PyPosition` receiver position *stn_pos* and azimuth
-    *az* (in degrees)and elevation *el* (in degrees) at height *ht*
+    *az* (in degrees) and elevation *el* (in degrees) at height *ht*
     (in [km]). Use tolerance *tol* in the cost function minimization.
     """
     end_pos = point(stn_pos, az, el, 1.1 * ht * 1e3)
