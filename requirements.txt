@@ -4,6 +4,7 @@ enum34
 intervals
 matplotlib
 basemap
+more-itertools
 netCDF4
 numpy
 pandas
