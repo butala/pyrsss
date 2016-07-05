@@ -13,6 +13,10 @@ UNIX_EPOCH = datetime(1970, 1, 1)
 """ ??? """
 
 
+GPS_EPOCH = datetime(1980, 1, 6)
+""" ??? """
+
+
 def toJ2000(dt):
     """
     Convert *dt* to the number of seconds past J2000.
