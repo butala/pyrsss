@@ -270,6 +270,7 @@ def parse_edit_commands(df_fname):
     return time_reject_map, phase_adjust_map
 
 
+# MAJOR REWRITE --- I OUTPUT AN ArcMap!!!
 def filter_obs_map(obs_map,
                    time_reject_map,
                    phase_adjust_map):
@@ -306,8 +307,8 @@ def filter_obs_map(obs_map,
             edited_obs_map[sat][dt] = [obs.C1,
                                        obs.P1,
                                        obs.P2,
-                                       None if obs.L1 is None else obs.L1 + L1_delta,
-                                       None if obs.L2 is None else obs.L2 + L2_delta,
+                                       None if obs.L1 is None else obs.L1 - L1_delta,
+                                       None if obs.L2 is None else obs.L2 - L2_delta,
                                        obs.az,
                                        obs.el,
                                        obs.satx,
@@ -345,11 +346,13 @@ def phase_edit_process(h5_fname,
                    nav_fname)
         obs_map = read_rindump(rinex_dump_fname)
         # apply phase edit adjustments to ObsMap
+        # CHANGE: OUTPUT IS ARCMAP!!!
         logger.info('applying phase edit adjustments')
         edited_obs_map = filter_obs_map(obs_map,
                                         time_reject_map,
                                         phase_adjust_map)
         # store ObsMap to file
+        # CHANGE: NO, OUTPUT IS ARCMAP!!!
         logger.info('storing output to {}'.format(h5_fname))
         edited_obs_map.dump(h5_fname, title='pyrsss.gps.phase_edit output')
     return h5_fname
