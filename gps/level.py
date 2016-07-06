@@ -420,6 +420,7 @@ def main(argv=None):
                         '-c',
                         type=str,
                         nargs='+',
+                        default=[],
                         help='leveling configuration overrides (specify as, e.g., minimum_elevation=15)')
     args = parser.parse_args(argv[1:])
 
