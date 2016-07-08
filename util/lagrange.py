@@ -105,7 +105,6 @@ def multivariate_lagrange(points, n):
     return SYM.Poly(f.simplify()), var, delta, delta_i_list
 
 
-
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
