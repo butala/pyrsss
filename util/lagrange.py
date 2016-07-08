@@ -102,7 +102,7 @@ def multivariate_lagrange(points, n):
             # using row interchange property
             delta_i_list.append(M_i.det() * (-1)**(p-1-i))
     f = lagrange_interpolator(points, delta, delta_i_list)
-    return SYM.poly(f.simplify()), var, delta, delta_i_list
+    return f.simplify(), var, delta, delta_i_list
 
 
 
