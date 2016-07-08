@@ -95,6 +95,7 @@ def chapman_fit(alt,
                                                 x0,
                                                 bounds=bounds,
                                                 **kwds)
+    assert d['warnflag'] == 0
     return x_star
 
 
