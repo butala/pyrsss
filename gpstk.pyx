@@ -203,9 +203,19 @@ cdef class PyPosition(object):
     @property
     def xyz(self):
         """
-        Return the tuple of EXEC coordinates (x, y, z) all in [m].
+        Return the tuple of ECEF coordinates (x, y, z) all in [m].
         """
         return (self.x, self.y, self.z)
+
+    @property
+    def llh(self):
+        """
+        Return the tuple of geodetic coordinates (lat, lon, height) where
+        lat and lon are in [deg] and height is in [m].
+        """
+        return (self.geodeticLatitude,
+                self.longitude,
+                self.height)
 
     @property
     def geodeticLatitude(self):
