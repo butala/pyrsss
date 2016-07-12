@@ -134,6 +134,9 @@ cdef class PyPosition(object):
         else:
             raise ValueError('Unknown coordinate system {}'.format(s))
 
+    def __dealloc__(self):
+        del self.thisptr
+
     def __repr__(self):
         return self.thisptr.asString() + ' (' + self.thisptr.getSystemName() + ')'
 
