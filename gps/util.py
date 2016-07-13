@@ -22,3 +22,10 @@ def convert_gps_week(week, seconds=0):
     a :class:`datetime`.
     """
     return GPS_EPOCH + timedelta(seconds=week * 60 * 60 * 24 * 7) + timedelta(seconds=seconds)
+
+
+def get_gps_week(dt):
+    """
+    Return the GPS week associated with :class:`datetime` *dt*.
+    """
+    return int((dt - GPS_EPOCH).total_seconds() / timedelta(weeks=1).total_seconds())
