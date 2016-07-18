@@ -32,7 +32,7 @@ def nan_interp(y, silent=False):
     # Source: http://stackoverflow.com/questions/6518811/interpolate-nan-values-in-a-numpy-array
     nans, x = nan_helper(y)
     z = NP.array(y)
-    if not silent:
+    if not silent and sum(nans) > 0:
         logger.warning('linear interpolation over {} NaN values'.format(sum(nans)))
     z[nans]= NP.interp(x(nans), x(~nans), z[~nans])
     return z
