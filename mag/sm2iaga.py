@@ -26,7 +26,7 @@ HEADER_TEMPLATE = """\
  IAGA CODE              {stn}                                          |
  Geodetic Latitude      {lat:<8.3f}                                     |
  Geodetic Longitude     {lon:<8.3f}                                     |
- Elevation              {el}                                          |
+ Elevation              {el:<8.3f}                                     |
  Reported               {reported}                                         |
  Digital Sampling       1-Minute                                     |
 DATE       TIME         DOY     {stn}{C1}       {stn}{C2}     {stn}Z      {stn}F   |
