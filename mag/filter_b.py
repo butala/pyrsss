@@ -57,7 +57,7 @@ def minute_interval_filter():
 
 def second_interval_filter():
     """ ??? """
-    raise NotImplementedError('VERIFY')
+    raise NotImplementedError('VERIFY --- ALSO TEST THAT L IN filter_b IS CORRECT')
     Ts = 1
     fs = 1./ Ts
     fn = fs / 2
@@ -97,9 +97,10 @@ def filter_b(Bx, By, Bz):
     F_By = NP.fft.fft(nan_interp(By), n=N)
     F_Bz = NP.fft.fft(nan_interp(Bz), n=N)
     M = len(Bx)
-    return (NP.real(NP.fft.ifft(H * F_Bx))[:M],
-            NP.real(NP.fft.ifft(H * F_By))[:M],
-            NP.real(NP.fft.ifft(H * F_Bz))[:M])
+    L = int(len(h) / 2)
+    return (NP.real(NP.fft.ifft(H * F_Bx))[L:M+L],
+            NP.real(NP.fft.ifft(H * F_By))[L:M+L],
+            NP.real(NP.fft.ifft(H * F_Bz))[L:M+L])
 
 
 """ ??? """
