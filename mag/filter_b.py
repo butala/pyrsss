@@ -103,6 +103,11 @@ def filter_b(Bx, By, Bz):
             NP.real(NP.fft.ifft(H * F_Bz))[L:M+L])
 
 
+def remove_mean(x):
+    """ ??? """
+    return x - NP.mean(x)
+
+
 """ ??? """
 class Table(IsDescription):
     dt = Time64Col()
@@ -111,7 +116,7 @@ class Table(IsDescription):
     Bz = Float64Col()
 
 
-def output_table(dt, B, h5file, where, name, title, center_day_only=True):
+def output_table(dt, B, h5file, where, name, title, center_day_only=True, zero_mean=True):
     """ ??? """
     table = h5file.create_table(where,
                                 name,
@@ -125,6 +130,10 @@ def output_table(dt, B, h5file, where, name, title, center_day_only=True):
         By = By[M:2*M]
         Bz = Bz[M:2*M]
     row = table.row
+    if zero_mean:
+        Bx = remove_mean(Bx)
+        By = remove_mean(By)
+        Bz = remove_mean(Bz)
     for dt_i, Bx_i, By_i, Bz_i in zip(dt, Bx, By, Bz):
         row['dt'] = (dt_i - UNIX_EPOCH).total_seconds()
         row['Bx'] = Bx_i
