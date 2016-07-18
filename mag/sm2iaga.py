@@ -58,10 +58,10 @@ def dataframe2iaga(fname,
     #reported, coord_map = get_reported(df)
     # build map of data records
     data_map = {}
-    for _, row in df.iterrows():
-        N = row['N']
-        E = row['E']
-        Z = row['Z']
+    for row in df.itertuples():
+        N = row.N
+        E = row.E
+        Z = row.Z
         F = math.hypot(math.hypot(N, E), Z)
         data_map[row.Date_UTC] = (N, E, Z, F)
     # fill missing records
