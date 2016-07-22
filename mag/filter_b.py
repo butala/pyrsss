@@ -126,6 +126,7 @@ def output_table(dt, B, h5file, where, name, title, center_day_only=True, zero_m
     if center_day_only:
         N = len(Bx)
         M = int(N / 3)
+        dt = dt[M:2*M]
         Bx = Bx[M:2*M]
         By = By[M:2*M]
         Bz = Bz[M:2*M]
@@ -170,7 +171,8 @@ def save_result(h5_fname,
                          mag_group,
                          'raw',
                          'Magnetometer data',
-                         center_day_only=center_day_only)
+                         center_day_only=center_day_only,
+                         zero_mean=False)
     return h5_fname
 
 
