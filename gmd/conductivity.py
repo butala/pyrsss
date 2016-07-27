@@ -32,8 +32,8 @@ def parse_conductivity(fid):
 
 def surface_impedance_1D(conductivity_map, omega):
     """
-    Calculate the surface impedance given the 1-D conductivity model
-    *conductivity_map* at angular frequencies *omega*.
+    Calculate the surface impedance [V/m/T] given the 1-D conductivity
+    model *conductivity_map* at angular frequencies *omega* [rad].
     """
     # start at bottom layer
     sigma = conductivity_map.values()[-1]
@@ -109,7 +109,7 @@ if __name__ == '__main__':
                 c='g')
     PL.grid(which='both')
     PL.xlabel('Frequency [Hz]')
-    PL.ylabel('$|Z(\omega)|$ [$\Omega$]')
+    PL.ylabel('$|Z(\omega)|$ [V/m/T]')
     PL.legend(loc='upper left')
     PL.title('Frequency response of two layered Earth conductivity models')
 
