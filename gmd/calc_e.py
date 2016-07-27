@@ -27,6 +27,11 @@ def calc_e(Bx, By, Zw_function, interval):
     *Zw_function* (input is angular frequency [rad] and output is
     impedance [Ohms]). Return the tuple *Ex*, *Ey* (same orientation
     as the magnetic field).
+
+    Units:
+       (input)  Bx, By: [T]
+       (input)  Zw_function: [rad] -> [Ohm]
+       (output) Ex, Ey: [V/m]
     """
     # This function is the reimplementation of Prof. Zhu's matlab code
     # which is based on the algorithm detailed in the NERC Application
@@ -34,10 +39,10 @@ def calc_e(Bx, By, Zw_function, interval):
     # that has been corrected in the code below.
 
     # function global variables
-    lp = 60 * int(60 / interval) # length at beginning and end of time
-                                 # series to fit detrend parameters
-    p  = 60 * int(60 / interval) # length at beginning and end of time
-                                 # series for frequency domain window
+    lp = 60  # length at beginning and end of time series to fit
+             # detrend parameters
+    p  = 60  # length at beginning and end of time series for
+             # frequency domain window
     mu0 = scipy.constants.mu_0
     # get the FFT size
     assert len(Bx) == len(By)
@@ -91,10 +96,10 @@ def process(output_mat_fname,
     """
     End-to-end processing of an IAGA2002 magnetometer data record
     *input_iaga2002_fname* to the output file *output_mat_fname*
-    containing the calculated E-field. Use the 1-D USGS conductivity
-    model with ID *model* identifying the conductivity model to use in
-    *conductivity_map* (keys are the IDs and values are 1-D
-    conductivity models in the USGS format).
+    containing the calculated E-field (units are [V/m]). Use the 1-D
+    USGS conductivity model with ID *model* identifying the
+    conductivity model to use in *conductivity_map* (keys are the IDs
+    and values are 1-D conductivity models in the USGS format).
     """
     # gather Bx and By magnetometer measurements
     _, data_map = parse(input_iaga2002_fname)
@@ -140,7 +145,7 @@ def main(argv=None):
                         help='input IAGA2002 magnetometer data file')
     parser.add_argument('model',
                         type=str,
-                        choices=sorted(USGS_CONDUCTIVITY_MAP),
+                        choices=sorted(USGS_MODEL_MAP),
                         help='process use the given 1-D conductivity model')
     args = parser.parse_args(argv[1:])
 
