@@ -5,8 +5,8 @@ import numpy as NP
 from scipy.integrate import fixed_quad
 from scipy.optimize import minimize_scalar
 
-from pyrsss.util.chapman import chapman_sym
-from pyrsss.gpstk import PyPosition
+from ..util.chapman import chapman_sym
+from ..gpstk import PyPosition
 
 
 class SlantIntegrator(object):

@@ -1,6 +1,6 @@
 from cStringIO import StringIO
 
-from pyrsss.gmd.conductivity import parse_conductivity
+from conductivity import parse_conductivity
 
 
 """

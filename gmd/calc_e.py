@@ -10,13 +10,13 @@ import numpy as NP
 from scipy.constants import mu_0
 from scipy.io import savemat
 
-from pyrsss.util.signal import nextpow2
-from pyrsss.gmd.conductivity import (parse_conductivity,
-                                     surface_impedance_1D)
-from pyrsss.gmd.usgs_conductivity import USGS_MODEL_MAP
-from pyrsss.mag.iaga2002 import parse
-from pyrsss.util.nan import nan_interp
-from pyrsss.util.date import toJ2000
+from conductivity import (parse_conductivity,
+                          surface_impedance_1D)
+from usgs_conductivity import USGS_MODEL_MAP
+from ..util.signal import nextpow2
+from ..mag.iaga2002 import parse
+from ..util.nan import nan_interp
+from ..util.date import toJ2000
 
 
 def calc_e(Bx, By, Zw_function, interval):

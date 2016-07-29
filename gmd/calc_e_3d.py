@@ -13,10 +13,10 @@ from scipy.constants import mu_0
 from scipy.io import savemat
 from scipy.interpolate import CubicSpline
 
-from pyrsss.util.signal import nextpow2
-from pyrsss.mag.iaga2002 import parse
-from pyrsss.util.nan import nan_interp
-from pyrsss.util.date import toJ2000
+from ..util.signal import nextpow2
+from ..mag.iaga2002 import parse
+from ..util.nan import nan_interp
+from ..util.date import toJ2000
 
 
 def calc_e_3d(Bx,

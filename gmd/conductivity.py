@@ -56,7 +56,7 @@ def surface_impedance_1D(conductivity_map, omega):
 
 
 if __name__ == '__main__':
-    from pyrsss.gmd.usgs_conductivity import USGS_MODEL_MAP
+    from usgs_conductivity import USGS_MODEL_MAP
 
     import pylab as PL
 
