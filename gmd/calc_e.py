@@ -7,7 +7,7 @@ import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 import numpy as NP
-import scipy.constants
+from scipy.constants import mu_0
 from scipy.io import savemat
 
 from pyrsss.util.signal import nextpow2
@@ -43,7 +43,6 @@ def calc_e(Bx, By, Zw_function, interval):
              # detrend parameters
     p  = 60  # length at beginning and end of time series for
              # frequency domain window
-    mu0 = scipy.constants.mu_0
     # get the FFT size
     assert len(Bx) == len(By)
     N = len(Bx)
@@ -78,8 +77,8 @@ def calc_e(Bx, By, Zw_function, interval):
     Zw2 = NP.hstack((Zw[:(int(Nfft/2)+1)],
                      NP.conj(Zw[1:int(Nfft/2)])[::-1]))
 
-    Se_x =  Zw2 * Sby / mu0
-    Se_y = -Zw2 * Sbx / mu0
+    Se_x =  Zw2 * Sby / mu_0
+    Se_y = -Zw2 * Sbx / mu_0
 
     Ex = NP.real(NP.fft.ifft(Se_x, Nfft) * N)
     Ey = NP.real(NP.fft.ifft(Se_y, Nfft) * N)
@@ -135,7 +134,7 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    parser = ArgumentParser('',
+    parser = ArgumentParser('Compute E-field from B-field using USGS 1-D model.',
                             formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument('output_mat_fname',
                         type=str,
