@@ -66,6 +66,42 @@ def ne2xy_converter(stn, dt, nan=True, elevation=None):
     return ne2xy
 
 
+
+def fill_data(df,
+              start_date,
+              end_date,
+              nan=True):
+    """
+    Fill data in missing rows of *df* in the time interval
+    *start_date* to *end_date* (one minute sample period, closed on
+    the left and open on the right)). If *nan* will with not a
+    numbers, otherwise fill with 88888 (i.e., the missing value in
+    IAGA2002 data records). Return the tuple of the list of date/times
+    for each data record and the list of tuple values (containing the
+    N, E, Z, and F in [nT] in that order).
+    """
+    data_map = {}
+    for row in df.itertuples():
+        N = row.N
+        E = row.E
+        Z = row.Z
+        F = math.hypot(math.hypot(N, E), Z)
+        data_map[row.Date_UTC] = (N, E, Z, F)
+    # fill missing records
+    filled_data = []
+    dts = list(PD.date_range(start=start_date,
+                             end=end_date,
+                             freq='min'))[:-1]
+    if nan:
+        fill_value = (float('nan'),) * 4
+    else:
+        fill_value = (88888,) * 4
+    for dt in dts:
+        filled_data.append(data_map.get(dt,
+                                        fill_value))
+    return dts, filled_data
+
+
 def dataframe2iaga(fname,
                    stn,
                    date,
@@ -78,23 +114,10 @@ def dataframe2iaga(fname,
     """
     ASSUMES DF SPANS ONLY A SINGLE DAY
     """
-    #reported, coord_map = get_reported(df)
-    # build map of data records
-    data_map = {}
-    for row in df.itertuples():
-        N = row.N
-        E = row.E
-        Z = row.Z
-        F = math.hypot(math.hypot(N, E), Z)
-        data_map[row.Date_UTC] = (N, E, Z, F)
-    # fill missing records
-    filled_data = []
-    dts = list(PD.date_range(start=date,
-                             end=date + timedelta(days=1),
-                             freq='min'))[:-1]
-    for dt in dts:
-        filled_data.append(data_map.get(dt,
-                                        (88888,) * 4))
+    dts, filled_data = fill_data(df,
+                                 date,
+                                 date + timedelta(days=1),
+                                 nan=False)
     if not nez:
         ne2xy = ne2xy_converter(stn, dts[0], nan=False)
 
