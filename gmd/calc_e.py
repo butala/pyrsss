@@ -89,13 +89,14 @@ def calc_e(Bx, By, Zw_function, interval):
 
 def apply_transfer_function(Bx,
                             By,
+                            interval,
                             model,
                             model_map=USGS_MODEL_MAP):
     """
-    Filter *Bx* and *By* (in [T]) with 3-D transfer function. Uses the
-    USGS 1-D conductivity model with key *model*. The model
-    information are stored in the *model* key map *model_map*. Ex and
-    Ey (in [V/m]).
+    Filter *Bx* and *By* (in [T]) with 3-D transfer function where
+    *interval* is the sample period (in [s]). Uses the USGS 1-D
+    conductivity model with key *model*. The model information are
+    stored in the *model* key map *model_map*. Ex and Ey (in [V/m]).
     """
     # setup surface impedance function
     usgs_model = model_map[model]
@@ -127,7 +128,9 @@ def process(output_mat_fname,
     Bx = nan_interp([record.x * 1e-9 for record in data_map.itervalues()])
     By = nan_interp([record.y * 1e-9 for record in data_map.itervalues()])
     # filter with transfer function
-    Ex, Ey = apply_transfer_function(input_iaga2002_fname,
+    Ex, Ey = apply_transfer_function(Bx,
+                                     By,
+                                     interval,
                                      model,
                                      model_map=model_map)
     # save E field

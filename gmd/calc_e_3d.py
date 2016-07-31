@@ -182,11 +182,11 @@ class Zw_interpolator(object):
         return self.key_map[key](omega)
 
 
-def apply_transfer_function(Bx, By, xml_fname):
+def apply_transfer_function(Bx, By, interval, xml_fname):
     """
-    Filter *Bx* and *By* (in [T]) with 3-D transfer function. Uses the
-    3-D transfer function model given in *xml_fname*. Return Ex and Ey
-    (in [V/m]).
+    Filter *Bx* and *By* (in [T]) with 3-D transfer function where
+    *interval* is the sample period (in [s]). Uses the 3-D transfer
+    function model given in *xml_fname*. Return Ex and Ey (in [V/m]).
     """
     # setup surface impedance function
     Z_map = parse_xml(xml_fname)
@@ -224,7 +224,9 @@ def process(output_mat_fname,
     Bx = nan_interp([record.x * 1e-9 for record in data_map.itervalues()])
     By = nan_interp([record.y * 1e-9 for record in data_map.itervalues()])
     # filter with transfer function
-    Ex, Ey = apply_transfer_function(input_iaga2002_fname,
+    Ex, Ey = apply_transfer_function(Bx,
+                                     By,
+                                     interval,
                                      xml_fname)
     # save E field
     stn_name = os.path.basename(iaga2002_fname)[:3]
