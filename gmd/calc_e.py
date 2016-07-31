@@ -87,6 +87,27 @@ def calc_e(Bx, By, Zw_function, interval):
             Ey[:N])
 
 
+def apply_transfer_function(Bx,
+                            By,
+                            model,
+                            model_map=USGS_MODEL_MAP):
+    """
+    Filter *Bx* and *By* (in [T]) with 3-D transfer function. Uses the
+    USGS 1-D conductivity model with key *model*. The model
+    information are stored in the *model* key map *model_map*. Ex and
+    Ey (in [V/m]).
+    """
+    # setup surface impedance function
+    usgs_model = model_map[model]
+    Zw_function = lambda omega: surface_impedance_1D(usgs_model, omega)
+    # calculate E field
+    Ex, Ey = calc_e(nan_interp(Bx),
+                    nan_interp(By),
+                    Zw_function,
+                    interval)
+    return Ex, Ey
+
+
 def process(output_mat_fname,
             input_iaga2002_fname,
             model,
@@ -101,20 +122,16 @@ def process(output_mat_fname,
     and values are 1-D conductivity models in the USGS format).
     """
     # gather Bx and By magnetometer measurements
-    _, data_map = parse(input_iaga2002_fname)
-    stn_name = os.path.basename(input_iaga2002_fname)[:3]
+    _, data_map = parse(iaga2002_fname)
     interval = int((data_map.keys()[1] - data_map.keys()[0]).total_seconds())
     Bx = nan_interp([record.x * 1e-9 for record in data_map.itervalues()])
     By = nan_interp([record.y * 1e-9 for record in data_map.itervalues()])
-    # setup surface impedance function
-    usgs_model = model_map[model]
-    Zw_function = lambda omega: surface_impedance_1D(usgs_model, omega)
-    # calculate E field
-    Ex, Ey = calc_e(nan_interp(Bx),
-                    nan_interp(By),
-                    Zw_function,
-                    interval)
+    # filter with transfer function
+    Ex, Ey = apply_transfer_function(input_iaga2002_fname,
+                                     model,
+                                     model_map=model_map)
     # save E field
+    stn_name = os.path.basename(input_iaga2002_fname)[:3]
     j2000 = map(toJ2000, data_map.iterkeys())
     mdict = {'Ex': Ex,
              'Ey': Ey,

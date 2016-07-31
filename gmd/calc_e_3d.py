@@ -182,23 +182,12 @@ class Zw_interpolator(object):
         return self.key_map[key](omega)
 
 
-def process(output_mat_fname,
-            input_iaga2002_fname,
-            xml_fname,
-            save_B=False):
+def apply_transfer_function(Bx, By, xml_fname):
     """
-    End-to-end processing of an IAGA2002 magnetometer data record
-    *input_iaga2002_fname* to the output file *output_mat_fname*
-    containing the calculated E-field (units are [V/m]). Use the 3-D
-    transfer function model given in *xml_fname.* Also save the
-    B-field information if *save_B*.
+    Filter *Bx* and *By* (in [T]) with 3-D transfer function. Uses the
+    3-D transfer function model given in *xml_fname*. Return Ex and Ey
+    (in [V/m]).
     """
-    # gather Bx and By magnetometer measurements
-    _, data_map = parse(input_iaga2002_fname)
-    stn_name = os.path.basename(input_iaga2002_fname)[:3]
-    interval = int((data_map.keys()[1] - data_map.keys()[0]).total_seconds())
-    Bx = nan_interp([record.x * 1e-9 for record in data_map.itervalues()])
-    By = nan_interp([record.y * 1e-9 for record in data_map.itervalues()])
     # setup surface impedance function
     Z_map = parse_xml(xml_fname)
     interp = Zw_interpolator(Z_map)
@@ -215,7 +204,30 @@ def process(output_mat_fname,
                        Zyx_function,
                        Zyy_function,
                        interval)
+    return Ex, Ey
+
+
+def process(output_mat_fname,
+            input_iaga2002_fname,
+            xml_fname,
+            save_B=False):
+    """
+    End-to-end processing of an IAGA2002 magnetometer data record
+    *input_iaga2002_fname* to the output file *output_mat_fname*
+    containing the calculated E-field (units are [V/m]). Use the 3-D
+    transfer function model given in *xml_fname.* Also save the
+    B-field information if *save_B*.
+    """
+    # gather Bx and By magnetometer measurements
+    _, data_map = parse(iaga2002_fname)
+    interval = int((data_map.keys()[1] - data_map.keys()[0]).total_seconds())
+    Bx = nan_interp([record.x * 1e-9 for record in data_map.itervalues()])
+    By = nan_interp([record.y * 1e-9 for record in data_map.itervalues()])
+    # filter with transfer function
+    Ex, Ey = apply_transfer_function(input_iaga2002_fname,
+                                     xml_fname)
     # save E field
+    stn_name = os.path.basename(iaga2002_fname)[:3]
     j2000 = map(toJ2000, data_map.iterkeys())
     mdict = {'Ex': Ex,
              'Ey': Ey,
