@@ -43,6 +43,29 @@ def read_sm_csv(csv_fname):
     return {name: group for name, group in df.groupby('IAGA')}
 
 
+def ne2xy_converter(stn, dt, nan=True, elevation=None):
+    """ ??? """
+    station_info = STATION_MAP[stn.upper()]
+    lat = station_info.glat
+    lon = station_info.glon
+    point = Point(dt, lat, lon, elevation / 1e3 if elevation else 0)
+    point.run_igrf()
+    dec_deg = point.dec
+    dec_rad = math.radians(dec_deg)
+    cos_dec = math.cos(dec_rad)
+    sin_dec = math.sin(dec_rad)
+    def ne2xy(n, e):
+        if n in [88888, 99999] or e in [88888, 99999]:
+            if nan:
+                return NP.nan, NP.nan
+            else:
+                return 88888, 88888
+        x = cos_dec * n - sin_dec * e
+        y = sin_dec * n + cos_dec * e
+        return x, y
+    return ne2xy
+
+
 def dataframe2iaga(fname,
                    stn,
                    date,
@@ -73,14 +96,7 @@ def dataframe2iaga(fname,
         filled_data.append(data_map.get(dt,
                                         (88888,) * 4))
     if not nez:
-        # get magnetic declination angle for local magnetic (NEZ) to
-        # geographic (XYZ) conversion
-        point = Point(dts[0], lat, lon, elevation / 1e3 if elevation else 0)
-        point.run_igrf()
-        dec_deg = point.dec
-        dec_rad = math.radians(dec_deg)
-        cos_dec = math.cos(dec_rad)
-        sin_dec = math.sin(dec_rad)
+        ne2xy = ne2xy_converter(stn, dts[0], nan=False)
 
     # write data records to file
     with open(fname, 'w') as fid:
@@ -96,12 +112,7 @@ def dataframe2iaga(fname,
                 C1 = N
                 C2 = E
             else:
-                if N in [88888, 99999] or E in [88888, 99999]:
-                    C1 = 88888
-                    C2 = 88888
-                else:
-                    C1 = cos_dec * N - sin_dec * E
-                    C2 = sin_dec * N + cos_dec * E
+                C1, C2 = ne2xy(N, E)
             fid.write('{date:%Y-%m-%d %H:%M:%S.000} {date:%j}'
                       '    {C1:>9.2f} {C2:>9.2f} {Z:>9.2f} {F:>9.2f}\n'.format(date=dt,
                                                                                C1=C1,
