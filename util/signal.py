@@ -1,8 +1,11 @@
 from __future__ import division
 
 import math
+import logging
 
 import numpy as NP
+
+logger = logging.getLogger('pyrsss.util.signal')
 
 
 def rect(t, a):
@@ -55,6 +58,56 @@ def spectrum(x,
 #     X = NP.fft.fft(x, n=N2)
 #     Y = NP.fft.fft(y, n=N2)
 
+
+
+def lp_fir_type(h):
+    """
+    Determine if FIR filter impulse response *h* is symmetric or
+    antisymmetric. Return {1, 2, 3, 4} depending on FIR filter type or
+    None if the FIR filter is not linear phase.
+    """
+    M = len(h) - 1
+    n_range = range(M + 1)
+    if M % 2 == 0:
+        if all([NP.isclose(h[n], h[M - n]) for n in n_range]):
+            return 1
+        elif all([NP.isclose(h[n], -h[M - n]) for n in n_range]):
+            return 3
+        else:
+            return None
+    else:
+        if all([NP.isclose(h[n], h[M - n]) for n in n_range]):
+            return 2
+        elif all([NP.isclose(h[n], -h[M - n]) for n in n_range]):
+            return 4
+        else:
+            return None
+    assert False
+
+
+def lp_fir_filter(h, x, real=True):
+    """
+    Apple linear phase FIR filter with impulse response *h* to the
+    signal *x* and return the output (with same length as *x*) after
+    compensating for the constant group delay. If *real*, return only
+    the real part of the filter output.
+    """
+    lp_type = lp_fir_type(h)
+    if lp_type is None:
+        raise ValueError('FIR filter is not linear phase')
+    if lp_type in [2, 4]:
+        logger.warning('linear phase FIR filter is type {} --- cannot compensate for half sample delay (compensating for integer portion only)')
+    N = len(x)
+    K = len(h)
+    L = N + K - 1
+    L_fft = nextpow2(L)
+    H = NP.fft.fft(h, n=L_fft)
+    X = NP.fft.fft(x, n=L_fft)
+    y = NP.fft.ifft(H * X)
+    if real:
+        y = NP.real(y)
+    M = len(h) - 1
+    return y[int(M/2):int(M/2) + len(x)]
 
 
 if __name__ == '__main__':
