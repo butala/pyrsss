@@ -10,8 +10,7 @@ import numpy as NP
 from scipy.constants import mu_0
 from scipy.io import savemat
 
-from conductivity import (parse_conductivity,
-                          surface_impedance_1D)
+from conductivity import surface_impedance_1D
 from usgs_conductivity import USGS_MODEL_MAP
 from ..util.signal import nextpow2
 from ..mag.iaga2002 import parse
