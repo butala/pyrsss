@@ -1,9 +1,9 @@
+apexpy
+basemap
 Cython
-python-dateutil
 enum34
 intervals
 matplotlib
-basemap
 more-itertools
 netCDF4
 numpy
@@ -12,6 +12,7 @@ pyfftw
 pyglow
 pyNFFT
 pyproj
+python-dateutil
 scipy
 sh
 sympy
