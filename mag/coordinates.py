@@ -10,7 +10,9 @@ def mag_parallels(date, parallels=range(-75, 76, 15), height=350, N=1000):
     *parallels* to the tuple of mapped geographic latitudes and
     longitudes. The mapping is made across *N* uniformly spaced
     geographic longitudes, on :class:`datetime` *date*, and at
-    *height* (in [km]) in apex geomagnetic coordinates.
+    *height* (in [km]) in apex geomagnetic coordinates. If *date* is
+    None, use the current date and time in the coordinate
+    transformation.
     """
     apex = Apex(date=date)
     parallel_map = OrderedDict()
