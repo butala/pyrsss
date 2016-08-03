@@ -4,18 +4,18 @@ import numpy as NP
 from apexpy import Apex
 
 
-def mag_parallels(date=None, parallels=range(-75, 76, 15), height=350, N=1000):
-    """ ??? """
+def mag_parallels(date, parallels=range(-75, 76, 15), height=350, N=1000):
+    """
+    Return a mapping between magnetic latitudes specified by
+    *parallels* to the tuple of mapped geographic latitudes and
+    longitudes. The mapping is made across *N* uniformly spaced
+    geographic longitudes, on :class:`datetime` *date*, and at
+    *height* (in [km]) in apex geomagnetic coordinates.
+    """
     apex = Apex(date=date)
     parallel_map = OrderedDict()
     lons = NP.linspace(-180, 180, N)
     for parallel in parallels:
-        # parallel_map[parallel] = apex2geo([parallel] * N,
-        #                                   lons,
-        #                                   [height] * N)
-        # glat, glon, _ = apex.apex2geo([parallel] * N,
-        #                               lons,
-        #                               [height] * N)
         glat, glon = apex.convert(parallel,
                                   lons,
                                   source='apex',
