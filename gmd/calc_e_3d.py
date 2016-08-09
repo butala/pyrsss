@@ -166,7 +166,7 @@ class Zw_interpolator(object):
         self.Zxx_interp = CubicSpline(self.omega, [x[0, 0] for x in Z_map.values()[::-1]])
         self.Zxy_interp = CubicSpline(self.omega, [x[0, 1] for x in Z_map.values()[::-1]])
         self.Zyx_interp = CubicSpline(self.omega, [x[1, 0] for x in Z_map.values()[::-1]])
-        self.Zyy_interp = CubicSpline(self.omega, [x[0, 0] for x in Z_map.values()[::-1]])
+        self.Zyy_interp = CubicSpline(self.omega, [x[1, 1] for x in Z_map.values()[::-1]])
         self.key_map = {'xx': self.Zxx_interp,
                         'xy': self.Zxy_interp,
                         'yx': self.Zyx_interp,
