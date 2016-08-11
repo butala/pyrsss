@@ -181,7 +181,7 @@ def parse_xml_header(xml_fname):
         elif site_node.tag == 'DataQualityNotes':
             for child in site_node:
                 if child.tag == 'Rating':
-                    header_map['quality'] = int(child.text)
+                    header_map['rating'] = int(child.text)
     return header_map
 
 
