@@ -152,6 +152,39 @@ def parse_xml(xml_fname):
     return Z_map
 
 
+def parse_xml_header(xml_fname):
+    """
+    Parse the E-M transfer function file *xml_fname* returning a
+    mapping of site specific information, such as location and data
+    quality.
+    """
+    tree = ET.parse(xml_fname)
+    root = tree.getroot()
+
+    site_list = root.findall('Site')
+    assert len(site_list) == 1
+    site = site_list[0]
+
+    header_map = {}
+    for site_node in site:
+        if site_node.tag == 'Id':
+            header_map['id'] = site_node.text
+        elif site_node.tag == 'Location':
+            for child in site_node:
+                if child.tag == 'Latitude':
+                    header_map['lat'] = float(child.text)
+                elif child.tag == 'Longitude':
+                    header_map['lon'] = float(child.text)
+                elif child.tag == 'Elevation':
+                    assert child.attrib['units'] == 'meters'
+                    header_map['el'] = float(child.text)
+        elif site_node.tag == 'DataQualityNotes':
+            for child in site_node:
+                if child.tag == 'Rating':
+                    header_map['quality'] = int(child.text)
+    return header_map
+
+
 class Zw_interpolator(object):
     def __init__(self, Z_map):
         """
