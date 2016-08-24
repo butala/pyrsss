@@ -14,6 +14,8 @@ from pyglow.pyglow import Point
 
 from sm_stations import STATION_MAP
 
+logger = logging.getLogger('pyrsss.mag.sm2iaga')
+
 
 """
 NOTE: This code assumes that the input and output data are 1-minute interval.
@@ -96,9 +98,14 @@ def fill_data(df,
         fill_value = (float('nan'),) * 4
     else:
         fill_value = (88888,) * 4
+    missing_count = 0
     for dt in dts:
+        if dt not in data_map:
+            missing_count += 1
         filled_data.append(data_map.get(dt,
                                         fill_value))
+    if missing_count > 0:
+        logger.info('filled {} missing values'.format(missing_count))
     return dts, filled_data
 
 
