@@ -87,7 +87,7 @@ def lp_fir_type(h):
 
 def lp_fir_filter(h, x, real=True):
     """
-    Apple linear phase FIR filter with impulse response *h* to the
+    Apply a linear phase FIR filter with impulse response *h* to the
     signal *x* and return the output (with same length as *x*) after
     compensating for the constant group delay. If *real*, return only
     the real part of the filter output.
