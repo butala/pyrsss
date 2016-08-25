@@ -11,7 +11,7 @@ from scipy.interpolate import RectBivariateSpline
 from tables import open_file, IsDescription, Time64Col, Float64Col
 
 from constants import SHELL_HEIGHT, TECU_TO_NS
-from level import LeveledArc, ArcMap, ArcList, ArcMapFlatIterator
+from level import LeveledArc, ArcMap
 from util import shell_mapping
 from ipp import ipp_from_azel
 from teqc import rinex_info
@@ -85,6 +85,12 @@ class CalibratedArc(namedtuple('CalibratedArc',
 
 
 class CalibratedArcMap(ArcMap):
+    def __init__(self, h5_fname=None):
+        if h5_fname is not None:
+            raise NotImplementedError("Construction from h5 file record functionality is broken.  Note that undump is a classmethod in CalibratedArcMap and a normal method in ArcMap. The class method approach is correct. For this case, however, you need to change ArcMap undump to a class method, ditch __init__ overload in ArcMap, and instead overload __new__ which calls and returns the output of undump.")
+            assert False
+        super(CalibratedArcMap, self).__init__()
+
     @classmethod
     def from_aug_arc_map(cls,
                          aug_arc_map,
