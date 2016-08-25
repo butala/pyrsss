@@ -2,7 +2,7 @@ from collections import Iterable
 
 import sympy as SYM
 import numpy as NP
-from scipy.integrate import fixed_quad
+from scipy.integrate import quad
 from scipy.optimize import minimize_scalar
 
 from ..util.chapman import chapman_sym
@@ -10,68 +10,52 @@ from ..gpstk import PyPosition
 
 
 class SlantIntegrator(object):
-    def __init__(self, f, stn_xyz, height1=50, height2=2000):
+    def __init__(self, fun, stn_pos, height1=50, height2=2000):
         """
         Return an object for computing line-of-site integrals of the
-        function *f* starting at the point *stn_xyz* (3 element XYZ
-        ECEF coordinates in [m]). Furthermore, integration is
-        restricted to *height1* [km] <= h <= *height2* [km] where h is
-        the geodetic height along the line-of-site, i.e., *f* is
-        assumed to be 0 outside this bound. See __call__ for more
-        details regarding *f*.
+        function *f* starting at the point *stn_pos* (a
+        :class:`PyPosition`). Furthermore, integration is restricted
+        to *height1* [km] <= h <= *height2* [km] where h is the
+        geodetic height along the line-of-site, i.e., *f* is assumed
+        to be 0 outside this bound. See __call__ for more details
+        regarding *fun*.
         """
-        self.f = f
-        self.stn_xyz = NP.array(stn_xyz)
+        self.fun = fun
+        self.stn_pos = stn_pos
         self.height1 = height1
         self.height2 = height2
 
-    def __call__(self, sat_xyz, args=(), n=50, **kwds):
+    def __call__(self, sat_pos, args=(), **kwds):
         """
-        Return the definite integral of *self.f*(h, *args*[0], ...,
-        *args*[-1]) for the line of site from *stn_xyz* to *sat_xyz*
-        (3 element XYZ ECEF coordinates in [m]) where h is the
-        geodetic height [km] (and note the integration bounds on h
-        defined in __init__). The order of the fixed quadrature
-        evaluation is *n* (and is the trade-off between accuracy and
-        computation). The remaining *kwds* are passed to the
-        quadrature routine (:py:func:`fixed_quad`).
+        Return the definite integral of *self.fun*(pos, *args*[0],
+        ..., *args*[-1]) for the line of site from *stn_pos* to
+        *sat_pos* (a :class:`PyPosition`) where pos is a
+        :class:`PyPosition` on the line of site (and note the
+        integration bounds on h defined in __init__). The remaining
+        *kwds* are passed to the quadrature routine (:py:func:`quad`).
         """
-        sat_xyz = NP.array(sat_xyz)
-        S_los = NP.linalg.norm(sat_xyz - self.stn_xyz) / 1e3
-        def los(s):
+        diff = NP.array(sat_pos.xyz) - NP.array(self.stn_pos.xyz)
+        S_los = NP.linalg.norm(diff) / 1e3
+        def pos(s):
             """
             Return the ECEF vector a distance *s* along the line-of-site (in
             [km]).
             """
-            return self.stn_xyz + (s / S_los) * (sat_xyz - self.stn_xyz)
+            return PyPosition(*(NP.array(self.stn_pos.xyz) + (s / S_los) * diff))
         # determine integration bounds
-        def los_height(s):
-            """
-            Return the geodetic height for the vector at a distance *s* along
-            the line-of-site (in [km]). If the parameter *s* is
-            iterable, return a list of heights.
-            """
-            if isinstance(s, Iterable):
-                return [PyPosition(*los(s_i)).height / 1e3 for s_i in s]
-            else:
-                return PyPosition(*los(s)).height / 1e3
         # distance along of line of site at which the geodetic height
         # is self.height1
-        s1 = minimize_scalar(lambda l: (los_height(l) - self.height1)**2,
+        s1 = minimize_scalar(lambda l: (pos(l).height / 1e3 - self.height1)**2,
                              bounds=[0, S_los],
                              method='Bounded').x
         # distance along of line of site at which the geodetic height
         # is self.height2
-        s2 = minimize_scalar(lambda l: (los_height(l) - self.height2)**2,
+        s2 = minimize_scalar(lambda l: (pos(l).height / 1e3 - self.height2)**2,
                              bounds=[0, S_los],
                              method='Bounded').x
-        def wrapper(s):
-            wrapper_args = [los_height(s)] + list(args)
-            return self.f(*wrapper_args)
-        # scipy.integrate.quad was often fragile, reporting
-        # integration warning for reasons that were not fully
-        # diagnosed
-        return fixed_quad(wrapper, s1, s2, n=n, **kwds)[0]
+        def wrapper(s, *args):
+            return self.fun(pos(s), *args)
+        return quad(wrapper, s1, s2, args=args, **kwds)[0]
 
 
 def chapman_sym_scaled(z, Nm, Hm, H_O):
@@ -84,7 +68,7 @@ def chapman_sym_scaled(z, Nm, Hm, H_O):
 
 
 class ChapmanSI(SlantIntegrator):
-    def __init__(self, stn_xyz, **kwds):
+    def __init__(self, stn_pos, **kwds):
         """
         Setup Chapman electron density profile slant integrator.
         """
@@ -93,19 +77,20 @@ class ChapmanSI(SlantIntegrator):
         f = SYM.lambdify((z, Nm, Hm, H_O),
                          f_sym,
                          modules='numexpr')
-        super(ChapmanSI, self).__init__(f, stn_xyz, **kwds)
+        wrapper = lambda pos, *args: f(pos.height / 1e3, *args)
+        super(ChapmanSI, self).__init__(wrapper, stn_pos, **kwds)
 
-    def __call__(self, sat_xyz, Nm, Hm, H_O):
+    def __call__(self, sat_pos, Nm, Hm, H_O):
         """
         Return the slant integral of the Chapman electron density profile
         with parameters Nm [cm^-3], Hm [km], and H_O [km].
         """
-        return super(ChapmanSI, self).__call__(sat_xyz,
-                                               (Nm, Hm, H_O))
+        return super(ChapmanSI, self).__call__(sat_pos,
+                                               args=(Nm, Hm, H_O))
 
 
 class DNmChapmanSI(SlantIntegrator):
-    def __init__(self, stn_xyz, **kwds):
+    def __init__(self, stn_pos, **kwds):
         """
         Setup Chapman electron density profile F2 peak density derivative
         slant integrator.
@@ -116,19 +101,21 @@ class DNmChapmanSI(SlantIntegrator):
         f = SYM.lambdify((z, Hm, H_O),
                          DNm_sym,
                          modules='numexpr')
-        super(DNmChapmanSI, self).__init__(f, stn_xyz, **kwds)
+        wrapper = lambda pos, *args: f(pos.height / 1e3, *args)
+        super(DNmChapmanSI, self).__init__(wrapper, stn_pos, **kwds)
 
-    def __call__(self, sat_xyz, Nm, Hm, H_O):
+    def __call__(self, sat_pos, Nm, Hm, H_O):
         """
         Return the slant integral of the peak density derivative of the
         Chapman electron density profile with parameters Nm [cm^-3],
         Hm [km], and H_O [km].
         """
-        return super(DNmChapmanSI, self).__call__(sat_xyz,
-                                                  (Hm, H_O))
+        return super(DNmChapmanSI, self).__call__(sat_pos,
+                                                  args=(Hm, H_O))
+
 
 class DHmChapmanSI(SlantIntegrator):
-    def __init__(self, stn_xyz, **kwds):
+    def __init__(self, stn_pos, **kwds):
         """
         Setup Chapman electron density profile F2 peak height derivative
         slant integrator.
@@ -139,19 +126,21 @@ class DHmChapmanSI(SlantIntegrator):
         f = SYM.lambdify((z, Nm, Hm, H_O),
                          DHm_sym,
                          modules='numexpr')
-        super(DHmChapmanSI, self).__init__(f, stn_xyz, **kwds)
+        wrapper = lambda pos, *args: f(pos.height / 1e3, *args)
+        super(DHmChapmanSI, self).__init__(wrapper, stn_pos, **kwds)
 
-    def __call__(self, sat_xyz, Nm, Hm, H_O):
+    def __call__(self, sat_pos, Nm, Hm, H_O):
         """
         Return the slant integral of the peak height derivative of the
         Chapman electron density profile with parameters Nm [cm^-3],
         Hm [km], and H_O [km].
         """
-        return super(DHmChapmanSI, self).__call__(sat_xyz,
-                                                  (Nm, Hm, H_O))
+        return super(DHmChapmanSI, self).__call__(sat_pos,
+                                                  args=(Nm, Hm, H_O))
+
 
 class DH_OChapmanSI(SlantIntegrator):
-    def __init__(self, stn_xyz, **kwds):
+    def __init__(self, stn_pos, **kwds):
         """
         Setup Chapman electron density profile plasma scale height
         derivative slant integrator.
@@ -162,14 +151,15 @@ class DH_OChapmanSI(SlantIntegrator):
         f = SYM.lambdify((z, Nm, Hm, H_O),
                          DH_O_sym,
                          modules='numexpr')
-        super(DH_OChapmanSI, self).__init__(f, stn_xyz, **kwds)
+        wrapper = lambda pos, *args: f(pos.height / 1e3, *args)
+        super(DH_OChapmanSI, self).__init__(wrapper, stn_pos, **kwds)
 
 
-    def __call__(self, sat_xyz, Nm, Hm, H_O):
+    def __call__(self, sat_pos, Nm, Hm, H_O):
         """
         Return the slant integral of the plasma scale height derivative of
         the Chapman electron density profile with parameters Nm
         [cm^-3], Hm [km], and H_O [km].
         """
-        return super(DH_OChapmanSI, self).__call__(sat_xyz,
-                                                   (Nm, Hm, H_O))
+        return super(DH_OChapmanSI, self).__call__(sat_pos,
+                                                   args=(Nm, Hm, H_O))
