@@ -286,7 +286,7 @@ def main(argv=None):
                             formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument('output_mat_fname',
                         type=str,
-                        help='')
+                        help='output, containing modeled E-field, in .mat format')
     parser.add_argument('input_iaga2002_fname',
                         type=str,
                         help='input IAGA2002 magnetometer data file')
