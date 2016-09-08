@@ -9,7 +9,9 @@ from pyglow.pyglow import Point
 from enum import Enum
 
 
-OplusType = Enum('O2type', 'ne charge_neutrality')
+class OplusType(Enum):
+    ne = 1
+    charge_neutrality = 2
 
 
 """
