@@ -32,13 +32,13 @@ def emission_v7774_rr(ne, o):
     return ALPHA1 * ne**2
 
 
-def emission_v7774_ii(ne, o):
+def emission_v7774_ii(ne, o, o_plus):
     """
     """
-    return (BETA_7774 * K1 * K2 * o * ne**2) / (K2 * ne + K3 * o)
+    return (BETA_7774 * K1 * K2 * o * o_plus * ne) / (K2 * o_plus + K3 * o)
 
 
-def emission_v7774(ne, o):
+def emission_v7774(ne, o, o_plus):
     """
     """
-    return emission_v7774_rr(ne, o) + emission_v7774_ii(ne, o)
+    return emission_v7774_rr(ne, o) + emission_v7774_ii(ne, o, o_plus)
