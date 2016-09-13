@@ -29,4 +29,6 @@ def add_colorbar(ax, im, side='right', size='5%', pad=0.1):
     """
     divider = make_axes_locatable(ax)
     cax = divider.append_axes(side, size=size, pad=pad)
-    return PL.colorbar(im, cax=cax)
+    cb = PL.colorbar(im, cax=cax)
+    PL.axes(ax)
+    return cb
