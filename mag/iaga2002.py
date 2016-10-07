@@ -178,10 +178,13 @@ def record_factory(reported, data):
         raise NotImplementedError('unknown record type {}'.format(reported))
 
 
-def parse(fname):
+def parse(fname, strict=True):
     """
     Parser the IAGA2002 format file *fname* and return a tuple with a
-    :class:`Header` and mapping of date/times to measured values.
+    :class:`Header` and mapping of date/times to measured values. If
+    *strict*, fail when an nonconforming entry is encountered. If
+    *strict* is not set, attempt to carry on when simple parse errors
+    are encountered.
     """
     with open(fname) as fid:
         # parse header
@@ -193,6 +196,8 @@ def parse(fname):
                                                                                                            line,
                                                                                                            line[69]))
             elif line[1] == '#':
+                comment_lines += [line[3:69].rstrip()]
+            elif not strict and line[0] == '#':
                 comment_lines += [line[3:69].rstrip()]
             elif line.startswith('DATE'):
                 break
@@ -208,8 +213,11 @@ def parse(fname):
         try:
             header = Header(**header_map)
         except TypeError:
-            logger.warning('unknown header record found in {} --- setting header to None'.format(fname))
-            header = None
+            if strict:
+                logger.warning('unknown header record(s) found in {} --- setting header to None'.format(fname))
+                header = None
+            else:
+                header = header_map
         # parse data header record
         fields = line[:69].split()
         if len(fields) != 7:
@@ -218,7 +226,13 @@ def parse(fname):
         data_map = OrderedDict()
         # parse data records
         for line in fid:
-            dt = datetime.strptime(line[:23], '%Y-%m-%d %H:%M:%S.%f')
+            try:
+                dt = datetime.strptime(line[:23], '%Y-%m-%d %H:%M:%S.%f')
+            except ValueError, e:
+                if strict:
+                    raise e
+                else:
+                    dt = datetime.strptime(line[:19], '%Y-%m-%d %H:%M:%S')
             data1 = convert_float(line[31:40])
             data2 = convert_float(line[41:50])
             data3 = convert_float(line[51:60])
