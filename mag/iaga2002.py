@@ -2,6 +2,7 @@ from __future__ import division
 import logging
 import sys
 import os
+import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime, timedelta
 from collections import OrderedDict, namedtuple, defaultdict
@@ -119,7 +120,7 @@ class XYZRecord(IAGARecord):
                                                        self._f)
 
 
-def HDZRecord(IAGARecord):
+class HDZRecord(IAGARecord):
     def __init__(self, H, D_arcmin, z, f):
         self._H = H
         self._D_deg = D_arcmin / 60
