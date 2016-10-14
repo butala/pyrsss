@@ -16,19 +16,20 @@ def centers2edges(x):
                        len(x) + 1)
 
 
-def add_colorbar(ax, im, side='right', size='5%', pad=0.1):
+def add_colorbar(ax, im, side='right', size='5%', pad=0.1, **kwds):
     """
     Add colorbar to the axes *ax* with colors corresponding to the
     color mappable object *im*. Place the colorbar at the *side* of
     *ax* (options are `'right'`, `'left'`, `'top'`, or
     `'bottom'`). The width (or height) of the colorbar is specified by
     *size* and is relative to *ax*. Add space *pad* between *ax* and
-    the colorbar. Return the colorbar instance.
+    the colorbar. The remaining keyword arguments *kwds* are passed to
+    the call to :func:`colorbar`. Return the colorbar instance.
 
     Reference: http://matplotlib.org/mpl_toolkits/axes_grid/users/overview.html
     """
     divider = make_axes_locatable(ax)
     cax = divider.append_axes(side, size=size, pad=pad)
-    cb = PL.colorbar(im, cax=cax)
+    cb = PL.colorbar(im, cax=cax, **kwds)
     PL.axes(ax)
     return cb
