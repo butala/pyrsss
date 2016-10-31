@@ -158,14 +158,23 @@ def parse_xml_header(xml_fname):
     mapping of site specific information, such as location and data
     quality.
     """
+    header_map = {}
+
     tree = ET.parse(xml_fname)
     root = tree.getroot()
+
+    copyright_list = root.findall('Copyright')
+    assert len(copyright_list) == 1
+    copyright_ = copyright_list[0]
+
+    for copyright_node in copyright_:
+        if copyright_node.tag == 'Acknowledgement':
+            header_map['acknowledgement'] = copyright_node.text
 
     site_list = root.findall('Site')
     assert len(site_list) == 1
     site = site_list[0]
 
-    header_map = {}
     for site_node in site:
         if site_node.tag == 'Id':
             header_map['id'] = site_node.text
@@ -182,6 +191,23 @@ def parse_xml_header(xml_fname):
             for child in site_node:
                 if child.tag == 'Rating':
                     header_map['rating'] = int(child.text)
+                elif child.tag == 'GoodFromPeriod':
+                    header_map['good_from'] = float(child.text)
+                    header_map['good_to_mHz'] = 1/float(child.text) * 1e3
+                elif child.tag == 'GoodToPeriod':
+                    header_map['good_to'] = float(child.text)
+                    header_map['good_from_mHz'] = 1/float(child.text) * 1e3
+                elif child.tag == 'Comments':
+                    header_map['data_quality_comments'] = child.text
+        elif site_node.tag == 'DataQualityWarnings':
+            for child in site_node:
+                if child.tag == 'Flag':
+                    header_map['data_quality_flag'] = int(child.text)
+                elif child.tag == 'Comments':
+                    header_map['data_quality_warning_comments'] = child.text
+        elif site_node.tag == 'Acknowledgment':
+            header_map['acknowledgment'] = site_node.text
+
     return header_map
 
 
