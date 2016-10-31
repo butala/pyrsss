@@ -13,7 +13,7 @@ import numpy as NP
 from tables import open_file, IsDescription, Time64Col, Float64Col
 from more_itertools import peekable
 
-from ..util.stats import weighted_avg_and_std
+from ..stats.stats import weighted_avg_and_std
 from ..util.date import UNIX_EPOCH
 from constants import TECU_TO_M, M_TO_TECU
 from rms_model import RMSModel

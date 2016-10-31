@@ -59,5 +59,6 @@ setup(name='pyrsss',
                 'pyrsss.iri',
                 'pyrsss.kalman',
                 'pyrsss.mag',
+                'pyrsss.stats',
                 'pyrsss.util'],
       ext_modules=ext_modules)
