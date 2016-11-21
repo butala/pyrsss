@@ -326,9 +326,9 @@ def point(PyPosition stn_point, double target_az, double target_el, double targe
    which will return the geodetic latitude, longitude, and altitude of
    those three radar positions:
 
-  41.361338,-64.012651,742.038442
-  41.645771,-65.488196,841.794521
-  41.932738,-67.098375,918.473216
+   41.361338,-64.012651,742.038442
+   41.645771,-65.488196,841.794521
+   41.932738,-67.098375,918.473216
    """
    cdef sr = stn_point.radius / 1e3
    cdef slat = stn_point.geocentricLatitude
