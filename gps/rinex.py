@@ -103,6 +103,19 @@ def get_receiver_type(rinex_fname):
                      '{}'.format(rinex_fname))
 
 
+def append_station_id(dump_fname,
+                      rinex_fname):
+    """
+    Append the line "# Station ID: {station_id}" to *dump_fname*. The
+    station identifier is determined from *rinex_fname*. Return
+    *dump_fname*.
+    """
+    with open(dump_fname, 'a') as fid:
+        stn_id = os.path.basename(rinex_fname)[:4]
+        fid.write('# Station ID: {}\n'.format(stn_id))
+    return dump_fname
+
+
 def append_receiver_type(dump_fname,
                          rinex_fname,
                          receiver_types=GPS_RECEIVER_TYPES):
@@ -136,6 +149,7 @@ def append_p1c1_date_table(dump_fname,
 def dump_rinex(dump_fname,
                rinex_fname,
                nav_fname,
+               data_keys=RINDUMP_OBS_MAP.keys(),
                p1c1_table=P1C1_TABLE,
                receiver_position=None,
                rin_dump=RIN_DUMP):
@@ -155,7 +169,7 @@ def dump_rinex(dump_fname,
                                           dump_fname))
     args = ['--nav', nav_fname,
             '--ref', ','.join(map(str, receiver_position)),
-            rinex_fname] + RINDUMP_OBS_MAP.keys()
+            rinex_fname] + data_keys
     rin_dump_command(*args,
                      _out=dump_fname,
                      _err=stderr_buffer)
@@ -165,6 +179,8 @@ def dump_rinex(dump_fname,
                            '{} with {} ({})'.format(rinex_fname,
                                                     rin_dump,
                                                     stderr))
+    append_station_id(dump_fname,
+                      rinex_fname)
     append_receiver_type(dump_fname,
                          rinex_fname)
     append_p1c1_date_table(dump_fname,
