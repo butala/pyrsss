@@ -72,7 +72,8 @@ For DiscFix, GDC commands are of the form --DC<GDCcmd>, e.g. --DCWLSigma=1.5
 def phase_edit(rinex_fname,
                work_path=None,
                disc_fix=DISC_FIX,
-               discfix_args=[]):
+               discfix_args=[],
+               glonass=False):
     """
     ???
     """
@@ -87,6 +88,8 @@ def phase_edit(rinex_fname,
         args = ['--obs', rinex_fname,
                 '--log', log_fname,
                 '--cmd', cmd_fname]
+        if glonass:
+            args += ['--doGLO']
         if discfix_args:
             logger.info('passing options to DiscFix: {}'.format(' '.join(discfix_args)))
             args += discfix_args
