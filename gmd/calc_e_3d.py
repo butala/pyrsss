@@ -193,10 +193,16 @@ def parse_xml_header(xml_fname):
                     header_map['rating'] = int(child.text)
                 elif child.tag == 'GoodFromPeriod':
                     header_map['good_from'] = float(child.text)
-                    header_map['good_to_mHz'] = 1/float(child.text) * 1e3
+                    try:
+                        header_map['good_to_mHz'] = 1/float(child.text) * 1e3
+                    except ZeroDivisionError:
+                        header_map['good_to_mHz'] = float('inf')
                 elif child.tag == 'GoodToPeriod':
                     header_map['good_to'] = float(child.text)
-                    header_map['good_from_mHz'] = 1/float(child.text) * 1e3
+                    try:
+                        header_map['good_from_mHz'] = 1/float(child.text) * 1e3
+                    except ZeroDivisionError:
+                        header_map['good_from_mHz'] = float('inf')
                 elif child.tag == 'Comments':
                     header_map['data_quality_comments'] = child.text
         elif site_node.tag == 'DataQualityWarnings':
