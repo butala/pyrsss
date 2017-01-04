@@ -144,7 +144,8 @@ def parse_xml(xml_fname):
         Z = Z_list[0]
         values = []
         for value, name in zip(Z, ['Zxx', 'Zxy', 'Zyx', 'Zyy']):
-            assert value.attrib['name'] == name
+            if value.attrib['name'] != name:
+                raise ValueError('name mismatch ({} != {})'.format(value.attrib['name'], name))
             values.append(complex(*map(float, value.text.split())))
         Z_array = NP.array(values)
         Z_array.shape = 2, 2
