@@ -285,7 +285,7 @@ def process(output_mat_fname,
     B-field information if *save_B*.
     """
     # gather Bx and By magnetometer measurements
-    _, data_map = parse(iaga2002_fname)
+    _, data_map = parse(input_iaga2002_fname)
     interval = int((data_map.keys()[1] - data_map.keys()[0]).total_seconds())
     Bx = nan_interp([record.x * 1e-9 for record in data_map.itervalues()])
     By = nan_interp([record.y * 1e-9 for record in data_map.itervalues()])
@@ -295,7 +295,7 @@ def process(output_mat_fname,
                                      interval,
                                      xml_fname)
     # save E field
-    stn_name = os.path.basename(iaga2002_fname)[:3]
+    stn_name = os.path.basename(input_iaga2002_fname)[:3]
     j2000 = map(toJ2000, data_map.iterkeys())
     mdict = {'Ex': Ex,
              'Ey': Ey,
