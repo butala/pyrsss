@@ -122,7 +122,7 @@ def process(output_mat_fname,
     and values are 1-D conductivity models in the USGS format).
     """
     # gather Bx and By magnetometer measurements
-    _, data_map = parse(iaga2002_fname)
+    _, data_map = parse(input_iaga2002_fname)
     interval = int((data_map.keys()[1] - data_map.keys()[0]).total_seconds())
     Bx = nan_interp([record.x * 1e-9 for record in data_map.itervalues()])
     By = nan_interp([record.y * 1e-9 for record in data_map.itervalues()])
