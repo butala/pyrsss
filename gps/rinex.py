@@ -48,6 +48,11 @@ RINDUMP_OBS_MAP = {'GC1C': 'C1',
                    'GL1C': 'L1',
                    'GC2W': 'P2',
                    'GL2W': 'L2',
+                   'RC1C': 'C1',
+                   'RC1P': 'P1',
+                   'RL1C': 'L1',
+                   'RC2P': 'P2',
+                   'RL2C': 'L2',
                    'ELE':  'el',
                    'AZI':  'az',
                    'SVX':  'satx',
@@ -59,6 +64,9 @@ RINDUMP_OBS_MAP = {'GC1C': 'C1',
 Unsure why the above do not correlate with the output of RinSum (no,
 they do!).
 """
+
+
+GPS_KEYS = ['GC1C', 'GC1W', 'GL1C', 'GC2W', 'GL2W', 'ELE', 'AZI', 'SVX', 'SVY', 'SVZ']
 
 
 def fname2date(rinex_fname):
@@ -149,7 +157,7 @@ def append_p1c1_date_table(dump_fname,
 def dump_rinex(dump_fname,
                rinex_fname,
                nav_fname,
-               data_keys=RINDUMP_OBS_MAP.keys(),
+               data_keys=GPS_KEYS,
                p1c1_table=P1C1_TABLE,
                receiver_position=None,
                rin_dump=RIN_DUMP):
