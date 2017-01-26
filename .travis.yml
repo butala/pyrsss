@@ -30,7 +30,7 @@ install:
   # pyglow
   - git clone git://github.com/timduly4/pyglow.git
   - cd pyglow
-  - ./pyglow_install.sh >& install.log
+  - ./pyglow_install.sh
   - cd ..
 
   # GPSTk
