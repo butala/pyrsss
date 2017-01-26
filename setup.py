@@ -12,7 +12,7 @@ if 'GPSTK_SRC' in os.environ:
                                  'core',
                                  'lib')
     gpstk_ext = Extension('pyrsss.gpstk',
-                          ['gpstk.pyx'],
+                          [os.path.join('pyrsss', 'gpstk.pyx')],
                           include_dirs=[os.path.join(core_lib_path,
                                                      'GNSSCore'),
                                         os.path.join(core_lib_path,
@@ -46,11 +46,10 @@ else:
 
 
 setup(name='pyrsss',
-      version='0.1',
+      version='0.2',
       description='Remote sensing and space science python tools.',
       author='Mark D. Butala, Matthew A. Grawe, et al.',
       author_email='butala@illinois.edu',
-      package_dir = {'pyrsss': '.'},
       packages=['pyrsss',
                 'pyrsss.emission',
                 'pyrsss.gmd',
