@@ -107,10 +107,12 @@ class XYZRecord(IAGARecord):
 
     @property
     def H(self):
+        raise NotImplementedError('magnetic declination not yet accounted for')
         return math.hypot(self._x, self._y)
 
     @property
     def D(self):
+        raise NotImplementedError('magnetic declination not yet accounted for')
         return math.degrees(math.atan2(self._y, self._x))
 
     def __repr__(self):
@@ -130,10 +132,12 @@ class HDZRecord(IAGARecord):
 
     @property
     def x(self):
+        raise NotImplementedError('magnetic declination not yet accounted for')
         return self._H * math.cos(self._D_rad)
 
     @property
     def y(self):
+        raise NotImplementedError('magnetic declination not yet accounted for')
         return self._H * math.sin(self._D_rad)
 
     @property
