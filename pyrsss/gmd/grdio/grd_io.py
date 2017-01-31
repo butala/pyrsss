@@ -108,7 +108,6 @@ def grd_read(grd_filename):
 
 	return lon_grid, lat_grid, times, DATA
 
-import pdb
 def write_lon_block(grd_file, n_lats, data):
 	"""
 	len(data) == n_lats should be True
