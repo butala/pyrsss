@@ -85,12 +85,19 @@ def lp_fir_type(h):
     assert False
 
 
-def lp_fir_filter(h, x, real=True):
+def lp_fir_filter(h, x, real=True, mode='same'):
     """
     Apply a linear phase FIR filter with impulse response *h* to the
     signal *x* and return the output (with same length as *x*) after
     compensating for the constant group delay. If *real*, return only
     the real part of the filter output.
+
+    The *mode* parameter specifies the portion of the convolution
+    returned. If `same` the output will be the same shape as *x*. If
+    `full` the entire convolution is returned (`len(h) + len(x) -
+    1`). Finally if mode is 'valid', return only that portion for
+    which *h* and *x* completely overlap (i.e., the portion where no 0
+    boundary values are included).
     """
     lp_type = lp_fir_type(h)
     if lp_type is None:
@@ -107,7 +114,16 @@ def lp_fir_filter(h, x, real=True):
     if real:
         y = NP.real(y)
     M = len(h) - 1
-    return y[int(M/2):int(M/2) + len(x)]
+    if mode == 'same':
+        return y[int(M/2):int(M/2) + len(x)]
+    elif mode == 'valid':
+        D_min = min(N, K)
+        D_max = max(N, K)
+        return y[(D_min - 1):D_max]
+    elif mode == 'full':
+        return y
+    else:
+        raise ValueError('unknown convolution mode {} (choices are same, valid, or full)')
 
 
 if __name__ == '__main__':
