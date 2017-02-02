@@ -105,8 +105,9 @@ def process(hdf_fname,
     for data_i in data:
         for dt_i, col_i in data_i.iteritems():
             dt.append(dt_i)
-            x.append(col_i.x)
-            y.append(col_i.y)
+            # 1e-9 to convert nT to T
+            x.append(col_i.x * 1e-9)
+            y.append(col_i.y * 1e-9)
     n = consecutive_nans(x, y)
     if n > 0:
         logger.warning('longest contiguous gap = {:.2f} minutes'.format(n * interval / 60))
@@ -131,15 +132,15 @@ def process(hdf_fname,
         y -= NP.mean(y)
     # build DataFrame and store to disk
     df_filtered = PD.DataFrame(index=dt_filtered,
-                               data={'x': x_filtered,
-                                     'y': y_filtered})
+                               data={'Bx': x_filtered,
+                                     'By': y_filtered})
     df_filtered.to_hdf(hdf_fname,
                        key='filtered',
                        mode='w')
     if save_raw:
         df = PD.DataFrame(index=dt,
-                          data={'x': x,
-                                'y': y})
+                          data={'Bx': x,
+                                'By': y})
         df.to_hdf(hdf_fname,
                   key='raw',
                   mode='a')
