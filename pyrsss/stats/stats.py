@@ -44,13 +44,16 @@ def weighted_avg_and_std(values, weights):
 
 
 class Stats(object):
-    def __init__(self):
+    def __init__(self, *args):
         self.reset()
+        self(*args)
 
     def reset(self):
         self.mu = 0
         self.s2 = 0
         self.N = 0
+        self._max = -float('inf')
+        self._min = float('inf')
 
     @property
     def mean(self):
@@ -68,6 +71,14 @@ class Stats(object):
     def rms(self):
         return math.sqrt(self.mean**2 + self.var**2)
 
+    @property
+    def max(self):
+        return self._max
+
+    @property
+    def min(self):
+        return self._min
+
     def __call__(self, *x):
         """
         """
@@ -76,10 +87,14 @@ class Stats(object):
             mu_previous = self.mu
             self.mu += (x_i - self.mu) / self.N
             self.s2 += (x_i - mu_previous) * (x_i - self.mu)
+            if x_i < self._min:
+                self._min = x_i
+            if x_i > self._max:
+                self._max = x_i
         return self
 
     def __str__(self):
-        return str(self.mean) + ' ' + str(self.sigma)
+        return 'Stats: mean={:f} sigma={:f}'.format(self.mean, self.sigma)
 
 
 def main(argv=None):
