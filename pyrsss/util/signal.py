@@ -6,7 +6,6 @@ from collections import OrderedDict
 
 import numpy as NP
 
-from ..util.signal import nextpow2, lp_fir_type
 from ..stats.stats import Stats
 
 logger = logging.getLogger('pyrsss.util.signal')
