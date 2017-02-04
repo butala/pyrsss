@@ -12,7 +12,7 @@ from obspy.core.utcdatetime import UTCDateTime
 from obspy.core.trace import Trace
 
 from fgm2iaga import parse
-from iaga2hdf import get_dec_tenths_arcminute, stream2df
+from iaga2hdf import get_dec_tenths_arcminute, stream2df, write_hdf
 
 logger = logging.getLogger('pyrsss.mat.fgm2hdf')
 
@@ -65,17 +65,15 @@ def build_header(data_list,
     return header
 
 
-def build_stream(data_list,
+def build_stream(header,
+                 data_list,
                  network='NT',
                  location='R0',
-                 he=False,
-                 elevation=None):
+                 he=False):
     """
     Build obspy :class:`Stream` from the data arranged in
     *data_list*.
     """
-    header = build_header(data_list,
-                          elevation=elevation)
     traces = []
     for channel in ['x', 'y', 'z', 'f']:
         vals = []
@@ -92,20 +90,26 @@ def build_stream(data_list,
 
 def fgm2hdf(hdf_fname,
             fgm_fnames,
-            he=False):
+            he=False,
+            elevation=0,
+            key='B_raw'):
     """
     Convert data found in FGM files *fgm_fnames* to an HDF record at
-    *hdf_fname*. If *he*, store the h (mag north) and e (mag east)
-    components.
+    *hdf_fname*. Write to the HDF record associated with *key*. If
+    *he*, store the h (mag north) and e (mag east) components. Use
+    *elevation* in specifying the measurement location.
     """
     data_list = []
     for fgm_fname in fgm_fnames:
         logger.info('reading {}'.format(fgm_fname))
         data_list.append(parse(fgm_fname))
-    geo = build_stream(data_list)
+    header = build_header(data_list,
+                          elevation=elevation)
+    geo = build_stream(header,
+                       data_list)
     obs = get_obs_from_geo(geo) if he else False
     df = stream2df(geo, he=obs)
-    df.to_hdf(hdf_fname, 'B', mode='w')
+    write_hdf(hdf_fname, df, key, header)
     return hdf_fname
 
 

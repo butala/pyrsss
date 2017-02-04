@@ -60,6 +60,19 @@ def fix_sign(x, N=360 * 60 * 10):
     return x % N
 
 
+def get_dec_tenths_arcminute(header):
+    """
+    """
+    date = header['starttime']
+    point = Point(date,
+                  header['Geodetic_Latitude'],
+                  header['Geodetic_Longitude'],
+                  header['Elevation'])
+    point.run_igrf()
+    dec_deg = point.dec
+    return fix_sign(deg2tenths_of_arcminute(dec_deg))
+
+
 def build_stream(header,
                  data_maps,
                  dec_tenths_arcminute,
@@ -155,13 +168,33 @@ def find_decbas(header):
     return None
 
 
+def write_hdf(hdf_fname, df, key, header):
+    """
+    """
+    with PD.HDFStore(hdf_fname) as store:
+        store.put(key, df)
+        store.get_storer(key).attrs.header = header
+    return hdf_fname
+
+
+def read_hdf(hdf_fname, key):
+    """
+    """
+    with PD.HDFStore(hdf_fname) as store:
+        df = store.get(key)
+        header = store.get_storer(key).attrs.header
+        return df, header
+
+
 def iaga2hdf(hdf_fname,
              iaga2002_fnames,
              he=False,
+             key='B_raw',
              strict=False):
     """
-    Convert data found in IAGA 2002 files *iaga2002_fname* to an HDF
-    record. If *he*, store the h (mag north) and e (mag east)
+    Convert data found in IAGA 2002 files *iaga2002_fnames* to an HDF
+    record at *hdf_fanme*. Write to the HDF record associated with
+    *key*. If *he*, store the h (mag north) and e (mag east)
     components. If *strict*, use strict conformity checks when parsing
     the IAGA 2002 records.
     """
@@ -180,19 +213,11 @@ def iaga2hdf(hdf_fname,
         if decbas:
             dec_tenths_arcminute = decbas
         else:
-            # transform to obs coordinates
-            date = data_maps[0].keys()[0]
-            point = Point(date,
-                          header['Geodetic_Latitude'],
-                          header['Geodetic_Longitude'],
-                          header['Elevation'])
-            point.run_igrf()
-            dec_deg = point.dec
-            dec_tenths_arcminute = fix_sign(deg2tenths_of_arcminute(dec_deg))
+            dec_tenths_arcminute = get_dec_tenths_arcminute(header)
     geo = build_stream(header, data_maps, dec_tenths_arcminute, he=he)
     obs = get_obs_from_geo(geo) if he else False
     df = stream2df(geo, he=obs)
-    df.to_hdf(hdf_fname, 'B', mode='w')
+    write_hdf(hdf_fname, df, key, header)
     return hdf_fname
 
 
