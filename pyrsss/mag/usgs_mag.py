@@ -11,11 +11,14 @@ def fetch_usgs(out_path,
                stn,
                type='variation',
                interval='second',
+               he=False,
                out_template='{stn}{date:%Y%m%d}vsec.sec'):
     """
     Fetch USGS magnetometer data for *date* at *stn*. Store the data
     in IAGA2002 format and return the file name (*out_template* serves
-    as a template). Limit to data *type* and *interval*.
+    as a template). Limit to data *type* and *interval*. If *he*, then
+    include the H and E channels in the output (that is, local
+    magnetic north and east components).
     """
     out_fname = os.path.join(out_path,
                              out_template.format(stn=stn.lower(),
@@ -37,7 +40,7 @@ def fetch_usgs(out_path,
     with open(out_fname, 'w') as fid:
         output_factory = geomagio.iaga2002.IAGA2002Factory()
         output_factory.write_file(
-            channels = ('X', 'Y', 'Z', 'F'),
+            channels = ('H', 'E', 'X', 'Y', 'Z', 'F') if he else ('X', 'Y', 'Z', 'F'),
             fh = fid,
             timeseries = xyzf)
     return out_fname
