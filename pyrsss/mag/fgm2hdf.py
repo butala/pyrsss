@@ -24,7 +24,9 @@ def build_header(data_list,
                  elevation=None,
                  baseline_declination=None):
     """
-    ???
+    Build and return meta information mapping based on information in
+    *data_list* with *keys*, *elevation*, and *baseline_declination*
+    (the baseline declination, determined from IGRF if not specified).
     """
     header = {}
     for key, search_key in keys:
@@ -69,6 +71,8 @@ def build_stream(data_list,
                  he=False,
                  elevation=None):
     """
+    Build obspy :class:`Stream` from the data arranged in
+    *data_list*.
     """
     header = build_header(data_list,
                           elevation=elevation)
@@ -90,7 +94,9 @@ def fgm2hdf(hdf_fname,
             fgm_fnames,
             he=False):
     """
-    ???
+    Convert data found in FGM files *fgm_fnames* to an HDF record at
+    *hdf_fname*. If *he*, store the h (mag north) and e (mag east)
+    components.
     """
     data_list = []
     for fgm_fname in fgm_fnames:
