@@ -51,7 +51,8 @@ def parse(fname):
                 flag.append(True)
             else:
                 raise ValueError('unknown flag value {} encountered in {}'.format(cols[4], fname))
-        df = PD.DataFrame(data={'x': x, 'y': y, 'z': z, 'flag': flag},
+        f = NP.hypot(x, NP.hypot(y, z))
+        df = PD.DataFrame(data={'x': x, 'y': y, 'z': z, 'f': f, 'flag': flag},
                           index=dt)
         df.siteid = siteid
         df.lat = float(lat)
