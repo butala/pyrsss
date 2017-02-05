@@ -69,9 +69,9 @@ def initialize(region_path=REGION_PATH):
 def get_region(lat, lon, region_path=REGION_PATH):
     """
     Return the 2 character, 1 number code (e.g., IP-3) associated with
-    the physiographic at *lat* and *lon*. Return `None` if the point
-    is interior to any region. Look for the required files at
-    *region_path*.
+    the physiographic region that encloses the point specified by
+    *lat* and *lon*. Return `None` if the point is not interior to any
+    region. Look for the required files at *region_path*.
     """
     try:
         regions = shpreader.Reader(os.path.join(region_path, 'ConductivityRegions'))
