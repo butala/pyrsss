@@ -14,17 +14,23 @@ logger = logging.getLogger('pyrsss.gmd.usgs_regions')
 
 
 KMZ_URL = 'https://geomag.usgs.gov/conductivity/ConductivityRegions.kmz'
-""" ??? """
+"""
+URL where USGS publishes the conductivity region KMZ file.
+"""
 
 
 REGION_PATH = os.path.join(os.path.dirname(__file__),
                            'ConductivityRegions')
-""" ??? """
+"""
+Local path where processed conductivity region information is
+cached.
+"""
 
 
 def update(path, kmz_url=KMZ_URL):
     """
-    ???
+    Update the local conductivity region cache at *path* using the KMZ
+    file found at *kmz_url*.
     """
     with SmartTempDir() as tmp_path:
         # fetch KMZ file
@@ -51,7 +57,8 @@ def update(path, kmz_url=KMZ_URL):
 
 def initialize(region_path=REGION_PATH):
     """
-    ???
+    Initialize the local conductivity region cache if it does not
+    already exist at *region_path*.
     """
     if os.path.isdir(region_path):
         logger.warning('{} exists --- skipping initialization'.format(region_path))
@@ -61,6 +68,10 @@ def initialize(region_path=REGION_PATH):
 
 def get_region(lat, lon, region_path=REGION_PATH):
     """
+    Return the 2 character, 1 number code (e.g., IP-3) associated with
+    the physiographic at *lat* and *lon*. Return `None` if the point
+    is interior to any region. Look for the required files at
+    *region_path*.
     """
     try:
         regions = shpreader.Reader(os.path.join(region_path, 'ConductivityRegions'))
