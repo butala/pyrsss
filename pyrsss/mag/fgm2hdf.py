@@ -59,7 +59,7 @@ def build_header(data_list,
              'Geodetic_Latitude': header['geodetic_latitude'],
              'Geodetic_Longitude': header['geodetic_longitude'],
              'Elevation': header['elevation']}
-        baseline_declination = get_dec_tenths_arcminute(d)
+        baseline_declination = get_dec_tenths_arcminute(d, d1)
     header['declination_base'] = baseline_declination
     header['npts'] = sum(map(len, data_list))
     return header
