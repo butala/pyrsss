@@ -23,7 +23,7 @@ def find_value(key, headers):
     across each element of *headers* and raise an exception if
     multiple values are encountered.
     """
-    values = set([getattr(x, key, None) for x in headers if getattr(x, key, None) is not None])
+    values = set([x.get(key, None) for x in headers])
     if len(values) == 0:
         raise KeyError('{} not found'.format(key))
     elif len(values) > 1:
@@ -60,10 +60,9 @@ def fix_sign(x, N=360 * 60 * 10):
     return x % N
 
 
-def get_dec_tenths_arcminute(header):
+def get_dec_tenths_arcminute(header, date):
     """
     """
-    date = header['starttime']
     point = Point(date,
                   header['Geodetic_Latitude'],
                   header['Geodetic_Longitude'],
@@ -213,7 +212,9 @@ def iaga2hdf(hdf_fname,
         if decbas:
             dec_tenths_arcminute = decbas
         else:
-            dec_tenths_arcminute = get_dec_tenths_arcminute(header)
+            date = data_maps[0].iterkeys().next()
+            dec_tenths_arcminute = get_dec_tenths_arcminute(header,
+                                                            date)
     geo = build_stream(header, data_maps, dec_tenths_arcminute, he=he)
     obs = get_obs_from_geo(geo) if he else False
     df = stream2df(geo, he=obs)
