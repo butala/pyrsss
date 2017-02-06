@@ -63,6 +63,10 @@ def fix_sign(x, N=360 * 60 * 10):
 
 def get_dec_tenths_arcminute(header, date):
     """
+    Return the local magnetic declination angle associated with a
+    sensor at the location given in *header* and *date*. The returned
+    angle is in tenths of arcminutes (there are 360 * 60 * 10 tenths
+    of arcminnutes in one circle).
     """
     point = Point(date,
                   header['Geodetic_Latitude'],
@@ -170,6 +174,8 @@ def find_decbas(header):
 
 def write_hdf(hdf_fname, df, key, header):
     """
+    Output the contents of *df* and *header* to the HDF file
+    *hdf_fname* under identifier *key*.
     """
     with PD.HDFStore(hdf_fname) as store:
         store.put(key, df)
@@ -179,6 +185,8 @@ def write_hdf(hdf_fname, df, key, header):
 
 def read_hdf(hdf_fname, key):
     """
+    Read contents of HDF file *hdf_fname* associated with *key* and
+    return a :class:`DataFrame`, header tuple.
     """
     if not os.path.isfile(hdf_fname):
         raise ValueError('file {} does not exist'.format(hdf_fname))
