@@ -1,5 +1,9 @@
+import os
 import sys
 import logging
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from collections import defaultdict
+from datetime import datetime, timedelta
 
 import pandas as PD
 
@@ -7,11 +11,24 @@ from pyhdf.HDF import HDF, HDF4Error
 from pyhdf import VS
 
 
-def parse_ace_data(hdf5_fname, hdf4_fname, N=1000):
+def key_from_fname(fname):
     """
+    Return the ACE data key encoded in the file *fname*.
+    """
+    col = os.path.basename(fname)[:13].split('_')
+    key = '_'.join(col[:3])
+    key = key.replace('mag_', 'MAG_')
+    return key
+
+
+def parse_ace_data(hdf4_fname, N=1000):
+    """
+    Load ACE data *hdf4_fname* and return a pandas :class:`DataFrame`
+    with the information. Process *N* lines of the HDF file at a time.
     """
     key = key_from_fname(hdf4_fname)
-    with closing(HDF(hdf4_fname)) as hdf:
+    hdf = HDF(hdf4_fname)
+    try:
         vs = hdf.vstart()
         vdata = vs.attach(key)
         fieldinfo = vdata.fieldinfo()
@@ -26,6 +43,10 @@ def parse_ace_data(hdf5_fname, hdf4_fname, N=1000):
             for data_i in data:
                 for data_ii, field in zip(data_i, fields):
                     data_map[field].append(data_ii)
+    finally:
+        vdata.detach()
+        vs.vend()
+        hdf.close()
     # convert to DataFrame
     remove_set = set(['year',
                       'fp_year',
@@ -51,6 +72,17 @@ def parse_ace_data(hdf5_fname, hdf4_fname, N=1000):
     return df
 
 
+def hdf4to5(hdf5_fname, hdf4_fname, key='ace'):
+    """
+    Convert ACE HDF4 data record *hdf4_fname* to a pandas
+    :class:`DataFrame` and store in the HDF5 record
+    *hdf_fname*. Associate data with *key*.
+    """
+    df = parse_ace_data(hdf4_fname)
+    df.to_hdf(hdf5_fname, key)
+    return hdf5_fname
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
@@ -65,7 +97,8 @@ def main(argv=None):
                         help='input ACE HDF4 data record')
     args = parser.parse_args(argv[1:])
 
-
+    hdf4to5(args.hdf5_fname,
+            args.hdf4_fname)
 
 
 if __name__ == '__main__':
