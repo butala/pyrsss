@@ -1,3 +1,4 @@
+import os
 import sys
 import math
 import logging
@@ -179,6 +180,8 @@ def write_hdf(hdf_fname, df, key, header):
 def read_hdf(hdf_fname, key):
     """
     """
+    if not os.path.isfile(hdf_fname):
+        raise ValueError('file {} does not exist'.format(hdf_fname))
     with PD.HDFStore(hdf_fname) as store:
         df = store.get(key)
         header = store.get_storer(key).attrs.header
