@@ -11,17 +11,24 @@ logger = logging.getLogger('pyrsss.ace.bartels')
 
 
 BARTELS_URL = 'http://www.srl.caltech.edu/ACE/ASC/DATA/bartels/bartels.txt'
-""" ??? """
+"""
+URL to file containing Bartels rotation to date information
+specific to the ACE mission.
+"""
 
 
 BARTELS_FNAME = os.path.join(os.path.dirname(__file__),
                            'bartels.txt')
-""" ??? """
+"""
+Local file to store Bartels rotation information.
+"""
 
 
 def update(local_fname=BARTELS_FNAME,
            bartels_url=BARTELS_URL):
     """
+    Update the local Bartels rotation information file *local_fname*
+    with that found at *bartels_url*.
     """
     with open(local_fname, 'w') as fid, closing(urlopen(bartels_url)) as fid_in:
         logger.info('fetching {}'.format(bartels_url))
@@ -31,7 +38,8 @@ def update(local_fname=BARTELS_FNAME,
 
 def initialize(local_fname=BARTELS_FNAME):
     """
-    ???
+    If the local Bartels rotation information file *local_fname* does
+    not exist, fetch it and store it.
     """
     if os.path.isfile(local_fname):
        logger.warning('{} exists --- skipping initialization'.format(local_fname))
@@ -41,6 +49,10 @@ def initialize(local_fname=BARTELS_FNAME):
 
 def efloat(x):
     """
+    Convert regular floating point stings an those prefixed by 'e',
+    where the prefix indicates if the given epoch is estimated. Return
+    the float and True or False if estimated. The float string '-' is
+    returned as None.
     """
     if x.startswith('e'):
         return float(x[1:]), True
@@ -59,6 +71,7 @@ class BartelsField(namedtuple('BartelsField',
                                         'spacecraft_clock',
                                         'spacecraft_clock_estimated']))):
                     pass
+"""Column data found within the Bartels rotation file"""
 
 
 def parse(local_fname=BARTELS_FNAME,
@@ -70,6 +83,9 @@ def parse(local_fname=BARTELS_FNAME,
                  efloat],
           data_map=None):
     """
+    Parse the Bartels rotation file *local_fname* using the functions
+    in *types* to convert columns. Return a date time key mapping to
+    the data.
     """
     if data_map is None:
         data_map = OrderedDict()
@@ -100,6 +116,7 @@ def parse(local_fname=BARTELS_FNAME,
 class Bartels(dict):
     def __new__(cls, local_fname=BARTELS_FNAME):
         """
+        Build a new Bartels rotation information objecy.
         """
         obj = super(Bartels, cls).__new__(cls)
         parse(local_fname=local_fname, data_map=obj)
@@ -116,6 +133,8 @@ class Bartels(dict):
 
     def __call__(self, dt):
         """
+        Return the Bartels rotation number corresponding to the date time
+        *dt*.
         """
         for interval, b_id in self._interval_map.iteritems():
             if dt in interval:
