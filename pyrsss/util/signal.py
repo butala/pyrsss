@@ -186,7 +186,7 @@ def fir_response(h, bands, desired, Hz=1, names=None, verbose=True):
         band_stats[index] = Stats(*NP.abs(diff)), NP.median(diff)
         if names:
             band_stats[names[index]] = band_stats[index]
-    if vervose:
+    if verbose:
         # report on linear phase determined from symmetry of h
         fir_type = lp_fir_type(h)
         if fir_type:
