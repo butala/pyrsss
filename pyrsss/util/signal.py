@@ -122,18 +122,23 @@ def lp_fir_filter(h, x, real=True, mode='same', index=None):
         y = NP.real(y)
     M = len(h) - 1
     if mode == 'same':
-        y_out = y[int(M/2):int(M/2) + len(x)]
+        y_out = y[int(M/2):int(M/2) + N]
         if index:
-            index_out = index[int(M/2):int(M/2) + len(x)]
+            index_out = index
     elif mode == 'valid':
         D_min = min(N, K)
         D_max = max(N, K)
         y_out = y[(D_min - 1):D_max]
         if index:
-            index_out = index[(D_min - 1):D_max]
+            index_out = index[(D_min - int(M/2) - 1):(D_max - int(M/2))]
     elif mode == 'full':
-        y_out = y
-        index_out = index
+        y_out = y[:L]
+        if index:
+            delta = index[1] - index[0]
+            J = int(M/2)
+            index_out = [index[0] - (J-i) * delta for i in range(1, J + 1)] + \
+                        index + \
+                        [index[-1] + i * delta for i in range(1, J + 1)]
     else:
         raise ValueError('unknown convolution mode {} (choices are same, valid, or full)')
     if index:
