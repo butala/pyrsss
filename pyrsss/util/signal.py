@@ -142,22 +142,22 @@ def lp_fir_filter(h, x, real=True, mode='same', index=None):
                         [index[-1] + i * delta for i in range(1, J + 1)]
     else:
         raise ValueError('unknown convolution mode {} (choices are same, valid, or full)')
-    if index:
+    if index is not None:
         return y_out, index_out
     else:
         return y_out
 
 
-def differentiator(n):
+def differentiator(n, Hz=1):
     """
     Return impulse response for a length *n* filter that approximates
-    the differential operator.
+    the differential operator. The sampling frequency is *Hz*.
     """
     return scipy.signal.remez(n,
-                              [0, 1],
+                              [0, Hz / 2],
                               [1],
-                              Hz=2,
-                              type='differentiator')
+                              Hz=Hz,
+                              type='differentiator') * Hz * 2 * NP.pi
 
 
 def fir_response(h, bands, desired, Hz=1, names=None, verbose=True):
