@@ -229,7 +229,7 @@ def iaga2hdf(hdf_fname,
     geo = build_stream(header, data_maps, dec_tenths_arcminute, he=he)
     obs = get_obs_from_geo(geo) if he else False
     df = stream2df(geo, he=obs)
-    write_hdf(hdf_fname, df, key, header)
+    write_hdf(hdf_fname, df, key, {k.lower(): v for k, v in header.iteritems()})
     return hdf_fname
 
 
