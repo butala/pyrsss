@@ -15,9 +15,10 @@ def key_from_fname(fname):
     """
     Return the ACE data key encoded in the file *fname*.
     """
-    col = os.path.basename(fname)[:13].split('_')
-    key = '_'.join(col[:3])
-    key = key.replace('mag_', 'MAG_')
+    col = os.path.basename(fname).split('_')
+    col0 = col[0]
+    col0 = col0.upper()
+    key = '_'.join([col0] + col[1:3])
     return key
 
 
