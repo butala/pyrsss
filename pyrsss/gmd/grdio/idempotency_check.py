@@ -2,7 +2,6 @@ import grd_io as gi
 import numpy as np
 
 TEST_INPUT  = 'TEST_INPUT.grd'
-TEST_INPUT  = 'TVA_Ex_20150622.grd'
 TEST_OUTPUT = 'TEST_OUTPUT.grd'
 
 lon_grid, lat_grid, time_grid, DATA = gi.grd_read(TEST_INPUT)
