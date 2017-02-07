@@ -3,6 +3,8 @@ from __future__ import division
 import numpy as NP
 import pylab as PL
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import cartopy
+import cartopy.crs as ccrs
 
 
 def centers2edges(x):
@@ -33,3 +35,51 @@ def add_colorbar(ax, im, side='right', size='5%', pad=0.1, **kwds):
     cb = PL.colorbar(im, cax=cax, **kwds)
     PL.axes(ax)
     return cb
+
+
+def plot_map(ax=None, alpha=0.3, zorder=0):
+    """
+    Add map features (coastlines, national boundaries, etc.) to *a*
+    with transparency level *alpha* and *zorder*. Return *ax*.
+    """
+    if ax is None:
+        ax = PL.axes(projection=ccrs.PlateCarree())
+    # national boundaries
+    boundaries_50m = cartopy.feature.NaturalEarthFeature(category='cultural',
+                                                         name='admin_0_boundary_lines_land',
+                                                         scale='50m',
+                                                         edgecolor='k',
+                                                         facecolor='none')
+    ax.add_feature(boundaries_50m,
+                   alpha=alpha,
+                   zorder=zorder)
+    # states
+    states_50m = cartopy.feature.NaturalEarthFeature(category='cultural',
+                                                     name='admin_1_states_provinces_lines',
+                                                     scale='50m',
+                                                     edgecolor='k',
+                                                     facecolor='none')
+    ax.add_feature(states_50m,
+                   alpha=alpha,
+                   zorder=zorder)
+    # coastlines
+    coastline_50m = cartopy.feature.NaturalEarthFeature('physical',
+                                                        'coastline',
+                                                        '50m',
+                                                        edgecolor='k',
+                                                        facecolor='none')
+    ax.add_feature(coastline_50m,
+                   alpha=alpha,
+                   zorder=zorder)
+    # lakes
+    lakes_110m = cartopy.feature.NaturalEarthFeature('physical',
+                                                     'lakes',
+                                                     '110m',
+                                                     edgecolor='k',
+                                                     facecolor='none')
+    # add all shape objects
+    ax.add_feature(lakes_110m,
+                   alpha=alpha,
+                   zorder=zorder)
+
+    return ax
