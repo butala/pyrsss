@@ -9,6 +9,7 @@ import cartopy.io.shapereader as shpreader
 from shapely.geometry import Point
 
 from ..util.path import SmartTempDir
+from ..util.angle import convert_lon
 
 logger = logging.getLogger('pyrsss.gmd.usgs_regions')
 
@@ -80,7 +81,8 @@ def get_region(lat, lon, region_path=REGION_PATH):
         regions = shpreader.Reader(os.path.join(region_path, 'ConductivityRegions'))
     geos = regions.geometries()
     names = [x.attributes['Name'] for x in regions.records()]
-    point = Point(lon, lat)
+    point = Point(convert_lon(lon),
+                  lat)
     encloses = [name for name, geo in zip(names, geos) if geo.contains(point)]
     if encloses:
         assert len(encloses) == 1
