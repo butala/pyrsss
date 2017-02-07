@@ -228,7 +228,7 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    parser = ArgumentParser('',
+    parser = ArgumentParser('Apply preprocessing steps to raw magnetometer data.',
                             formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument('hdf_fnames',
                         type=str,
