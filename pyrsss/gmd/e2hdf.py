@@ -55,8 +55,8 @@ def apply_emtf(df_E,
         Ex, Ey = tf_3D(Bx, By, interval, xml_fname)
     else:
         Ex, Ey = tf_1D(Bx, By, interval, emtf_key)
-    df_E[emtf_key + '_Ex'] = Ex
-    df_E[emtf_key + '_Ey'] = Ey
+    df_E[emtf_key + '_x'] = Ex
+    df_E[emtf_key + '_y'] = Ey
     return df_E
 
 
