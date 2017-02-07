@@ -5,6 +5,7 @@ import logging
 from collections import OrderedDict
 
 import numpy as NP
+import scipy.signal
 
 from ..stats.stats import Stats
 
@@ -123,17 +124,17 @@ def lp_fir_filter(h, x, real=True, mode='same', index=None):
     M = len(h) - 1
     if mode == 'same':
         y_out = y[int(M/2):int(M/2) + N]
-        if index:
+        if index is not None:
             index_out = index
     elif mode == 'valid':
         D_min = min(N, K)
         D_max = max(N, K)
         y_out = y[(D_min - 1):D_max]
-        if index:
+        if index is not None:
             index_out = index[(D_min - int(M/2) - 1):(D_max - int(M/2))]
     elif mode == 'full':
         y_out = y[:L]
-        if index:
+        if index is not None:
             delta = index[1] - index[0]
             J = int(M/2)
             index_out = [index[0] - (J-i) * delta for i in range(1, J + 1)] + \
@@ -145,6 +146,18 @@ def lp_fir_filter(h, x, real=True, mode='same', index=None):
         return y_out, index_out
     else:
         return y_out
+
+
+def differentiator(n):
+    """
+    Return impulse response for a length *n* filter that approximates
+    the differential operator.
+    """
+    return scipy.signal.remez(n,
+                              [0, 1],
+                              [1],
+                              Hz=2,
+                              type='differentiator')
 
 
 def fir_response(h, bands, desired, Hz=1, names=None, verbose=True):
