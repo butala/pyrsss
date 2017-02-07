@@ -122,7 +122,7 @@ def write_lon_block(grd_file, n_lats, data):
 		while go2:
 			datum = data[current_index]
 
-			line[16*internal_index:16*internal_index+16] = str(datum).rjust(16)
+			line[16*internal_index:16*internal_index+16] = ('%.11g' % datum).rjust(16)
 			current_index += 1
 			internal_index += 1			
 
@@ -140,16 +140,13 @@ def grd_write(grd_filename, lon_grid, lat_grid, time_grid, DATA):
 	"""
 	Writes out DATA corresponding to the locations
 	specified by lon_grid, lat_grid in the .grd format.
-
 	lon_grid must have the westmost point as lon_grid[0].
 	lat_grid must have the southmost point as lat_grid[0].
-
 	Assumptions made:
 	latitude/longitude resolutions are positive
 	number of latitude/longitude points in header is positive
 	at least one space must be between each number
 	data lines have no more than 5 entries
-
 	Assumed structure of header line:
 	# first 16 spaces allocated as longitude resolution
 	# next 16 spaces allocated as westmost longitude
@@ -158,18 +155,21 @@ def grd_write(grd_filename, lon_grid, lat_grid, time_grid, DATA):
 	# next 16 spaces allocated as southmost latitude
 	# next 16 spaces allocated for number of latitude points
 	# TOTAL: 80 characters
-
 	Assumed stucture of time line:
 	# 5 blank spaces
-	# rest of line allocated for time
-
+	# next 16 spaces allocated for time
 	Assumed structure a data line:
 	# 16 spaces allocated for data entry
 	# .. .. ..
-
 	"""
 
 	with open(grd_filename, 'wb') as grd_file:
+
+		# convert the lon grid to -180 to 180 if necessary
+		lon_grid = np.array(lon_grid)
+
+		lon_grid = lon_grid % 360
+		lon_grid = ((lon_grid + 180) % 360) - 180
 
 		lon_res      = np.abs(lon_grid[1] - lon_grid[0])
 		lon_west     = lon_grid[0]
@@ -181,11 +181,11 @@ def grd_write(grd_filename, lon_grid, lat_grid, time_grid, DATA):
 
 		# write the header: 80 characters
 		header = ['']*81
-		header[0:16]  = str(lon_res).rjust(16)
-		header[16:32] = str(lon_west).rjust(16)
+		header[0:16]  = ('%.7g' % lon_res).rjust(16)
+		header[16:32] = ('%.15g' % lon_west).rjust(16)
 		header[32:37] = str(n_lons).rjust(5)
-		header[37:48] = str(lat_res).rjust(11)
-		header[48:64] = str(lat_south).rjust(16)
+		header[37:48] = ('%.7g' % lat_res).rjust(11)
+		header[48:64] = ('%.15g' % lat_south).rjust(16)
 		header[64:80] = str(n_lats).rjust(16)
 		header[80]    = '\n'
 
@@ -194,9 +194,9 @@ def grd_write(grd_filename, lon_grid, lat_grid, time_grid, DATA):
 
 		for i, t in enumerate(time_grid):
 			# write the time line
-			timeline = ['']*14
-			timeline[5:] = str(t).rjust(9)
-			timeline[13] = '\n'
+			timeline = ['']*(16+5)
+			timeline[5:-1] = ('%.8g' % t).rjust(9)
+			timeline[-1] = '\n'
 			timeline_str = "".join(timeline)
 			grd_file.write(timeline_str)
 
