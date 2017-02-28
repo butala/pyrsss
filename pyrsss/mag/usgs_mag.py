@@ -3,7 +3,7 @@ import os
 import geomagio
 from obspy.core import UTCDateTime
 from geomagio.algorithm import XYZAlgorithm
-
+import numpy as NP
 
 
 def fetch_usgs(out_path,
@@ -32,6 +32,9 @@ def fetch_usgs(out_path,
         interval = interval,
         starttime = UTCDateTime('{date:%Y-%m-%d}T00:00:00Z'.format(date=date)),
         endtime = UTCDateTime('{date:%Y-%m-%d}T23:59:59Z'.format(date=date)))
+
+    if all([NP.isnan(trace).all() for trace in timeseries.traces]):
+        raise ValueError('no data for {} on {:%Y-%m-%d} found'.format(stn, date))
 
     # convert from HEZF channels to XYZF channels
     algorithm = XYZAlgorithm(informat='obs', outformat='geo')
