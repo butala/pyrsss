@@ -16,6 +16,19 @@ from ..util.signal import lp_fir_filter
 logger = logging.getLogger('pyrsss.mag.process_hdf')
 
 
+
+"""
+A NOTE ON THE COORDINATE FRAME
+
+The following describes the XYZ convention
+(from https://github.com/usgs/geomag-algorithms/blob/master/docs/algorithms/XYZ.md):
+
+- X is the magnitude of the geographic north pole component of the H vector;
+- Y is the magnitude of the east component of the H vector;
+- Z is the downward component of the geomagnetic field, same as before.
+"""
+
+
 def minute_interval_filter_firwin():
     """
     Synthesize and return impulse response of minute interval filter
