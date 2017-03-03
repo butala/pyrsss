@@ -24,7 +24,7 @@ def find_value(key, headers):
     across each element of *headers* and raise an exception if
     multiple values are encountered.
     """
-    values = set([x.get(key, None) for x in headers])
+    values = set([x._asdict().get(key, None) for x in headers])
     if len(values) == 0:
         raise KeyError('{} not found'.format(key))
     elif len(values) > 1:
