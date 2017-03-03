@@ -196,17 +196,15 @@ def read_hdf(hdf_fname, key):
         return df, header
 
 
-def iaga2hdf(hdf_fname,
-             iaga2002_fnames,
-             he=False,
-             key='B_raw',
-             strict=False):
+def iaga2df(iaga2002_fnames, he=False, strict=False):
     """
-    Convert data found in IAGA 2002 files *iaga2002_fnames* to an HDF
-    record at *hdf_fanme*. Write to the HDF record associated with
-    *key*. If *he*, store the h (mag north) and e (mag east)
-    components. If *strict*, use strict conformity checks when parsing
-    the IAGA 2002 records.
+    Convert the data contained in the IAGA2002 data records
+    *iaga2002_fnames* to a :class:`DataFrame`. If *he*, store the h
+    (mag north) and e (mag east) components. If *strict*, use strict
+    conformity checks when parsing the IAGA 2002 records. Return the
+    tuple containing the data frame and the reduced header record
+    (reduced by verifying that key elements are shared across all data
+    records --- see :func:`reduce_headers`).
     """
     headers = []
     data_maps = []
@@ -231,6 +229,22 @@ def iaga2hdf(hdf_fname,
     geo = build_stream(header, data_maps, dec_tenths_arcminute=dec_tenths_arcminute, he=he)
     obs = get_obs_from_geo(geo) if he else False
     df = stream2df(geo, he=obs)
+    return df, header
+
+
+def iaga2hdf(hdf_fname,
+             iaga2002_fnames,
+             he=False,
+             key='B_raw',
+             strict=False):
+    """
+    Convert data found in IAGA 2002 files *iaga2002_fnames* to an HDF
+    record at *hdf_fanme*. Write to the HDF record associated with
+    *key*. If *he*, store the h (mag north) and e (mag east)
+    components. If *strict*, use strict conformity checks when parsing
+    the IAGA 2002 records.
+    """
+    df, header = iaga2df(iaga2002_fnames, he=he, strict=strict)
     write_hdf(hdf_fname, df, key, {k.lower(): v for k, v in header.iteritems()})
     return hdf_fname
 
