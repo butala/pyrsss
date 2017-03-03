@@ -79,7 +79,7 @@ def get_dec_tenths_arcminute(header, date):
 
 def build_stream(header,
                  data_maps,
-                 dec_tenths_arcminute,
+                 dec_tenths_arcminute=None,
                  network='NT',
                  location='R0',
                  default_elevation=0,
@@ -88,7 +88,7 @@ def build_stream(header,
     Build obspy :class:`Stream` from *header* information and the data
     arranged in *data_maps*. Use *dec_tenths_arcminute* (local
     magnetic declination in determining magnetic north and east or XYZ
-    in unite of tenths of arcminutes).
+    in units of tenths of arcminutes).
     """
     glon = header['Geodetic_Longitude']
     if glon < 0:
@@ -226,7 +226,9 @@ def iaga2hdf(hdf_fname,
             date = data_maps[0].iterkeys().next()
             dec_tenths_arcminute = get_dec_tenths_arcminute(header,
                                                             date)
-    geo = build_stream(header, data_maps, dec_tenths_arcminute, he=he)
+    else:
+        dec_tenths_arcminute = None
+    geo = build_stream(header, data_maps, dec_tenths_arcminute=dec_tenths_arcminute, he=he)
     obs = get_obs_from_geo(geo) if he else False
     df = stream2df(geo, he=obs)
     write_hdf(hdf_fname, df, key, {k.lower(): v for k, v in header.iteritems()})
