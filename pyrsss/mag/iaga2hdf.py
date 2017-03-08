@@ -7,7 +7,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import numpy as NP
 import pandas as PD
 from pyglow.pyglow import Point
-from geomagio.StreamConverter import get_obs_from_geo
+from geomagio.StreamConverter import (get_obs_from_geo, get_geo_from_obs)
 from obspy.core.stream import Stream
 from obspy.core.utcdatetime import UTCDateTime
 from obspy.core.trace import Trace
@@ -79,16 +79,20 @@ def get_dec_tenths_arcminute(header, date):
 
 def build_stream(header,
                  data_maps,
+                 channels,
                  dec_tenths_arcminute=None,
                  network='NT',
                  location='R0',
-                 default_elevation=0,
-                 he=False):
+                 radians=True,
+                 default_elevation=0):
     """
     Build obspy :class:`Stream` from *header* information and the data
     arranged in *data_maps*. Use *dec_tenths_arcminute* (local
     magnetic declination in determining magnetic north and east or XYZ
-    in units of tenths of arcminutes).
+    in units of tenths of arcminutes). Include data specified by
+    *channels* (a list of channel identifiers, e.g., `['x', 'y', 'z',
+    'f']` or `['H', 'D', 'z', 'f']`). If *radians*, angles in D are
+    given in degrees and must be converted to radians.
     """
     glon = header['Geodetic_Longitude']
     if glon < 0:
@@ -114,13 +118,15 @@ def build_stream(header,
         stream_header['elevation'] = default_elevation
         logger.warning('elevation is unknown --- inserting {}'.format(default_elevation))
     traces = []
-    for channel in ['x', 'y', 'z', 'f']:
-        vals = [getattr(x, channel) for dm in data_maps for x in dm.itervalues()]
+    for channel in channels:
+        vals = NP.array([getattr(x, channel) for dm in data_maps for x in dm.itervalues()])
         header_i = stream_header.copy()
         header_i['channel'] = channel.upper()
         header_i['network'] = network
         header_i['location'] = location
-        traces.append(Trace(data = NP.array(vals),
+        if channel == 'D' and radians:
+            vals = NP.radians(vals)
+        traces.append(Trace(data = vals,
                             header = header_i))
     return Stream(traces=traces)
 
@@ -214,20 +220,36 @@ def iaga2df(iaga2002_fnames, he=False, strict=False):
         headers.append(header_i)
         data_maps.append(data_map_i)
     header = reduce_headers(headers)
-    if header['Reported'] != 'XYZF':
-        raise NotImplementedError('only XYZF implemented so far')
-    if he and header['Reported'] == 'XYZF':
+    if header['Reported'] not in ['XYZF', 'HDZF']:
+        raise NotImplementedError('only XYZF and HDZF are implemented')
+    if (he and header['Reported'] == 'XYZF') or \
+       (header['Reported'] in ['HDZF', 'HEZF']):
         decbas = find_decbas(header)
         if decbas:
             dec_tenths_arcminute = decbas
         else:
             date = data_maps[0].iterkeys().next()
-            dec_tenths_arcminute = get_dec_tenths_arcminute(header,
+            dec_tenths_arcminute = getb_dec_tenths_arcminute(header,
                                                             date)
     else:
+        logger.warning('DECBASE is unknown')
         dec_tenths_arcminute = None
-    geo = build_stream(header, data_maps, dec_tenths_arcminute=dec_tenths_arcminute, he=he)
-    obs = get_obs_from_geo(geo) if he else False
+    if header['Reported'] == 'XYZF':
+        geo = build_stream(header,
+                           data_maps,
+                           ['x', 'y', 'z', 'f'],
+                           dec_tenths_arcminute=dec_tenths_arcminute)
+        obs = get_obs_from_geo(geo) if he else False
+    elif header['Reported'] == 'HDZF':
+        assert dec_tenths_arcminute is not None
+        obs = build_stream(header,
+                           data_maps,
+                           ['H', 'D', 'z', 'f'],
+                           dec_tenths_arcminute=int(dec_tenths_arcminute))
+        geo = get_geo_from_obs(obs)
+        obs = obs if he else None
+    else:
+        assert False
     df = stream2df(geo, he=obs)
     return df, header
 
