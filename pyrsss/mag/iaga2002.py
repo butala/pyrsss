@@ -8,18 +8,21 @@ from datetime import datetime, timedelta
 from collections import OrderedDict, namedtuple, defaultdict
 from abc import ABCMeta, abstractmethod, abstractproperty
 
+import pandas as PD
 
 logger = logging.getLogger('pyrsss.mag.iaga2002')
 
 
 def fname2date(iaga2002_fname):
     """
-    ???
+    Retrieve the data from *iaga2002_fname* named according to the
+    standard convention.
     """
     return datetime.strptime(os.path.basename(iaga2002_fname)[3:11],
                              '%Y%m%d')
 
 
+"""Expected IAGA-2002 header items."""
 class Header(namedtuple('Header',
                         ['Format',
                          'Source_of_Data',
@@ -37,6 +40,8 @@ class Header(namedtuple('Header',
     pass
 
 
+"""Type conversions for IAGA-2002 header values keyed by
+identifier."""
 HEADER_TYPES = defaultdict(lambda: str,
                            [('Geodetic_Latitude', float),
                             ('Geodetic_Longitude', float),
@@ -248,6 +253,76 @@ def parse(fname, strict=True):
                                            data3,
                                            data4])
     return header, data_map
+
+
+def split_key_value(line, header_types=HEADER_TYPES):
+    """
+    Split IAGA-2002 header string *line* and return the tuple key and
+    value pair. Convert the value type according to the
+    """
+    key = line[1:24].strip()
+    value = line[24:69].strip()
+    return key, header_types[key](value)
+
+
+def get_decbas(line):
+    """
+    Retrieve the baseline declination (typically in tenths of minutes
+    East) from the IAGA-2002 header *line*.
+    """
+    assert line.startswith(' # DECBAS')
+    return int(line[24:69].split(None, 1)[0])
+
+
+def parse_header(fid):
+    """
+    Parse the IAGA-2002 header lines in the file object *fid*, i.e.,
+    those lines terminated by `|`. Store the key and value information
+    in a dictionary. Store the data column identifiers in a list (e.g.,
+    `BOUH      BOUD      BOUZ      BOUF` is produces the list
+    `[H, D, Z, F]`). Return the with the header and data column
+    information.
+    """
+    header = OrderedDict()
+    for line in fid:
+        if line[69] != '|':
+            raise RuntimeError('malformed header line: {}'.format(line))
+        if line.startswith('DATE'):
+            toks = line[:69].split()
+            cols = [x[-1] for x in toks[3:]]
+            break
+        elif line.startswith(' # DECBAS'):
+            header['decbas'] = get_decbas(line)
+        elif line.startswith(' #'):
+            continue
+        else:
+            key, value = split_key_value(line)
+            header[key] = value
+    return header, cols
+
+
+def iaga2df(iaga2002_fname):
+    """
+    Parser the magnetometer data record stored in the IAGA-2002 format
+    file *iaga2002_fname*. Return the tuple with the
+    :class:`DataFrame` containing the data and header information
+    """
+    with open(iaga2002_fname) as fid:
+        # parse header
+        header, cols = parse_header(fid)
+        keys = ['B_' + x for x in cols]
+        # parse data
+        index = []
+        data_map = defaultdict(list)
+        for line in fid:
+            toks = line.split()
+            dt = datetime.strptime(toks[0] + ' ' + toks[1], '%Y-%m-%d %H:%M:%S.%f')
+            index.append(dt)
+            data = map(convert_float, toks[3:])
+            for key_i, data_i in zip(keys, data):
+                data_map[key_i].append(data_i)
+    df = PD.DataFrame(index=index, data=data_map)
+    return df, header
 
 
 def main(argv=None):
