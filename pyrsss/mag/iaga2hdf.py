@@ -1,3 +1,5 @@
+from __future__ import division
+
 import os
 import sys
 import math
@@ -7,12 +9,12 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import numpy as NP
 import pandas as PD
 from pyglow.pyglow import Point
-from geomagio.StreamConverter import (get_obs_from_geo, get_geo_from_obs)
+from geomagio.StreamConverter import get_obs_from_geo, get_geo_from_obs
 from obspy.core.stream import Stream
 from obspy.core.utcdatetime import UTCDateTime
 from obspy.core.trace import Trace
 
-from iaga2002 import parse
+from iaga2002 import iaga2df
 from ..util.angle import deg2tenths_of_arcminute
 
 logger = logging.getLogger('pyrsss.mag.iaga2hdf')
@@ -24,7 +26,7 @@ def find_value(key, headers):
     across each element of *headers* and raise an exception if
     multiple values are encountered.
     """
-    values = set([x._asdict().get(key, None) for x in headers])
+    values = set([x.get(key, None) for x in headers])
     if len(values) == 0:
         raise KeyError('{} not found'.format(key))
     elif len(values) > 1:
@@ -34,12 +36,12 @@ def find_value(key, headers):
 
 
 def reduce_headers(headers,
-                   keys=['IAGA_CODE',
-                         'Geodetic_Latitude',
-                         'Geodetic_Longitude',
+                   keys=['IAGA CODE',
+                         'Geodetic Latitude',
+                         'Geodetic Longitude',
                          'Elevation',
                          'Reported',
-                         'Comment']):
+                         'decbas']):
     """
     Search *headers* for values associated with each of *keys* and
     confirm those values are equal. Return a mapping between *keys*
@@ -69,44 +71,46 @@ def get_dec_tenths_arcminute(header, date):
     of arcminnutes in one circle).
     """
     point = Point(date,
-                  header['Geodetic_Latitude'],
-                  header['Geodetic_Longitude'],
+                  header['Geodetic Latitude'],
+                  header['Geodetic Longitude'],
                   header['Elevation'])
     point.run_igrf()
     dec_deg = point.dec
     return fix_sign(deg2tenths_of_arcminute(dec_deg))
 
 
-def build_stream(header,
-                 data_maps,
-                 channels,
-                 dec_tenths_arcminute=None,
-                 network='NT',
-                 location='R0',
-                 radians=True,
-                 default_elevation=0):
+def df2stream(df,
+              header,
+              network='NT',
+              location='R0',
+              radians=True,
+              default_elevation=0):
     """
-    Build obspy :class:`Stream` from *header* information and the data
-    arranged in *data_maps*. Use *dec_tenths_arcminute* (local
+    Build and return obspy :class:`Stream` from *header* information
+    and the :class:`DataFrame` *df*. Use *dec_tenths_arcminute* (local
     magnetic declination in determining magnetic north and east or XYZ
-    in units of tenths of arcminutes). Include data specified by
-    *channels* (a list of channel identifiers, e.g., `['x', 'y', 'z',
-    'f']` or `['H', 'D', 'z', 'f']`). If *radians*, angles in D are
-    given in degrees and must be converted to radians.
+    in units of tenths of arcminutes). If *radians*, angles in D are
+    given in degrees and must be converted to radians. If the site
+    elevation is not included in the header, use
+    *default_elevation*. The *network* and *location* identifiers are
+    used in forming the trace names in the resultant stream.
     """
-    glon = header['Geodetic_Longitude']
+    glon = header['Geodetic Longitude']
     if glon < 0:
         glon += 360
-    delta = NP.diff(data_maps[0].keys()[:2])[0].total_seconds()
+    delta = (df.index[1] - df.index[0]).total_seconds()
     fs = 1 / delta
-    d1 = data_maps[0].keys()[0]
-    d2 = data_maps[-1].keys()[-1]
+    d1 = df.index[0]
+    d2 = df.index[-1]
     d1_obj = UTCDateTime('{:%Y-%m-%d %H:%H:%S}'.format(d1))
     d2_obj = UTCDateTime('{:%Y-%m-%d %H:%H:%S}'.format(d2))
-    N = sum(map(len, data_maps))
-    stream_header = {'geodetic_latitude': header['Geodetic_Latitude'],
+    dec_tenths_arcminute = header.get('decbas',
+                                      get_dec_tenths_arcminute(header,
+                                                               d1.to_pydatetime()))
+    N = df.shape[0]
+    stream_header = {'geodetic_latitude': header['Geodetic Latitude'],
                      'geodetic_longitude': glon,
-                     'station': header['IAGA_CODE'],
+                     'station': header['IAGA CODE'],
                      'sampling_rate': fs,
                      'starttime': d1_obj,
                      'endtime': d2_obj,
@@ -118,64 +122,18 @@ def build_stream(header,
         stream_header['elevation'] = default_elevation
         logger.warning('elevation is unknown --- inserting {}'.format(default_elevation))
     traces = []
-    for channel in channels:
-        vals = NP.array([getattr(x, channel) for dm in data_maps for x in dm.itervalues()])
+    for column in df.columns:
+        channel = column[-1]
         header_i = stream_header.copy()
         header_i['channel'] = channel.upper()
         header_i['network'] = network
         header_i['location'] = location
+        vals = df[column].values
         if channel == 'D' and radians:
             vals = NP.radians(vals)
-        traces.append(Trace(data = vals,
-                            header = header_i))
+        traces.append(Trace(data=vals,
+                            header=header_i))
     return Stream(traces=traces)
-
-
-def stream2dt(stream):
-    """
-    Verify time indices of all *stream* traces are equal and return a
-    list of sample of time suitable for a :class:`DataFrame` index.
-    """
-    dt_match = None
-    for t in stream.traces:
-        if dt_match is None:
-            dt_match = [(t.stats.starttime + x).datetime for x in t.times()]
-            continue
-        dt_i = [(t.stats.starttime + x).datetime for x in t.times()]
-        if dt_match != dt_i:
-            raise ValueError('timing discrepancy detected in stream elements')
-    return dt_match
-
-
-def stream2df(geo, he=False):
-    """
-    Build and return :class:`DataFrame` from *geo* stream elements. By
-    default, these are traces x, y, z, and f. If *he*, also include
-    the mag north, h, and mag east, e, components.
-    """
-    if len(set(map(len, geo.traces))) != 1:
-        raise ValueError('size mismatch detected (dt and all geo traces should be the same length)')
-    data = {'B' + k: geo.select(channel=k).traces[0].data for k in ['x', 'y', 'z', 'f']}
-    if he:
-        for k in ['h', 'e']:
-            data['B' + k] = he.select(channel=k).traces[0].data
-    return PD.DataFrame(index=stream2dt(geo),
-                        data=data)
-
-
-
-def find_decbas(header):
-    """
-    Search IAGA *header* Comment for DECBAS. Return either this
-    quantity (declination in tenths of arcmin) or `None` if not found.
-    """
-    if 'Comment' in header:
-        if 'DECBAS' in header['Comment']:
-            for line in header['Comment'].split('\n'):
-                if line.startswith('DECBAS'):
-                    _, decbas_str, _ = line.split(None, 2)
-                    return float(decbas_str)
-    return None
 
 
 def write_hdf(hdf_fname, df, key, header):
@@ -202,71 +160,77 @@ def read_hdf(hdf_fname, key):
         return df, header
 
 
-def iaga2df(iaga2002_fnames, he=False, strict=False):
+def combine_iaga(iaga2002_fnames):
     """
-    Convert the data contained in the IAGA2002 data records
-    *iaga2002_fnames* to a :class:`DataFrame`. If *he*, store the h
-    (mag north) and e (mag east) components. If *strict*, use strict
-    conformity checks when parsing the IAGA 2002 records. Return the
-    tuple containing the data frame and the reduced header record
-    (reduced by verifying that key elements are shared across all data
-    records --- see :func:`reduce_headers`).
+    Load one or more IAGA-2002 data records *iaga_fnames* and
+    concatenate the data into a single :class:`DataFrame` record.
     """
-    headers = []
-    data_maps = []
-    for fname in iaga2002_fnames:
-        logger.info('reading {}'.format(fname))
-        header_i, data_map_i = parse(fname, strict=strict)
-        headers.append(header_i)
-        data_maps.append(data_map_i)
-    header = reduce_headers(headers)
-    if header['Reported'] not in ['XYZF', 'HDZF']:
-        raise NotImplementedError('only XYZF and HDZF are implemented')
-    if (he and header['Reported'] == 'XYZF') or \
-       (header['Reported'] in ['HDZF', 'HEZF']):
-        decbas = find_decbas(header)
-        if decbas:
-            dec_tenths_arcminute = decbas
-        else:
-            date = data_maps[0].iterkeys().next()
-            dec_tenths_arcminute = getb_dec_tenths_arcminute(header,
-                                                            date)
-    else:
-        logger.warning('DECBASE is unknown')
-        dec_tenths_arcminute = None
-    if header['Reported'] == 'XYZF':
-        geo = build_stream(header,
-                           data_maps,
-                           ['x', 'y', 'z', 'f'],
-                           dec_tenths_arcminute=dec_tenths_arcminute)
-        obs = get_obs_from_geo(geo) if he else False
-    elif header['Reported'] == 'HDZF':
-        assert dec_tenths_arcminute is not None
-        obs = build_stream(header,
-                           data_maps,
-                           ['H', 'D', 'z', 'f'],
-                           dec_tenths_arcminute=int(dec_tenths_arcminute))
-        geo = get_geo_from_obs(obs)
-        obs = obs if he else None
-    else:
-        assert False
-    df = stream2df(geo, he=obs)
-    return df, header
+    df_list = []
+    header_list = []
+    for iaga2002_fname in iaga2002_fnames:
+        df_i, header_i = iaga2df(iaga2002_fname)
+        df_list.append(df_i)
+        header_list.append(header_i)
+    return PD.concat(df_list), reduce_headers(header_list)
+
+
+def xy2df(df, header):
+    """
+    Add `B_X` and `B_Y` (surface magnetic field in geographic
+    coordinates, X is north and Y is east) to the :class:`DataFrame`
+    *df* and return. The record *header* is necessary to carry out the
+    coordinate transformation.
+    """
+    obs = df2stream(df, header)
+    geo = get_geo_from_obs(obs)
+    return df.assign(B_X=geo.select(channel='X').traces[0].data,
+                     B_Y=geo.select(channel='Y').traces[0].data)
+
+
+def he2df(df, header):
+    """
+    Add `B_H` and `B_E` (surface magnetic field in local geomagnetic
+    coordinates, H is local north and E is local east) to the
+    :class:`DataFrame` *df* and return. The record *header* is
+    necessary to carry out the coordinate transformation.
+    """
+    geo = df2stream(df, header)
+    obs = get_obs_from_geo(geo)
+    return df.assign(B_H=obs.select(channel='H').traces[0].data,
+                     B_E=obs.select(channel='E').traces[0].data)
+
+
+def add_columns(df, header, xy, he):
+    """
+    Add columns to *df* as needed and return a new :class:`DataFrame`,
+    reporting magnetic field in additional coordinates systems. If
+    *xy*, ensure data are provided in geographic XYZ coordinates. If
+    *he*, ensure data are provided in local geomagnetic HEZ
+    coordinates.
+    """
+    assert 'B_Z' in df.columns
+    if xy:
+        if not all([x in df.columns for x in ['B_X', 'B_Y']]):
+            df = xy2df(df, header)
+    if he:
+        if not all([x in df.columns for x in ['B_H', 'B_E']]):
+            df = he2df(df, header)
+    return df
 
 
 def iaga2hdf(hdf_fname,
              iaga2002_fnames,
+             xy=True,
              he=False,
-             key='B_raw',
-             strict=False):
+             key='B_raw'):
     """
     Convert data found in IAGA 2002 files *iaga2002_fnames* to an HDF
-    record at *hdf_fanme*. Write to the HDF record associated with
-    *key*. If *he*, store the h (mag north) and e (mag east)
-    components. If *strict*, use strict conformity checks when parsing
-    the IAGA 2002 records.
+    record at *hdf_fname*. Write to the HDF record associated with
+    *key*. If *he*, store the H (mag north) and E (mag east)
+    components.
     """
-    df, header = iaga2df(iaga2002_fnames, he=he, strict=strict)
+    df, header = combine_iaga(iaga2002_fnames)
+    df = add_columns(df, header, xy, he)
     write_hdf(hdf_fname, df, key, {k.lower(): v for k, v in header.iteritems()})
     return hdf_fname
 
