@@ -310,10 +310,11 @@ def parse_header(fid):
     return header, cols
 
 
-def iaga2df(iaga2002_fname):
+def iaga2df(iaga2002_fname, D_to_radians=True):
     """
     Parser the magnetometer data record stored in the IAGA-2002 format
-    file *iaga2002_fname*. Return the tuple with the
+    file *iaga2002_fname*. If *D_to_radians*, declination data (D) are
+    converted from degrees to radians. Return the tuple with the
     :class:`DataFrame` containing the data and header information
     """
     with open(iaga2002_fname) as fid:
@@ -329,6 +330,8 @@ def iaga2df(iaga2002_fname):
             index.append(dt)
             data = map(convert_float, toks[3:])
             for key_i, data_i in zip(keys, data):
+                if key_i == 'B_D' and D_to_radians:
+                    data_i = math.radians(data_i)
                 data_map[key_i].append(data_i)
     df = PD.DataFrame(index=index, data=data_map)
     return df, header
