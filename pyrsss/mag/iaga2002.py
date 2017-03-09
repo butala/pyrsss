@@ -255,14 +255,23 @@ def parse(fname, strict=True):
     return header, data_map
 
 
-def split_key_value(line, header_types=HEADER_TYPES):
+
+"""Type conversions for IAGA-2002 header values keyed by
+identifier."""
+CONVERT_MAP = defaultdict(lambda: str,
+                          [('Geodetic Latitude', float),
+                           ('Geodetic Longitude', float),
+                           ('Elevation', float)])
+
+
+def split_key_value(line, convert_map=CONVERT_MAP):
     """
     Split IAGA-2002 header string *line* and return the tuple key and
     value pair. Convert the value type according to the
     """
     key = line[1:24].strip()
     value = line[24:69].strip()
-    return key, header_types[key](value)
+    return key, convert_map[key](value)
 
 
 def get_decbas(line):
