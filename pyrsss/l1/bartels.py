@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from intervals import DateTimeInterval
 
-logger = logging.getLogger('pyrsss.ace.bartels')
+logger = logging.getLogger('pyrsss.l1.bartels')
 
 
 BARTELS_URL = 'http://www.srl.caltech.edu/ACE/ASC/DATA/bartels/bartels.txt'
