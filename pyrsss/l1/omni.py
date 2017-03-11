@@ -1,9 +1,14 @@
+import os
 import logging
 from collections import defaultdict
+from datetime import datetime, timedelta
+from calendar import monthrange
 
 import pandas as PD
 
 from ..util.fortran import descriptor2colspecs
+
+logger = logging.getLogger('pyrsss.l1.omni')
 
 
 """
@@ -238,8 +243,44 @@ def parse(omni_fname,
     the column identifiers *names*, and acceptable NaN column mapping
     *na_values*.
     """
-    return PD.read_fwf(omni_fname,
-                       colspecs=colspecs,
-                       header=None,
-                       names=names,
-                       na_values=na_values)
+    df = PD.read_fwf(omni_fname,
+                     colspecs=colspecs,
+                     header=None,
+                     names=names,
+                     na_values=na_values,
+                     parse_dates={'date': [0, 1, 2, 3]},
+                     date_parser=lambda x: datetime.strptime(x, '%Y %j %H %M'))
+    df.set_index('date', inplace=True)
+    return df
+
+
+def get_record(omni_path,
+               d1,
+               d2,
+               template='omni_min{year:04d}{month:02d}.asc',
+               inclusive=True):
+    """
+    Gather an OMNI data record spanning *d1* to *d2* and return a
+    :class:`PD.DataFrame`. Use file OMNI data record file names
+    specified by *template*. If *inclusive*, the range is *d1* to *d2*
+    with equality on both bounds.
+    """
+    df_list = []
+    for year in range(d1.year, d2.year + 1):
+        for month in range(1, 13):
+            date1 = datetime(year, month, 1)
+            date2 = date1 + timedelta(days=monthrange(year, month)[1])
+            if not (date1 <= d1 <= date2 or date1 <= d2 <= date2):
+                continue
+            omni_fname = os.path.join(omni_path,
+                                      template.format(year=year,
+                                                      month=month))
+            if not os.path.isfile(omni_fname):
+                logger.warning('could not find {} --- skipping'.format(omni_fname))
+                continue
+            df_list.append(parse(omni_fname))
+    df = PD.concat(df_list)
+    if inclusive:
+        return df[d1:d2]
+    else:
+        return df[d1:d2].iloc[:-1]
