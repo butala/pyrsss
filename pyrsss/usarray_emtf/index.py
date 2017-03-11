@@ -3,7 +3,7 @@ import logging
 import cPickle
 from glob import glob
 
-from ..gmd.calc_e_3d import parse_xml_header
+from ..emtf.calc_e_3d import parse_xml_header
 from ..util.distance import distance
 
 logger = logging.getLogger('pyrsss.usarray_emtf.index')

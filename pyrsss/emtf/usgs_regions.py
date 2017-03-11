@@ -11,7 +11,7 @@ from shapely.geometry import Point
 from ..util.path import SmartTempDir
 from ..util.angle import convert_lon
 
-logger = logging.getLogger('pyrsss.gmd.usgs_regions')
+logger = logging.getLogger('pyrsss.emtf.usgs_regions')
 
 
 KMZ_URL = 'https://geomag.usgs.gov/conductivity/ConductivityRegions.kmz'

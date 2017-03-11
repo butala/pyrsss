@@ -12,7 +12,7 @@ from  ..usarray_emtf.index import get_index, Index
 from usgs_regions import get_region
 
 
-logger = logging.getLogger('pyrsss.gmd.e2hdf')
+logger = logging.getLogger('pyrsss.emtf.e2hdf')
 
 
 def find_1D(header):
