@@ -279,7 +279,7 @@ def get_decbas(line):
     Retrieve the baseline declination (typically in tenths of minutes
     East) from the IAGA-2002 header *line*.
     """
-    assert line.startswith(' # DECBAS')
+    assert line.startswith(' # DECBAS') or line.startswith(' # D-conversion factor')
     return int(line[24:69].split(None, 1)[0])
 
 
@@ -300,7 +300,7 @@ def parse_header(fid):
             toks = line[:69].split()
             cols = [x[-1] for x in toks[3:]]
             break
-        elif line.startswith(' # DECBAS'):
+        elif line.startswith(' # DECBAS') or line.startswith(' # D-conversion factor'):
             header['decbas'] = get_decbas(line)
         elif line.startswith(' #'):
             continue
