@@ -278,6 +278,7 @@ def get_record(omni_path,
             if not os.path.isfile(omni_fname):
                 logger.warning('could not find {} --- skipping'.format(omni_fname))
                 continue
+            logger.info('parsing {}'.format(omni_fname))
             df_list.append(parse(omni_fname))
     df = PD.concat(df_list)
     if inclusive:
