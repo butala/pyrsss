@@ -166,8 +166,8 @@ def consecutive_nans(x, y):
 def process_timeseries(dt,
                        Bx,
                        By,
-                       c1='Bx',
-                       c2='By',
+                       c1='B_X',
+                       c2='B_Y',
                        remove_mean=True):
     """
     Process surface magnetic field measurement time series with
@@ -217,20 +217,20 @@ def process(hdf_fname,
     logger.info('processing {}'.format(hdf_fname))
     df_raw, header = read_hdf(hdf_fname, source_key)
     dt = [PD.to_datetime(x).to_pydatetime() for x in df_raw.index.values]
-    Bx_raw = df_raw['Bx'].values * 1e-9
-    By_raw = df_raw['By'].values * 1e-9
+    Bx_raw = df_raw['B_X'].values * 1e-9
+    By_raw = df_raw['B_Y'].values * 1e-9
     df_filtered = process_timeseries(dt,
                                      Bx_raw,
                                      By_raw,
                                      remove_mean=remove_mean)
     if he:
-        Bh_raw = df_raw['Bh'].values * 1e-9
-        Be_raw = df_raw['Be'].values * 1e-9
+        Bh_raw = df_raw['B_H'].values * 1e-9
+        Be_raw = df_raw['B_E'].values * 1e-9
         df_he_filtered = process_timeseries(dt,
                                             Bh_raw,
                                             Be_raw,
-                                            c1='Bh',
-                                            c2='Be',
+                                            c1='B_H',
+                                            c2='B_E',
                                             remove_mean=remove_mean)
         df_filtered = df_filtered.join(df_he_filtered)
     write_hdf(hdf_fname, df_filtered, key, header)
