@@ -12,7 +12,7 @@ def fetch_usgs(out_path,
                type='variation',
                interval='second',
                he=False,
-               out_template='{stn}{date:%Y%m%d}vsec.sec'):
+               out_template='{stn}{date:%Y%m%d}v{suffix}.{suffix}'):
     """
     Fetch USGS magnetometer data for *date* at *stn*. Store the data
     in IAGA2002 format and return the file name (*out_template* serves
@@ -22,7 +22,8 @@ def fetch_usgs(out_path,
     """
     out_fname = os.path.join(out_path,
                              out_template.format(stn=stn.lower(),
-                                                 date=date))
+                                                 date=date,
+                                                 suffix=interval[:3]))
 
     input_factory = geomagio.edge.EdgeFactory()
     timeseries = input_factory.get_timeseries(
