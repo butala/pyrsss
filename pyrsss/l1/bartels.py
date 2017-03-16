@@ -116,7 +116,7 @@ def parse(local_fname=BARTELS_FNAME,
 class Bartels(dict):
     def __new__(cls, local_fname=BARTELS_FNAME):
         """
-        Build a new Bartels rotation information objecy.
+        Build a new Bartels rotation information object.
         """
         obj = super(Bartels, cls).__new__(cls)
         parse(local_fname=local_fname, data_map=obj)
