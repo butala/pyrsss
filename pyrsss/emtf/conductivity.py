@@ -37,12 +37,14 @@ def surface_impedance_1D(conductivity_map, omega):
     """
     # start at bottom layer
     sigma = conductivity_map.values()[-1]
-    # (5)
+    # (5) in NERC, Application Guide: Computing
+    # geomagnetically-induced current in the bulk power-system, 2013.
+    #
+    # http://www.nerc.com/pa/Stand/Project201303GeomagneticDisturbanceMitigation/GIC%20Application%20Guide%202013_approved.pdf
     k = NP.sqrt(1j * omega * scipy.constants.mu_0 * sigma)
     # (6)
     Z = 1j * omega * scipy.constants.mu_0 / k
     # iterate in reversed order (i.e., interior to exterior) and skip the bottom layer
-    # print(Z)
     for interval_i, sigma_i in conductivity_map.items()[-1::-1]:
         k = NP.sqrt(1j * omega * scipy.constants.mu_0 * sigma_i)
         # (7)
