@@ -194,6 +194,14 @@ def he2df(df, header):
     :class:`DataFrame` *df* and return. The record *header* is
     necessary to carry out the coordinate transformation.
     """
+    if ('B_F' not in df.columns):
+        # The USGS geomag-algorithms module requires the magnetic
+        # field magnitude B_F to transform from XY to HE --- add the
+        # B_F column if it is not present
+        values = zip(df['B_X'].values,
+                     df['B_Y'].values,
+                     df['B_Z'].values)
+        df = df.assign(B_F=[NP.linalg.norm([x, y, z]) for x, y, z in values])
     geo = df2stream(df, header)
     obs = get_obs_from_geo(geo)
     return df.assign(B_H=obs.select(channel='H').traces[0].data,
