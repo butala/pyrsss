@@ -26,7 +26,7 @@ def find_value(key, headers):
     across each element of *headers* and raise an exception if
     multiple values are encountered.
     """
-    values = set([x.get(key, None) for x in headers])
+    values = set([x[key] for x in headers])
     if len(values) == 0:
         raise KeyError('{} not found'.format(key))
     elif len(values) > 1:
@@ -47,7 +47,15 @@ def reduce_headers(headers,
     confirm those values are equal. Return a mapping between *keys*
     and each unique value.
     """
-    return {k: find_value(k, headers) for k in keys}
+    reduced_header = {}
+    for key in keys:
+        try:
+            value = find_value(key, headers)
+        except KeyError:
+            logger.warning('Entry for {} not found in IAGA headers --- skipping'.format(key))
+            continue
+        reduced_header[key] = value
+    return reduced_header
 
 
 def fix_sign(x, N=360 * 60 * 10):
@@ -107,6 +115,7 @@ def df2stream(df,
     dec_tenths_arcminute = header.get('decbas',
                                       get_dec_tenths_arcminute(header,
                                                                d1.to_pydatetime()))
+    logger.info('using declination baseline = {:.1f} (tenths of arcminutes)'.format(dec_tenths_arcminute))
     N = df.shape[0]
     stream_header = {'geodetic_latitude': header['Geodetic Latitude'],
                      'geodetic_longitude': glon,

@@ -301,7 +301,10 @@ def parse_header(fid):
             cols = [x[-1] for x in toks[3:]]
             break
         elif line.startswith(' # DECBAS') or line.startswith(' # D-conversion factor'):
-            header['decbas'] = get_decbas(line)
+            try:
+                header['decbas'] = get_decbas(line)
+            except:
+                logger.warning('parse error retrieving baseline declination angle from "{}"'.format(line.strip()))
         elif line.startswith(' #'):
             continue
         else:
