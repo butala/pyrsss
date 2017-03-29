@@ -48,20 +48,25 @@ def spectrum(x,
             NP.fft.fftshift(f))
 
 
-# def convolve(x, y, T_s=1):
-#     """
-#     ???
-#     """
-#     N_x = len(x)
-#     N_y = len(y)
-#     # compute the power next largest power of 2
-#     N2_x = int(math.ceil(math.log(N_x, 2)))
-#     N2_y = int(math.ceil(math.log(N_y, 2)))
-#     N2 = max(N2_x, N2_y)
-#     # compute FFTs
-#     X = NP.fft.fft(x, n=N2)
-#     Y = NP.fft.fft(y, n=N2)
-
+def blackman_tukey(x, L, M, window='boxcar', d=1):
+    """
+    Compute the Blackman-Tukey power spectral density (PSD) estimate
+    of the time-domain signal *x*. Compute the estimate at *L*
+    uniformly spaced frequency samples where *d* is the time domain
+    sample interval. Use the spectral window with identifier *window*
+    (see the options in :func:scipy.`signal.get_window`) and length
+    *M* (i.e., the maximum auto-correlation lag to include in the
+    estimate). Return the tuple containing the length *L* PSD estimate
+    and length *L* corresponding frequencies.
+    """
+    N = len(x)
+    assert M <= N
+    rxx_hat = scipy.signal.convolve(x_i, NP.conj(x_i[::-1]), mode='full') / N
+    w = scipy.signal.get_window(window, 2 * M - 1, fftbins=False)[M-1:]
+    z = NP.fft.fft(w * rxx_hat[(N-1):((N-1) + M)], n=L)
+    P_hat_BT = NP.fft.fftshift(2 * NP.real(z) - NP.real(rxx_hat[N-1]))
+    f = NP.fft.fftshift(NP.fft.fftfreq(L, d=d))
+    return (P_hat_BT, f)
 
 
 def lp_fir_type(h):
