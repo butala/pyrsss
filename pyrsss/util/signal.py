@@ -61,7 +61,7 @@ def blackman_tukey(x, L, M, window='boxcar', d=1):
     """
     N = len(x)
     assert M <= N
-    rxx_hat = scipy.signal.convolve(x_i, NP.conj(x_i[::-1]), mode='full') / N
+    rxx_hat = scipy.signal.convolve(x, NP.conj(x[::-1]), mode='full') / N
     w = scipy.signal.get_window(window, 2 * M - 1, fftbins=False)[M-1:]
     z = NP.fft.fft(w * rxx_hat[(N-1):((N-1) + M)], n=L)
     P_hat_BT = NP.fft.fftshift(2 * NP.real(z) - NP.real(rxx_hat[N-1]))
