@@ -36,37 +36,51 @@ def spectrum(x,
     """
     ???
     """
-    N = nextpow2(len(x)) * oversample
+    assert oversample >= 1 and isinstance(oversample, int)
+    N = nextpow2(len(x)) * 2**(oversample - 1)
     X = NP.fft.fft(x, n=N) * T_s
     f = NP.fft.fftfreq(N, d=T_s)
     if n0 != 0:
-        X *= NP.exp(-1j * 2 * math.pi * NP.arange(N) * (n0 + (N - len(x))) / N)
-        #print(NP.exp(-1j * 2 * math.pi * NP.arange(N) * (n0 + (N - len(x))) / N))
-        # HACK
-        X[f < 0] *= -1
+        X *= NP.exp(-1j * 2 * math.pi * NP.arange(N) * n0 / N)
     return (NP.fft.fftshift(X),
             NP.fft.fftshift(f))
 
 
-def blackman_tukey(x, L, M, window='boxcar', d=1):
+def blackman_tukey(x,
+                   M,
+                   L,
+                   y=None,
+                   window='boxcar',
+                   window_args=[],
+                   d=1):
     """
-    Compute the Blackman-Tukey power spectral density (PSD) estimate
-    of the time-domain signal *x*. Compute the estimate at *L*
-    uniformly spaced frequency samples where *d* is the time domain
-    sample interval. Use the spectral window with identifier *window*
-    (see the options in :func:scipy.`signal.get_window`) and length
-    *M* (i.e., the maximum auto-correlation lag to include in the
-    estimate). Return the tuple containing the length *L* PSD estimate
-    and length *L* corresponding frequencies.
+    Compute the Blackman-Tukey cross power spectral density (PSD)
+    estimate between the time-domain signals *x* and *y* (must be the
+    same length as *x*). If *y* is not given, compute the power
+    spectral density estimate of *x*.  Use the spectral window with
+    identifier *window* (see the options in
+    :func:scipy.`signal.get_window`, e.g., a tuple can be used to pass
+    arguments to the window function) and length *M* (i.e., the
+    maximum auto-correlation lag to include in the estimate). Compute
+    the estimate at *L* uniformly spaced frequency samples where *d*
+    is the time domain sample interval. Return the tuple containing
+    the length *L* PSD estimate and length *L* corresponding
+    frequencies.
     """
     N = len(x)
     assert M <= N
-    rxx_hat = scipy.signal.convolve(x, NP.conj(x[::-1]), mode='full') / N
-    w = scipy.signal.get_window(window, 2 * M - 1, fftbins=False)[M-1:]
-    z = NP.fft.fft(w * rxx_hat[(N-1):((N-1) + M)], n=L)
-    P_hat_BT = NP.fft.fftshift(2 * NP.real(z) - NP.real(rxx_hat[N-1]))
-    f = NP.fft.fftshift(NP.fft.fftfreq(L, d=d))
-    return (P_hat_BT, f)
+    if y is None:
+        y = x
+    else:
+        assert len(y) == N
+    Rxy = scipy.signal.correlate(x, y) / N
+    Rxy_window = Rxy[(N - 1) - M:(N - 1) + M + 1]
+    window = scipy.signal.get_window(window, 2*M + 1, fftbins=False)
+    k_range = NP.arange(0, L)
+    shift = NP.exp(2j * NP.pi * k_range * M / L)
+    Sxy = NP.fft.fftshift(NP.fft.fft(window * Rxy_window, n=L) * shift)
+    f = NP.fft.fftfreq(L, d=d)
+    return (Sxy, f)
 
 
 def lp_fir_type(h):
