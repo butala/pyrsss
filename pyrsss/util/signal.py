@@ -89,6 +89,19 @@ def blackman_tukey(x,
         return (Sxy, f)
 
 
+def periodogram(x,
+                L,
+                y=None,
+                d=1,
+                full=False):
+    """
+    Compute the periodogram of the cross power spectral density of *x*
+    and *y*. The implementation is based on :func:`blackman-tukey`,
+    following the same input and output conventions.
+    """
+    return blackman_tukey(x, len(x) - 1, L, y=y, d=d, full=full)
+
+
 def lp_fir_type(h):
     """
     Determine if FIR filter impulse response *h* is symmetric or
