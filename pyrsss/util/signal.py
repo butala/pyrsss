@@ -52,7 +52,8 @@ def blackman_tukey(x,
                    y=None,
                    window='boxcar',
                    window_args=[],
-                   d=1):
+                   d=1,
+                   full=False):
     """
     Compute the Blackman-Tukey cross power spectral density (PSD)
     estimate between the time-domain signals *x* and *y* (must be the
@@ -63,9 +64,11 @@ def blackman_tukey(x,
     arguments to the window function) and length *M* (i.e., the
     maximum auto-correlation lag to include in the estimate). Compute
     the estimate at *L* uniformly spaced frequency samples where *d*
-    is the time domain sample interval. Return the tuple containing
-    the length *L* PSD estimate and length *L* corresponding
-    frequencies.
+    is the time domain sample interval. If not *full*, return the
+    tuple containing the length *L* PSD estimate and length *L*
+    corresponding frequencies. If *full*, also return the estimated
+    cross correlation and window function (i.e., a tuple with four
+    elements).
     """
     N = len(x)
     assert M <= N
@@ -78,9 +81,12 @@ def blackman_tukey(x,
     window = scipy.signal.get_window(window, 2*M + 1, fftbins=False)
     k_range = NP.arange(0, L)
     shift = NP.exp(2j * NP.pi * k_range * M / L)
-    Sxy = NP.fft.fftshift(NP.fft.fft(window * Rxy_window, n=L) * shift)
+    Sxy = NP.fft.fftshift(NP.fft.fft(window * Rxy_window, n=L) * shift) * d
     f = NP.fft.fftfreq(L, d=d)
-    return (Sxy, f)
+    if full:
+        return (Sxy, f, Rxy, window)
+    else:
+        return (Sxy, f)
 
 
 def lp_fir_type(h):
