@@ -295,7 +295,8 @@ def parse_header(fid):
     header = OrderedDict()
     for line in fid:
         if line[69] != '|':
-            raise RuntimeError('malformed header line: {}'.format(line))
+            logger.warning('skipping malformed header line: {}'.format(line))
+            continue
         if line.startswith('DATE'):
             toks = line[:69].split()
             cols = [x[-1] for x in toks[3:]]
