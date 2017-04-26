@@ -1,3 +1,17 @@
+from __future__ import division
+
+from itertools import izip
+
+from scipy.linalg import cho_factor, cho_solve
+
+
+def is_row_vector(x):
+    """
+    ???
+    """
+    return x.ndim == 2 and x.shape[1] == 1
+
+
 def kalman_filter(y, H, R, F, Q, mu, PI, z=None):
     """
     ???
