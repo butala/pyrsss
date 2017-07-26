@@ -61,6 +61,7 @@ setup(name='pyrsss',
                 'pyrsss.l1',
                 'pyrsss.mag',
                 'pyrsss.stats',
+                'pyrsss.usarray',
                 'pyrsss.usarray_emtf',
                 'pyrsss.util'],
       ext_modules=ext_modules)
