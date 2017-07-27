@@ -15,7 +15,7 @@ File name to associate the EMTF repository index.
 """
 
 
-class Index(dict):
+class EMTFIndex(dict):
     def __init__(self, repository_path):
         """
         Initialize the EMTF repository index based on the .xml files found
@@ -31,10 +31,10 @@ class Index(dict):
 
     def quality_subset(self, min_quality=5):
         """
-        Return the :class:`Index` corresponding to those EMTFs with a
+        Return the :class:`EMTFIndex` corresponding to those EMTFs with a
         quality index of at least *min_quality*.
         """
-        index = super(Index, self).__new__(Index)
+        index = super(EMTFIndex, self).__new__(EMTFIndex)
         for key, (info, fname) in self.iteritems():
             if info['rating'] >= min_quality:
                 index[key] = (info, fname)
@@ -42,7 +42,7 @@ class Index(dict):
 
     def by_distance(self, lat, lon, d_km):
         """
-        Return the :class:`Index` corresponding to those EMTFs within
+        Return the :class:`EMTFIndex` corresponding to those EMTFs within
         *d_km* (in km) of geodetic *lat* and *lon*.
         """
         usarray_lat, usarray_lon = [], []
@@ -53,7 +53,7 @@ class Index(dict):
         lon_list = [lon] * len(usarray_lon)
         d = distance(lat_list, lon_list,
                      usarray_lat, usarray_lon)
-        index = super(Index, self).__new__(Index)
+        index = super(EMTFIndex, self).__new__(EMTFIndex)
         for d_i, (k, v) in zip(d, self.iteritems()):
             if d_i <= d_km:
                 index[k] = v
@@ -66,7 +66,7 @@ def update(repository_path, pkl_fname=PKL_FNAME):
     based on the .xml files found at *repository_path*. Return name of
     the pickle file storing the index.
     """
-    index = Index(repository_path)
+    index = EMTFIndex(repository_path)
     pkl_fullpath = os.path.join(repository_path,
                                 pkl_fname)
     logger.info('updating index file {}'.format(pkl_fullpath))
