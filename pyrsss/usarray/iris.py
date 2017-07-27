@@ -20,21 +20,29 @@ def fetch(stn, dt1, dt2, location=0):
     client = Client('IRIS')
     lfe = client.get_waveforms('EM', stn, location, 'LFE', d1, d2)
     lfn = client.get_waveforms('EM', stn, location, 'LFN', d1, d2)
+    lfz = client.get_waveforms('EM', stn, location, 'LFZ', d1, d2)
     lqe = client.get_waveforms('EM', stn, location, 'LQE', d1, d2)
     lqn = client.get_waveforms('EM', stn, location, 'LQN', d1, d2)
     # time sanity checks
     assert lfe.traces[0].meta.starttime == lfn.traces[0].meta.starttime \
-        == lqe.traces[0].meta.starttime == lqn.traces[0].meta.starttime
+        == lfe.traces[0].meta.starttime == lqe.traces[0].meta.starttime \
+        == lqn.traces[0].meta.starttime
     assert (lfe.traces[0].times() == lfn.traces[0].times()).all()
+    assert (lfe.traces[0].times() == lfz.traces[0].times()).all()
     assert (lfe.traces[0].times() == lqe.traces[0].times()).all()
     assert (lfe.traces[0].times() == lqn.traces[0].times()).all()
     dt = [(lfe.traces[0].meta.starttime + x).datetime for x in lfe.traces[0].times()]
     # build DataFrame
     Bx = lfn.traces[0].data
     By = lfe.traces[0].data
+    Bz = lfz.traces[0].data
     Ex = lqn.traces[0].data
     Ey = lqe.traces[0].data
-    return PD.DataFrame(index=dt, data={'Bx': Bx, 'By': By, 'Ex': Ex, 'Ey': Ey})
+    return PD.DataFrame(index=dt, data={'B_X': Bx,
+                                        'B_Y': By,
+                                        'B_Z': Bz,
+                                        'E_X': Ex,
+                                        'E_Y': Ey})
 
 
 def main(argv=None):
