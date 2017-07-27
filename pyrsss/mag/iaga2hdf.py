@@ -248,6 +248,11 @@ def iaga2hdf(hdf_fname,
     """
     df, header = combine_iaga(iaga2002_fnames)
     df = add_columns(df, header, xy, he)
+    # change header names
+    if 'Geodetic Latitude' in header:
+        header['geodetic_latitude'] = header.pop('Geodetic Latitude')
+    if 'Geodetic Longitude' in header:
+        header['geodetic_longitude'] = header.pop('Geodetic Longitude')
     write_hdf(hdf_fname, df, key, {k.lower(): v for k, v in header.iteritems()})
     return hdf_fname
 
