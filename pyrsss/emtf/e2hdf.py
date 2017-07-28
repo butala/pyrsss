@@ -8,7 +8,7 @@ import pandas as PD
 from calc_e import apply_transfer_function as tf_1D
 from calc_e_3d import apply_transfer_function as tf_3D
 from ..mag.iaga2hdf import read_hdf, write_hdf
-from  ..usarray_emtf.index import get_index, Index
+from ..usarray_emtf.index import get_index
 from usgs_regions import get_region
 
 
@@ -54,15 +54,15 @@ def apply_emtf(df_E,
     """
     logger.info('applying transfer function {}'.format(emtf_key))
     interval = NP.diff(df_B.index.values[:2])[0] / NP.timedelta64(1, 's')
-    Bx = df_B.Bx.values
-    By = df_B.By.values
+    Bx = df_B.B_X.values
+    By = df_B.B_Y.values
     if emtf_key.startswith('USArray'):
         xml_fname = index[emtf_key][1]
         Ex, Ey = tf_3D(Bx, By, interval, xml_fname)
     else:
         Ex, Ey = tf_1D(Bx, By, interval, emtf_key)
-    df_E[emtf_key + '_x'] = Ex
-    df_E[emtf_key + '_y'] = Ey
+    df_E[emtf_key + '_X'] = Ex
+    df_E[emtf_key + '_Y'] = Ey
     return df_E
 
 
@@ -74,11 +74,12 @@ def e2hdf(hdf_fname,
           exclude=[],
           _3D=None,
           _1D=False,
-          quality=5):
+          quality=5,
+          verbose=True):
     """
     Add modeled E columns to the :class:`DataFrame` record stored at
-    *hdf_fname*. The input to the process (processed magnetometer Bx
-    and By) are found at *source_key* and the output (Ex and Ey for
+    *hdf_fname*. The input to the process (processed magnetometer B_X
+    and B_Y) are found at *source_key* and the output (E_X and E_Y for
     various models) is stored associated with *key*. If *replace*,
     replace the *key* data record otherwise add to the data
     record. The following control which EMTFs are applied:
@@ -98,6 +99,9 @@ def e2hdf(hdf_fname,
     - *quality*: exclude USArray 3-D EMTFs with flagged at a quality
                  index less than the specified values (5 being the
                  highest)
+
+    If *verbose*, then report the set of applied EMTFs to the logging
+    facilities.
     """
     # setup target DataFrame
     df, header = read_hdf(hdf_fname, source_key)
@@ -127,6 +131,8 @@ def e2hdf(hdf_fname,
     else:
         index = None
     # apply EMTFs
+    if verbose:
+        logger.info('Applying EMTFs: {}'.format(', '.join(sorted(emtf_set))))
     for emtf_key in sorted(emtf_set):
         df_e = apply_emtf(df_e, df, emtf_key, index)
     # output DataFrame
