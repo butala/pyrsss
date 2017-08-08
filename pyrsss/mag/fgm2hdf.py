@@ -12,7 +12,7 @@ from obspy.core.utcdatetime import UTCDateTime
 from obspy.core.trace import Trace
 
 from fgm2iaga import parse
-from iaga2hdf import get_dec_tenths_arcminute, stream2df, write_hdf
+from iaga2hdf import get_dec_tenths_arcminute, write_hdf
 
 logger = logging.getLogger('pyrsss.mat.fgm2hdf')
 
@@ -56,36 +56,13 @@ def build_header(data_list,
     header['sampling_rate'] = fs
     if baseline_declination is None:
         d = {'starttime': header['starttime'],
-             'Geodetic_Latitude': header['geodetic_latitude'],
-             'Geodetic_Longitude': header['geodetic_longitude'],
+             'Geodetic Latitude': header['geodetic_latitude'],
+             'Geodetic Longitude': header['geodetic_longitude'],
              'Elevation': header['elevation']}
         baseline_declination = get_dec_tenths_arcminute(d, d1)
     header['declination_base'] = baseline_declination
     header['npts'] = sum(map(len, data_list))
     return header
-
-
-def build_stream(header,
-                 data_list,
-                 network='NT',
-                 location='R0',
-                 he=False):
-    """
-    Build obspy :class:`Stream` from the data arranged in
-    *data_list*.
-    """
-    traces = []
-    for channel in ['x', 'y', 'z', 'f']:
-        vals = []
-        for data_i in data_list:
-            vals.extend(data_i[channel])
-        header_i = header.copy()
-        header_i['channel'] = channel.upper()
-        header_i['network'] = network
-        header_i['location'] = location
-        traces.append(Trace(data = NP.array(vals),
-                            header = header_i))
-    return Stream(traces=traces)
 
 
 def fgm2hdf(hdf_fname,
@@ -105,10 +82,13 @@ def fgm2hdf(hdf_fname,
         data_list.append(parse(fgm_fname))
     header = build_header(data_list,
                           elevation=elevation)
-    geo = build_stream(header,
-                       data_list)
-    obs = get_obs_from_geo(geo) if he else False
-    df = stream2df(geo, he=obs)
+
+    df = PD.concat([x[['x', 'y', 'z', 'f']] for x in data_list])
+    df.rename(columns={'x': 'B_X',
+                       'y': 'B_Y',
+                       'z': 'B_Z',
+                       'f': 'B_F'},
+              inplace=True)
     write_hdf(hdf_fname, df, key, header)
     return hdf_fname
 
@@ -127,15 +107,11 @@ def main(argv=None):
                         metavar='fgm_fname',
                         nargs='*',
                         help='input FGM file (in time order)')
-    parser.add_argument('--he',
-                        action='store_true',
-                        help='include data in HE coordinate')
 
     args = parser.parse_args(argv[1:])
 
     fgm2hdf(args.hdf_fname,
-            args.fgm_fnames,
-            he=args.he)
+            args.fgm_fnames)
 
 
 if __name__ == '__main__':
