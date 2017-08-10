@@ -74,7 +74,8 @@ def fgm2hdf(hdf_fname,
     Convert data found in FGM files *fgm_fnames* to an HDF record at
     *hdf_fname*. Write to the HDF record associated with *key*. If
     *he*, store the h (mag north) and e (mag east) components. Use
-    *elevation* in specifying the measurement location.
+    *elevation* in specifying the measurement location. Return the
+    tuple containing *hdf_fname* and *key*.
     """
     data_list = []
     for fgm_fname in fgm_fnames:
@@ -90,7 +91,7 @@ def fgm2hdf(hdf_fname,
                        'f': 'B_F'},
               inplace=True)
     write_hdf(hdf_fname, df, key, header)
-    return hdf_fname
+    return hdf_fname, key
 
 
 def main(argv=None):
