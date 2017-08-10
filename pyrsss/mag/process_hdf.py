@@ -116,29 +116,34 @@ def second_interval_filter(N_remez=4001):
     Nyquist.
 
 
-    fs_1m = 1./60
-    bands_1m = [0, 1e-3 - 0.25e-3, 1e-3, fs_1m/2]
-    desired_1m = [0, 1]
+    fs_1m = 1.
+    bands_1s = [0, 1e-3 - 0.25e-3,
+                1e-3, 100e-3,
+                101e-3, fs_1s/2]
+    desired_1s = [0, 1, 0]
 
     _ = fir_response(h_1m, bands_1m, desired_1m, Hz=fs_1m)
 
     FIR filter is linear phase type 1
 
-    band 0 abs deviations from 0:
+    band 0: 0 Hz -- 750 \muHz
+    abs deviations from 0 statistics:
     min = 6.872e-05  (db=-83.257739)
-    med = -2.271e-03
-    max = 4.902e-03 (db=-46.192275
+    med = -4.906e-02
+    max = 7.486e-01 (db=-2.514808)
 
-    band 1 abs deviations from 1:
+    band 1: 1 mHz -- 100 mHz
+    abs deviations from 1 statistics:
     min = 2.323e-07  (db=-132.678419)
     med = -6.093e-07
     std = 5.871e-04
-    max = 2.349e-03 (db=-52.584106
+    max = 2.349e-03 (db=-52.584106)
 
-    band 2 abs deviations from 0:
+    band 2: 101 mHz -- 500 mHz
+    abs deviations from 0 statistics:
     min = 1.430e-07  (db=-136.893586)
     med = -1.353e-03
-    max = 2.853e-03 (db=-50.895031
+    max = 2.853e-03 (db=-50.895031)
     """
     return scipy.signal.remez(N_remez,
                               [0, 0.25e-3, 1e-3, 100e-3, 101e-3, 0.5],
