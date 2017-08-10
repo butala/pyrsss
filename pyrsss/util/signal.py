@@ -33,9 +33,16 @@ def nextpow2(N):
 def spectrum(x,
              n0=0,
              T_s=1,
-             oversample=1):
+             oversample=1,
+             only_positive=True):
     """
-    ???
+    Return the spectrum for the signal *x* calculated via FFT and the
+    associated frequencies as a tuple. The *n0* parameter gives the
+    index in *x* for time index 0 (*n0* = 0 means that `x[0]` is at
+    time 0). The number of spectral samples returned is the next power
+    of 2 greater than the length of *x* multiplied by *oversample*. If
+    *only_positive*, return the spectrum only for positive frequencies
+    (and raise an exception if *x* is not real).
     """
     assert oversample >= 1 and isinstance(oversample, int)
     N = nextpow2(len(x)) * 2**(oversample - 1)
@@ -43,8 +50,14 @@ def spectrum(x,
     f = NP.fft.fftfreq(N, d=T_s)
     if n0 != 0:
         X *= NP.exp(-1j * 2 * math.pi * NP.arange(N) * n0 / N)
-    return (NP.fft.fftshift(X),
-            NP.fft.fftshift(f))
+    X = NP.fft.fftshift(X)
+    f = NP.fft.fftshift(f)
+    if only_positive:
+        if any(NP.iscomplex(x)):
+            raise ValueError('x is complex and only returning information for positive frequencies --- this is likely not what you want to do')
+        X = X[f >= 0]
+        f = f[f >= 0]
+    return X, f
 
 
 def blackman_tukey(x,
