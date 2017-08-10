@@ -7,6 +7,7 @@ from collections import OrderedDict
 import numpy as NP
 import scipy.signal
 
+from si import sistr
 from ..stats.stats import Stats
 
 logger = logging.getLogger('pyrsss.util.signal')
@@ -248,19 +249,26 @@ def fir_response(h, bands, desired, Hz=1, names=None, verbose=True):
         # output report
         for index, d in enumerate(desired):
             b1, b2 = band_tuples[index]
+            b1_str = sistr(b1, 'Hz')
+            b2_str = sistr(b2, 'Hz')
             stats, medians = band_stats[index]
             if names:
-                print('{} ({}) abs deviations from {}:'.format(names[index], index, d))
+                print('{} ({}): {} -- {}'.format(names[index],
+                                                 index,
+                                                 b1_str,
+                                                 b2_str))
             else:
-                print('band {} abs deviations from {}:'.format(index, d))
+                print('band {}: {} -- {}'.format(index,
+                                                 b1_str,
+                                                 b2_str))
+            print('abs deviations from {} statistics:'.format(d))
             print('min = {:.3e}  (db={:f})'.format(stats.min,
                                                    20 * math.log10(stats.min)))
             print('med = {:.3e}'.format(medians))
             if d == 1:
                 print('std = {:.3e}'.format(stats.sigma))
-            print('max = {:.3e} (db={:f}'.format(stats.max,
-                                                 20 * math.log10(stats.max)))
-            print('')
+            print('max = {:.3e} (db={:f})'.format(stats.max,
+                                                  20 * math.log10(stats.max)))
     return band_stats
 
 
