@@ -17,9 +17,11 @@ def sistr(x, baseunit=''):
 
     Source: https://stackoverflow.com/questions/29627796/pretty-printing-physical-quantities-with-automatic-scaling-of-si-prefixes
     """
+    if x == 0:
+        return '0 ' + baseunit
     d = (decimal.Decimal(str(x)) * SHIFT).normalize()
     m, e = d.to_eng_string().split('E')
-    return m + ' ' + PREFIX[int(e) // 3] + baseunit
+    return (m + ' ' + PREFIX[int(e) // 3] + baseunit).encode('utf-8')
 
 
 if __name__ == '__main__':
@@ -27,3 +29,5 @@ if __name__ == '__main__':
     print(sistr(10100e-12, 'g'))
     print(sistr(12))
     print(sistr(1200))
+    print(sistr(0))
+    print(sistr(1e-6))
