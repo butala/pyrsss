@@ -4,6 +4,7 @@ import logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from zipfile import ZipFile
 
+from index import initialize
 from ..util.path import touch_path
 
 
@@ -26,7 +27,8 @@ def mirror(destination_path,
     """
     Process SPUDS bundles found at *zip_path* and store the XML and
     PNG contents to *destination_path*. Verify that the number of EMTF
-    records processed is equal to *expected*.
+    records processed is equal to *expected*. Return the full path to
+    the pickle file containing the index of EMTF records.
     """
     zip_fnames = filter(lambda x: x.startswith('SPUD') and x.endswith('.zip'),
                         os.listdir(zip_path))
@@ -71,7 +73,8 @@ def mirror(destination_path,
                         with zipfile.open(name) as fid, open(target_fname, 'w') as out_fid:
                             out_fid.write(fid.read())
     assert len(xml_set_copy) == len(png_set_copy) == 0
-    return xml_target_path, png_target_path
+    # index the repository
+    return initialize(xml_target_path)
 
 
 def main(argv=None):
