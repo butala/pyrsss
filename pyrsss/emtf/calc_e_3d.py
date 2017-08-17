@@ -144,7 +144,7 @@ def parse_xml(xml_fname):
         Z = Z_list[0]
         values = []
         for value, name in zip(Z, ['Zxx', 'Zxy', 'Zyx', 'Zyy']):
-            if value.attrib['name'] != name:
+            if value.attrib['name'] != name and value.attrib['name'] != name.upper():
                 raise ValueError('name mismatch ({} != {})'.format(value.attrib['name'], name))
             values.append(complex(*map(float, value.text.split())))
         Z_array = NP.array(values)
@@ -229,10 +229,14 @@ class Zw_interpolator(object):
         periods = Z_map.keys()
         self.f = NP.array([1/x for x in periods[::-1]])
         self.omega = 2 * math.pi * self.f
-        self.Zxx_interp = CubicSpline(self.omega, [x[0, 0] for x in Z_map.values()[::-1]])
-        self.Zxy_interp = CubicSpline(self.omega, [x[0, 1] for x in Z_map.values()[::-1]])
-        self.Zyx_interp = CubicSpline(self.omega, [x[1, 0] for x in Z_map.values()[::-1]])
-        self.Zyy_interp = CubicSpline(self.omega, [x[1, 1] for x in Z_map.values()[::-1]])
+        self.Zxx_interp = CubicSpline(self.omega, [x[0, 0] for x in Z_map.values()[::-1]],
+                                      extrapolate=False)
+        self.Zxy_interp = CubicSpline(self.omega, [x[0, 1] for x in Z_map.values()[::-1]],
+                                      extrapolate=False)
+        self.Zyx_interp = CubicSpline(self.omega, [x[1, 0] for x in Z_map.values()[::-1]],
+                                      extrapolate=False)
+        self.Zyy_interp = CubicSpline(self.omega, [x[1, 1] for x in Z_map.values()[::-1]],
+                                      extrapolate=False)
         self.key_map = {'xx': self.Zxx_interp,
                         'xy': self.Zxy_interp,
                         'yx': self.Zyx_interp,
