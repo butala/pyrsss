@@ -36,7 +36,6 @@ def mirror(path):
         logger.info('Writing record to {}'.format(hdf_fname))
         df.to_hdf(hdf_fname, 'level0')
         file_map[stn] = hdf_fname
-        break
     return file_map
 
 
