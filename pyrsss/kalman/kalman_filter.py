@@ -2,6 +2,7 @@ from __future__ import division
 
 from itertools import izip
 
+import numpy as NP
 from scipy.linalg import cho_factor, cho_solve
 
 
