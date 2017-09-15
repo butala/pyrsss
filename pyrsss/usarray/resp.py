@@ -50,8 +50,10 @@ def parse_station_resp(fid):
         value = toks[-1]
         if key == 'Channel':
             channel = value
-        elif key == ' Station':
+        elif key == 'Station':
             station = check_same_str(station, value)
+        elif key == 'Network':
+            network = check_same_str(network, value)
         elif key == 'Start_date':
             start_date = check_same_date(start_date, value)
         elif key == 'End_date':
