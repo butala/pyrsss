@@ -6,10 +6,11 @@ from obspy.clients.fdsn import Client
 from obspy import UTCDateTime
 import pandas as PD
 
+from resp import get_station_resp
 from ..util.date import dt_parser, UNIX_EPOCH
 
 
-def fetch(stn, dt1, dt2, location=0):
+def fetch(stn, dt1, dt2, location=0, resp=None):
     """
     Request USArray MT data from IRIS (http://ds.iris.edu/ds) at
     station *stn* starting at UTC time *dt1* and ending at
@@ -32,12 +33,19 @@ def fetch(stn, dt1, dt2, location=0):
     assert (lfe.traces[0].times() == lqe.traces[0].times()).all()
     assert (lfe.traces[0].times() == lqn.traces[0].times()).all()
     dt = [(lfe.traces[0].meta.starttime + x).datetime for x in lfe.traces[0].times()]
-    # build DataFrame
-    Bx = lfn.traces[0].data
-    By = lfe.traces[0].data
-    Bz = lfz.traces[0].data
-    Ex = lqn.traces[0].data
-    Ey = lqe.traces[0].data
+    # get instrument response if needed
+    if resp is None:
+        resp = get_station_resp(stn, dt1)
+    if dt2 not in resp['interval']:
+        raise NotImplementedError('date range {} -- {} spans multiple station response records'.format(dt1, dt2))
+    assert resp['station'] == stn
+    assert resp['network'] == 'RM'
+    # build DataFrame and apply calibration values
+    Bx = lfn.traces[0].data / resp['LFN']
+    By = lfe.traces[0].data / resp['LFE']
+    Bz = lfz.traces[0].data / resp['LFZ']
+    Ex = lqn.traces[0].data / resp['LQN']
+    Ey = lqe.traces[0].data / resp['LQE']
     return PD.DataFrame(index=dt, data={'B_X': Bx,
                                         'B_Y': By,
                                         'B_Z': Bz,
