@@ -39,7 +39,7 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
     if dt2 not in resp['interval']:
         raise NotImplementedError('date range {} -- {} spans multiple station response records'.format(dt1, dt2))
     assert resp['station'] == stn
-    assert resp['network'] == 'RM'
+    assert resp['network'] == 'EM'
     # build DataFrame and apply calibration values
     Bx = lfn.traces[0].data / resp['LFN']
     By = lfe.traces[0].data / resp['LFE']
