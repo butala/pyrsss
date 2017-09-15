@@ -9,7 +9,7 @@ HEADER = 'VNET	NET	STA	SITE DESCRIPTION	LAT	LON	ELEV	START	END	STATUS	INSTALL	CE
 """Header line of data file."""
 
 
-def info_map(info_link=INFO_LINK):
+def get_info_map(info_link=INFO_LINK):
     """
     Return a :class:`DataFrame` containing the information provided at
     *info_link*, a link to a tab delineated text file containing
