@@ -9,6 +9,8 @@ import pandas as PD
 from resp import get_station_resp
 from ..util.date import dt_parser, UNIX_EPOCH
 
+logger = logging.getLogger('pyrsss.usarray.iris')
+
 
 def fetch(stn, dt1, dt2, location=0, resp=None):
     """
@@ -19,11 +21,11 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
     d1 = UTCDateTime((dt1 - UNIX_EPOCH).total_seconds())
     d2 = UTCDateTime((dt2 - UNIX_EPOCH).total_seconds())
     client = Client('IRIS')
-    lfe = client.get_waveforms('EM', stn, location, 'LFE', d1, d2)
-    lfn = client.get_waveforms('EM', stn, location, 'LFN', d1, d2)
-    lfz = client.get_waveforms('EM', stn, location, 'LFZ', d1, d2)
-    lqe = client.get_waveforms('EM', stn, location, 'LQE', d1, d2)
-    lqn = client.get_waveforms('EM', stn, location, 'LQN', d1, d2)
+    lfe = client.get_waveforms('EM', stn, location, 'LFE', d1, d2, longestonly=True)
+    lfn = client.get_waveforms('EM', stn, location, 'LFN', d1, d2, longestonly=True)
+    lfz = client.get_waveforms('EM', stn, location, 'LFZ', d1, d2, longestonly=True)
+    lqe = client.get_waveforms('EM', stn, location, 'LQE', d1, d2, longestonly=True)
+    lqn = client.get_waveforms('EM', stn, location, 'LQN', d1, d2, longestonly=True)
     # time sanity checks
     assert lfe.traces[0].meta.starttime == lfn.traces[0].meta.starttime \
         == lfe.traces[0].meta.starttime == lqe.traces[0].meta.starttime \
@@ -33,6 +35,10 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
     assert (lfe.traces[0].times() == lqe.traces[0].times()).all()
     assert (lfe.traces[0].times() == lqn.traces[0].times()).all()
     dt = [(lfe.traces[0].meta.starttime + x).datetime for x in lfe.traces[0].times()]
+    # log information about data
+    logger.info('time of first record = {}'.format(dt[0]))
+    logger.info('time of last record = {}'.format(dt[-1]))
+    logger.info('total data points = {}'.format(len(dt)))
     # get instrument response if needed
     if resp is None:
         try:
