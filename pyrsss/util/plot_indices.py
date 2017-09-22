@@ -5,6 +5,7 @@ import logging
 import math
 from datetime import timedelta
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from collections import namedtuple
 
 import numpy as NP
 import pylab as PL
@@ -14,6 +15,7 @@ import pandas as PD
 from pyglow.pyglow import Point
 
 from date import dt_parser
+from ..stats.stats import Stats
 
 
 RED = NP.array([255, 204, 204]) / 255
@@ -72,13 +74,19 @@ STYLE_MAP = {'display':  (KP_COLORS_DISPLAY,
              'document': (KP_COLORS_DOCUMENT,
                           KP_HATCH_DOCUMENT)}
 
+
+class IndexStats(namedtuple('IndiciesStats', 'kp dst')):
+    pass
+
+
 def plot_indices(d1,
                  d2,
                  fig=None,
                  style='display',
                  bar_lw=0.2,
                  dst_lw=1.75,
-                 edgecolor=(0.1, 0.1, 0.1)):
+                 edgecolor=(0.1, 0.1, 0.1),
+                 stats=False):
     """
     """
     # gather Kp
@@ -130,7 +138,13 @@ def plot_indices(d1,
     PL.title('GFZ $K_p$ and Dst Indices {:%Y-%m-%d %H:%M} to '
              '{:%Y-%m-%d %H:%M}'.format(dst_dt[0],
                                         dst_dt[-1]))
-    return fig
+    #return fig
+    if stats:
+        index_stats = IndexStats(Stats(*kp),
+                                 Stats(*dst))
+        return index_stats, fig
+    else:
+        return fig
 
 
 def main(argv=None):
