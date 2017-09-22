@@ -35,7 +35,10 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
     dt = [(lfe.traces[0].meta.starttime + x).datetime for x in lfe.traces[0].times()]
     # get instrument response if needed
     if resp is None:
-        resp = get_station_resp(stn, dt1)
+        try:
+            resp = get_station_resp(stn, dt1)
+        except:
+            raise ValueError('could not find instrument response for {} on {:%Y-%m-%d}'.format(stn, dt1))
     if dt2 not in resp['interval']:
         raise NotImplementedError('date range {} -- {} spans multiple station response records'.format(dt1, dt2))
     assert resp['station'] == stn
