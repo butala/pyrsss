@@ -1,9 +1,17 @@
 from __future__ import division
 
 from itertools import izip, repeat
+from collections import namedtuple
 
 import numpy as NP
 from scipy.linalg import cho_factor, cho_solve
+
+
+"""
+Class to store Kalman filter results.
+"""
+class FilterResult(namedtuple('FilterResult', 'x_hat P')):
+    pass
 
 
 def kalman_filter(y, H, R, F, Q, mu, PI, z=None):
@@ -19,8 +27,8 @@ def kalman_filter(y, H, R, F, Q, mu, PI, z=None):
     - *PI*: initial state covariance (NxN)
     - *z*: (optional) systematic time update input (N)
 
-    Return the tuple of lists of posterior state estimates and error
-    covariances.
+    Return the :class:`FilterResult` containing lists of posterior
+    state estimates and error covariances.
     """
     x_hat = []
     P = []
@@ -41,4 +49,4 @@ def kalman_filter(y, H, R, F, Q, mu, PI, z=None):
         if z_i is not None:
             x_hat_prior += z_i
         P_prior = NP.matmul(F_i, NP.matmul(P[-1], F_i.T)) + Q_i
-    return x_hat, P
+    return FilterResult(x_hat, P)
