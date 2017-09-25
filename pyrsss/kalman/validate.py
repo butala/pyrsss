@@ -9,7 +9,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 import numpy as NP
 
-from pyrsss.kalman.kalman_filter import kalman_filter
+from pyrsss.kalman.kalman_filter import kalman_filter, sqrt_kalman_filter
 
 
 def randn_pd(N):
@@ -107,14 +107,41 @@ def kf_sim(sim):
     return post
 
 
-def analysis(N, M, I, L):
+def sqrt_kf_sim(sim):
+    """
+    Process each simulation trial generated with
+    :func:`setup_random_test` with a Kalman filter and return the
+    posterior state estimates and error covariances.
+    """
+    post = defaultdict(dict)
+    for l in range(sim['L']):
+        x_hat_l, P_sqrt_l = sqrt_kalman_filter(sim[l]['y'],
+                                               sim['H'],
+                                               sim['R_sqrt'],
+                                               sim['F'],
+                                               sim['Q_sqrt'],
+                                               sim['mu'],
+                                               sim['PI_sqrt'])
+        post[l]['x_hat'] = x_hat_l
+        if l == 0:
+            post['P'] = [NP.matmul(x, x.T) for x in P_sqrt_l]
+        post[l]['error'] = []
+        for x_i, x_hat_i in izip(sim[l]['x'], post[l]['x_hat']):
+            post[l]['error'].append(x_hat_i - x_i)
+    return post
+
+
+def analysis(N, M, I, L, sqrt=False):
     """
     Conduct a Kalman filter validation experiment. Output results
     (concerning the error, i.e., x_hat - x) for the last time step
-    only.
+    only. If *sqrt* use the square root form Kalman filter.
     """
     sim = setup_random_test(N, M, I, L)
-    post = kf_sim(sim)
+    if sqrt:
+        post = sqrt_kf_sim(sim)
+    else:
+        post = kf_sim(sim)
     # output statistics of \hat{x}_{I|I}
     error_I = []
     for l in range(sim['L']):
@@ -152,8 +179,11 @@ def main(argv=None):
     parser.add_argument('L',
                         type=int,
                         help='number of simulation trials')
-    parser.add_argument('--seed',
+    parser.add_argument('--sqrt',
                         '-s',
+                        action='store_true',
+                        help='use square root form Kalman filter')
+    parser.add_argument('--seed',
                         type=int,
                         default=None,
                         help='random number generator seed')
@@ -164,7 +194,8 @@ def main(argv=None):
     analysis(args.N,
              args.M,
              args.I,
-             args.L)
+             args.L,
+             sqrt=args.sqrt)
 
 
 if __name__ == '__main__':
