@@ -4,6 +4,7 @@ from itertools import izip, repeat
 from collections import namedtuple
 
 import numpy as NP
+import scipy as SP
 from scipy.linalg import cho_factor, cho_solve
 
 
