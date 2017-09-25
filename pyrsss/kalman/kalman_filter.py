@@ -81,6 +81,9 @@ def sqrt_kalman_filter(y, H, R_sqrt, F, Q_sqrt, mu, PI_sqrt, z=None):
     more robust: covariances are operated upon in square root form
     (ensuring covariances are always positive definite) and numerical
     manipulations are through unitary operations.
+
+    Reference: Kailath, Sayed, and Hassibi, Linear Estimation, Chapter
+    12
     """
     x_hat = []
     P_sqrt = []
