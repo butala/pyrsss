@@ -23,17 +23,15 @@ def randn_pd(N):
     return A / norm, A_sqrt / math.sqrt(norm)
 
 
-def setup_random_test(N, M, I, L):
+def setup_random_sim(N, M, I):
     """
     Generate a random, standard state-space form simulation for the
     purpose of testing. The state dimension is *N*, number of
-    measurements is *M*, number of time steps is *I*, and *L* is the
-    number of simulations. State-space model parameters are generated
-    randomly. Everything is returned mapping between parameter names
-    and integer simulation indices to lists of vectors or matrices.
+    measurements is *M*, and *I* is the number of time
+    steps. State-space model parameters are generated randomly.
     """
     sim = defaultdict(list)
-    sim['N'], sim['M'], sim['I'], sim['L'] = N, M, I, L
+    sim['N'], sim['M'], sim['I'] = N, M, I
     sim['mu'] = NP.random.randn(N)
     sim['PI'], sim['PI_sqrt'] = randn_pd(N)
     for _ in range(I):
@@ -47,18 +45,42 @@ def setup_random_test(N, M, I, L):
         Q_i, Q_i_sqrt = randn_pd(N)
         sim['Q'].append(Q_i)
         sim['Q_sqrt'].append(Q_i_sqrt)
+    return sim
+
+
+def run_random_sim(sim, L):
+    """
+    Run *L* simulations of the state space model specified by *sim*
+    (see :func:`setup_random_sim`). Each simulation is added to *sim*
+    index by an integer identifier.
+    """
+    sim['L'] = L
     for l in range(L):
         sim[l] = defaultdict(list)
-        x_i = sim['mu'] + NP.matmul(sim['PI_sqrt'], NP.random.randn(N))
-        for i in range(I):
+        x_i = sim['mu'] + NP.matmul(sim['PI_sqrt'], NP.random.randn(sim['N']))
+        for i in range(sim['I']):
             sim[l]['x'].append(x_i)
             # measurement
-            v_i = NP.matmul(sim['R_sqrt'][i], NP.random.randn(M))
+            v_i = NP.matmul(sim['R_sqrt'][i], NP.random.randn(sim['M']))
             sim[l]['y'].append(NP.matmul(sim['H'][i], sim[l]['x'][i]) + v_i)
             # time update
-            u_i = NP.matmul(sim['Q_sqrt'][i], NP.random.randn(N))
+            u_i = NP.matmul(sim['Q_sqrt'][i], NP.random.randn(sim['N']))
             x_i = NP.matmul(sim['F'][i], x_i) + u_i
     return sim
+
+
+def setup_random_test(N, M, I, L):
+    """
+    Generate a random, standard state-space form simulation for the
+    purpose of testing. The state dimension is *N*, number of
+    measurements is *M*, number of time steps is *I*, and *L* is the
+    number of simulations. State-space model parameters are generated
+    randomly. The random simulations are returned as a mapping between
+    parameter names and integer simulation indices to lists of vectors
+    or matrices.
+    """
+    sim = setup_random_sim(N, M, I)
+    return run_random_sim(sim, L)
 
 
 def kf_sim(sim):
