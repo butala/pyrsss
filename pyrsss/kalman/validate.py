@@ -152,7 +152,14 @@ def main(argv=None):
     parser.add_argument('L',
                         type=int,
                         help='number of simulation trials')
+    parser.add_argument('--seed',
+                        '-s',
+                        type=int,
+                        default=None,
+                        help='random number generator seed')
     args = parser.parse_args(argv[1:])
+
+    NP.random.seed(args.seed)
 
     analysis(args.N,
              args.M,
