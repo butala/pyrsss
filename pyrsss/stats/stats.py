@@ -94,10 +94,11 @@ class Stats(object):
         return self
 
     def __str__(self):
-        return 'mean={:f} sigma={:f} min={:f} max={:f}'.format(self.mean,
-                                                               self.sigma,
-                                                               self.min,
-                                                               self.max)
+        return 'N={} mean={:f} sigma={:f} min={:f} max={:f}'.format(self.N,
+                                                                    self.mean,
+                                                                    self.sigma,
+                                                                    self.min,
+                                                                    self.max)
 
 
 def main(argv=None):
