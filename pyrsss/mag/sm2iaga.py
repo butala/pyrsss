@@ -12,6 +12,7 @@ import pandas as PD
 
 from pyglow.pyglow import Point
 
+from sm2hdf import read_sm_csv
 from sm_stations import STATION_MAP
 
 logger = logging.getLogger('pyrsss.mag.sm2iaga')
@@ -34,17 +35,6 @@ HEADER_TEMPLATE = """\
 DATE       TIME         DOY     {stn}{C1}       {stn}{C2}     {stn}Z      {stn}F   |
 """
 
-
-def read_sm_csv(csv_fname):
-    """
-    """
-    df = PD.read_csv(csv_fname,
-                     header=0,
-                     parse_dates=[0],
-                     date_parser=lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'))
-    return {name: group for name, group in df.groupby('IAGA')}
-
-
 def ne2xy_converter(stn, dt, nan=True, elevation=None):
     """ ??? """
     station_info = STATION_MAP[stn.upper()]
@@ -66,7 +56,6 @@ def ne2xy_converter(stn, dt, nan=True, elevation=None):
         y = sin_dec * n + cos_dec * e
         return x, y
     return ne2xy
-
 
 
 def fill_data(df,
@@ -109,15 +98,15 @@ def fill_data(df,
     return dts, filled_data
 
 
-def dataframe2iaga(fname,
-                   stn,
-                   date,
-                   df,
-                   lat,
-                   lon,
-                   elevation=None,
-                   nez=False,
-                   header_template=HEADER_TEMPLATE):
+def df2iaga(fname,
+            stn,
+            date,
+            df,
+            lat,
+            lon,
+            elevation=None,
+            nez=False,
+            header_template=HEADER_TEMPLATE):
     """
     ASSUMES DF SPANS ONLY A SINGLE DAY
     """
@@ -174,14 +163,14 @@ def df_map2iaga(path, df_map, nez=False):
         lon = station_info.glon
         for date, df_date in df.groupby(df['Date_UTC'].map(lambda x: x.date())):
             output_fname = iaga_fname(path, stn, date)
-            dataframe2iaga(output_fname,
-                           stn,
-                           date,
-                           df_date,
-                           lat,
-                           lon,
-                           elevation=0,
-                           nez=nez)
+            df2iaga(output_fname,
+                    stn,
+                    date,
+                    df_date,
+                    lat,
+                    lon,
+                    elevation=0,
+                    nez=nez)
             output_map[stn][date] = output_fname
     return output_map
 
