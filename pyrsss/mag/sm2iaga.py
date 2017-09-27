@@ -43,6 +43,7 @@ def ne2xy_converter(stn, dt, nan=True, elevation=None):
     point = Point(dt, lat, lon, elevation / 1e3 if elevation else 0)
     point.run_igrf()
     dec_deg = point.dec
+    logger.info('using declination angle {:f} (deg) for {}'.format(dec_deg, stn))
     dec_rad = math.radians(dec_deg)
     cos_dec = math.cos(dec_rad)
     sin_dec = math.sin(dec_rad)
