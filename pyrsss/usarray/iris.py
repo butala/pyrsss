@@ -16,7 +16,8 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
     """
     Request USArray MT data from IRIS (http://ds.iris.edu/ds) at
     station *stn* starting at UTC time *dt1* and ending at
-    *dt2*. Return as a :class:`DataFrame`.
+    *dt2*. Return as a :class:`DataFrame`. Magnetic field components
+    are stored with units nT.
     """
     d1 = UTCDateTime((dt1 - UNIX_EPOCH).total_seconds())
     d2 = UTCDateTime((dt2 - UNIX_EPOCH).total_seconds())
@@ -50,9 +51,9 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
     assert resp['station'] == stn
     assert resp['network'] == 'EM'
     # build DataFrame and apply calibration values
-    Bx = lfn.traces[0].data / resp['LFN']
-    By = lfe.traces[0].data / resp['LFE']
-    Bz = lfz.traces[0].data / resp['LFZ']
+    Bx = lfn.traces[0].data / resp['LFN'] * 1e9
+    By = lfe.traces[0].data / resp['LFE'] * 1e9
+    Bz = lfz.traces[0].data / resp['LFZ'] * 1e9
     Ex = lqn.traces[0].data / resp['LQN']
     Ey = lqe.traces[0].data / resp['LQE']
     return PD.DataFrame(index=dt, data={'B_X': Bx,
