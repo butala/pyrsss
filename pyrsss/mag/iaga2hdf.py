@@ -84,6 +84,7 @@ def get_dec_tenths_arcminute(header, date):
                   header['Elevation'])
     point.run_igrf()
     dec_deg = point.dec
+    logger.info('using declination angle {:f} (deg) for {}'.format(dec_deg, header['IAGA CODE']))
     return fix_sign(deg2tenths_of_arcminute(dec_deg))
 
 
@@ -126,7 +127,7 @@ def df2stream(df,
                      'declination_base': dec_tenths_arcminute,
                      'npts': N}
     try:
-        stream_header['elevation'] = header['elevation']
+        stream_header['elevation'] = header['Elevation']
     except KeyError:
         stream_header['elevation'] = default_elevation
         logger.warning('elevation is unknown --- inserting {}'.format(default_elevation))
