@@ -3,6 +3,8 @@ from __future__ import division
 import numpy as NP
 import scipy.signal
 
+from sepfilter import SepFilter
+
 
 def differentiator(n, Hz=1):
     """
@@ -22,6 +24,68 @@ def differentiator(n, Hz=1):
                               [1],
                               Hz=Hz,
                               type='differentiator') * Hz * 2 * NP.pi
+
+
+class GradientFilter(SepFilter):
+    def __init__(self, n, axis, order=2, mode='valid'):
+        """
+        Construct gradient operator for signal of dimension *n* for
+        dimension *axis*. Use a filter kernel of length *order* (must
+        be even). Use convolution type *mode*.
+        """
+        self.n = n
+        self.ndim = len(self.n)
+        self.axis = axis
+        if axis < 0 or axis >= self.ndim:
+            raise ValueError('0 <= axis (= {0}) < ndim = {1}'.format(axis, self.ndim))
+
+        self.d = differentiator(order)
+
+        h_list = []
+        for i in reversed(range(self.ndim)):
+            if i == axis:
+                h_list.append(self.d)
+            else:
+                h_list.append(NP.array([1]))
+
+        super(GradientFilter, self).__init__(n, h_list, mode=mode)
+
+
+class Gradient2Filter(SepFilter):
+    def __init__(self, n, axis, order=3, mode='valid'):
+        """
+        Construct a second-order gradient operator for signal of dimension
+        *n* for dimension *axis*. Use a filter kernel of length
+        *order* (must be odd). Use convolution type *mode*.
+        """
+        # assert that the filter length is odd
+        assert(order % 2 == 1)
+        self.n = n
+        self.ndim = len(self.n)
+        self.axis = axis
+        if axis < 0 or axis >= self.ndim:
+            raise ValueError('0 <= axis (= {0}) < ndim = {1}'.format(axis, self.ndim))
+
+        self.d = differentiator(int(order/2) + 1)
+        self.d2 = NP.convolve(self.d, self.d)
+
+        self.mode = mode
+
+        h_list = []
+        m = []
+        for i in reversed(range(self.ndim)):
+            if i == axis:
+                h_list.append(self.d2)
+            else:
+                h_list.append(NP.array([1]))
+            m.append(len(h_list[-1]))
+        self.m = m
+
+        if mode == 'circ':
+            n_prime = array(n) - m + 1
+            super(Gradient2Filter, self).__init__(n_prime, h_list, mode=mode)
+        else:
+            super(Gradient2Filter, self).__init__(n, h_list, mode=mode)
 
 
 if __name__ == '__main__':
