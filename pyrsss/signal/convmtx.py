@@ -5,15 +5,7 @@ import scipy.linalg
 import scipy.signal
 import scipy.sparse as sparse
 
-
-def zero_pad(x, n):
-    """
-    Return *x* zero padded to the dimensions specified in *n*.
-    """
-    y = NP.zeros(n)
-    for index in NP.ndindex(x.shape):
-        y[index] = x[index]
-    return y
+from util import zero_pad
 
 
 class Convmtx(sparse.coo_matrix):
@@ -23,13 +15,13 @@ class Convmtx(sparse.coo_matrix):
         dimension *n* with the kernel *H*. The *mode* parameter can be
         one of:
 
-        - full: standard convolution.
+        - full: standard convolution, i.e., zero-padding at the edges.
 
         - valid: convolution where only those portions of complete
           overlap, i.e., no zero-padding, are considered.
 
         - circ: circular convolution, i.e., periodic boundary
-          conditions at the edges.
+          condition at the edges.
         """
         def toeplitz_mapper_full(h):
             if (h == 0).all():
