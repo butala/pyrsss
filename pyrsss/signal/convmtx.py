@@ -5,6 +5,7 @@ import scipy.linalg
 import scipy.signal
 import scipy.sparse as sparse
 
+
 def zero_pad(x, n):
     """
     Return *x* zero padded to the dimensions specified in *n*.
