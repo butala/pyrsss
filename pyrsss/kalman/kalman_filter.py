@@ -146,9 +146,9 @@ def sqrt_kalman_filter(y,
     (ensuring covariances are always positive definite) and numerical
     manipulations are through unitary operations.
 
-    The function *callback*, if provided, is called at the start of
-    each measurement / time update cycle. One argument is passed: the
-    time index (starting from 0).
+    The function *callback*, if provided, is called at the end of each
+    measurement / time update cycle. One argument is passed: the time
+    index (starting from 0).
 
     Reference: Kailath, Sayed, and Hassibi, Linear Estimation, Chapter
     12
