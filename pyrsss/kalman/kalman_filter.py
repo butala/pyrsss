@@ -165,8 +165,6 @@ def sqrt_kalman_filter(y,
                                                                       F,
                                                                       Q_sqrt,
                                                                       z)):
-        if callback:
-            callback(i)
         # measurement update
         (x_hat_posterior,
          P_sqrt_posterior) = sqrt_kf_mu(x_hat_prior,
@@ -183,4 +181,6 @@ def sqrt_kalman_filter(y,
                                     F_i,
                                     Q_sqrt_i,
                                     z_i=z_i)
+        if callback:
+            callback(i)
     return SqrtFilterResult(x_hat, P_sqrt)
