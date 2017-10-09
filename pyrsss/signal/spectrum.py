@@ -51,7 +51,7 @@ def spectrum(x,
         f = NP.fft.fftshift(f)
     if n0 != 0:
         X *= NP.exp(-1j * 2 * math.pi * NP.arange(N) * n0 / N)
-    return X, f
+    return f, X
 
 
 def blackman_tukey(x,
