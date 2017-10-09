@@ -17,7 +17,8 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
     Request USArray MT data from IRIS (http://ds.iris.edu/ds) at
     station *stn* starting at UTC time *dt1* and ending at
     *dt2*. Return as a :class:`DataFrame`. Magnetic field components
-    are stored with units nT.
+    are stored with units nT. Electric field components are stored in
+    mV / km.
     """
     d1 = UTCDateTime((dt1 - UNIX_EPOCH).total_seconds())
     d2 = UTCDateTime((dt2 - UNIX_EPOCH).total_seconds())
@@ -54,8 +55,8 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
     Bx = lfn.traces[0].data / resp['LFN'] * 1e9
     By = lfe.traces[0].data / resp['LFE'] * 1e9
     Bz = lfz.traces[0].data / resp['LFZ'] * 1e9
-    Ex = lqn.traces[0].data / resp['LQN']
-    Ey = lqe.traces[0].data / resp['LQE']
+    Ex = lqn.traces[0].data / resp['LQN'] * 1e6
+    Ey = lqe.traces[0].data / resp['LQE'] * 1e6
     return PD.DataFrame(index=dt, data={'B_X': Bx,
                                         'B_Y': By,
                                         'B_Z': Bz,
