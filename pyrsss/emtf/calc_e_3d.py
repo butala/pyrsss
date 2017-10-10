@@ -219,7 +219,7 @@ def parse_xml_header(xml_fname):
 
 
 class Zw_interpolator(object):
-    def __init__(self, Z_map):
+    def __init__(self, Z_map, extrapolate0=False):
         """
         Construct a cubic-spline 3-D E-M transfer function interpolater
         using the information in *Z_map* returned from
@@ -241,6 +241,8 @@ class Zw_interpolator(object):
                         'xy': self.Zxy_interp,
                         'yx': self.Zyx_interp,
                         'yy': self.Zyy_interp}
+        self.extrapolate0 = extrapolate0
+
 
     def __call__(self, omega, key):
         """
@@ -249,10 +251,15 @@ class Zw_interpolator(object):
         *omega* and the output are the same as *Z_map* ([rad] and
         [mV/km]/[nT] by default).
         """
+        if self.extrapolate0:
+            y = NP.zeros_like(omega, dtype=NP.complex128)
+            I = NP.where((omega >= self.omega[0]) & (omega <= self.omega[-1]))
+            y[I] = self.key_map[key](NP.asarray(omega)[I])
+            return y
         return self.key_map[key](omega)
 
 
-def apply_transfer_function(Bx, By, interval, xml_fname):
+def apply_transfer_function(Bx, By, interval, xml_fname, extrapolate0=False):
     """
     Filter *Bx* and *By* (in [T]) with 3-D transfer function where
     *interval* is the sample period (in [s]). Uses the 3-D transfer
@@ -260,7 +267,7 @@ def apply_transfer_function(Bx, By, interval, xml_fname):
     """
     # setup surface impedance function
     Z_map = parse_xml(xml_fname)
-    interp = Zw_interpolator(Z_map)
+    interp = Zw_interpolator(Z_map, extrapolate0=extrapolate0)
     # mu_0 * 1e3 converts from [mv / km] / [nT] to [Ohm]
     Zxx_function = lambda omega: interp(omega, 'xx') * mu_0 * 1e3
     Zxy_function = lambda omega: interp(omega, 'xy') * mu_0 * 1e3
