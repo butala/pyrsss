@@ -167,7 +167,6 @@ def consecutive_nans(x, y):
     return 0
 
 
-
 def process_timeseries(dt,
                        Bx,
                        By,
