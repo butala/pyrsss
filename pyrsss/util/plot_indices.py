@@ -138,7 +138,6 @@ def plot_indices(d1,
     PL.title('GFZ $K_p$ and Dst Indices {:%Y-%m-%d %H:%M} to '
              '{:%Y-%m-%d %H:%M}'.format(dst_dt[0],
                                         dst_dt[-1]))
-    #return fig
     if stats:
         index_stats = IndexStats(Stats(*kp),
                                  Stats(*dst))
