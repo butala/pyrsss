@@ -10,6 +10,7 @@ def plot_3D_reponse(xml_fname,
                     fmax=1/60/2,
                     N=100,
                     figsize=(10,7),
+                    interpolator_opts={},
                     **kwds):
     """
     Generate two figures, each a 2x2 grid plot (Zxx, Zxy, Zyx, and
@@ -28,17 +29,17 @@ def plot_3D_reponse(xml_fname,
     omega = 2 * NP.pi * f
     # setup surface impedance function
     Z_map = parse_xml(xml_fname)
-    interp = Zw_interpolator(Z_map)
+    interp = Zw_interpolator(Z_map, **interpolator_opts)
     # mu_0 * 1e3 converts from [mv / km] / [nT] to [Ohm]
     Zxx_function = lambda omega: interp(omega, 'xx') * mu_0 * 1e3
     Zxy_function = lambda omega: interp(omega, 'xy') * mu_0 * 1e3
     Zyx_function = lambda omega: interp(omega, 'yx') * mu_0 * 1e3
     Zyy_function = lambda omega: interp(omega, 'yy') * mu_0 * 1e3
     # compute transer function response at specified frequencies
-    Zxx = map(Zxx_function, omega)
-    Zxy = map(Zxy_function, omega)
-    Zyx = map(Zyx_function, omega)
-    Zyy = map(Zyy_function, omega)
+    Zxx = Zxx_function(omega)
+    Zxy = Zxy_function(omega)
+    Zyx = Zyx_function(omega)
+    Zyy = Zyy_function(omega)
     # retrieve EMTF values (those provided in the XML file before interpolation)
     Zxx_xml = NP.array([x[0,0] for x in Z_map.values()]) * mu_0 * 1e3
     Zxy_xml = NP.array([x[0,1] for x in Z_map.values()]) * mu_0 * 1e3
