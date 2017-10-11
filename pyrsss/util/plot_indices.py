@@ -120,7 +120,7 @@ def plot_indices(d1,
                   width=width,
                   color=color,
                   linewidth=bar_lw,
-                  edgecolor=edgecolor)
+                  edgecolor=[edgecolor] * len(left))
     for bar, hatch_i in zip(bars, hatch):
         bar.set_hatch(hatch_i)
     ax1.xaxis_date()
