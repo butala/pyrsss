@@ -3,6 +3,7 @@ from __future__ import division
 import sys
 import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from collections import Iterable
 
 import scipy.stats
 import numpy as NP
@@ -82,6 +83,8 @@ class Stats(object):
     def __call__(self, *x):
         """
         """
+        if len(x) is 1 and isinstance(x[0], Iterable):
+            x = x[0]
         for x_i in x:
             self.N += 1
             mu_previous = self.mu
