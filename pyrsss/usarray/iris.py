@@ -4,6 +4,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 from obspy.clients.fdsn import Client
 from obspy import UTCDateTime
+import numpy as NP
 import pandas as PD
 
 from resp import get_station_resp
@@ -23,45 +24,56 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
     d1 = UTCDateTime((dt1 - UNIX_EPOCH).total_seconds())
     d2 = UTCDateTime((dt2 - UNIX_EPOCH).total_seconds())
     client = Client('IRIS')
-    lfe = client.get_waveforms('EM', stn, location, 'LFE', d1, d2, longestonly=True)
-    lfn = client.get_waveforms('EM', stn, location, 'LFN', d1, d2, longestonly=True)
-    lfz = client.get_waveforms('EM', stn, location, 'LFZ', d1, d2, longestonly=True)
-    lqe = client.get_waveforms('EM', stn, location, 'LQE', d1, d2, longestonly=True)
-    lqn = client.get_waveforms('EM', stn, location, 'LQN', d1, d2, longestonly=True)
-    # time sanity checks
-    assert lfe.traces[0].meta.starttime == lfn.traces[0].meta.starttime \
-        == lfe.traces[0].meta.starttime == lqe.traces[0].meta.starttime \
-        == lqn.traces[0].meta.starttime
-    assert (lfe.traces[0].times() == lfn.traces[0].times()).all()
-    assert (lfe.traces[0].times() == lfz.traces[0].times()).all()
-    assert (lfe.traces[0].times() == lqe.traces[0].times()).all()
-    assert (lfe.traces[0].times() == lqn.traces[0].times()).all()
-    dt = [(lfe.traces[0].meta.starttime + x).datetime for x in lfe.traces[0].times()]
-    # log information about data
-    logger.info('time of first record = {}'.format(dt[0]))
-    logger.info('time of last record = {}'.format(dt[-1]))
-    logger.info('total data points = {}'.format(len(dt)))
-    # get instrument response if needed
-    if resp is None:
-        try:
-            resp = get_station_resp(stn, dt1)
-        except:
-            raise ValueError('could not find instrument response for {} on {:%Y-%m-%d}'.format(stn, dt1))
-    if dt2 not in resp['interval']:
-        raise NotImplementedError('date range {} -- {} spans multiple station response records'.format(dt1, dt2))
-    assert resp['station'] == stn
-    assert resp['network'] == 'EM'
-    # build DataFrame and apply calibration values
-    Bx = lfn.traces[0].data / resp['LFN'] * 1e9
-    By = lfe.traces[0].data / resp['LFE'] * 1e9
-    Bz = lfz.traces[0].data / resp['LFZ'] * 1e9
-    Ex = lqn.traces[0].data / resp['LQN'] * 1e6
-    Ey = lqe.traces[0].data / resp['LQE'] * 1e6
-    return PD.DataFrame(index=dt, data={'B_X': Bx,
-                                        'B_Y': By,
-                                        'B_Z': Bz,
-                                        'E_X': Ex,
-                                        'E_Y': Ey})
+    lfe = client.get_waveforms('EM', stn, location, 'LFE', d1, d2)
+    lfn = client.get_waveforms('EM', stn, location, 'LFN', d1, d2)
+    lfz = client.get_waveforms('EM', stn, location, 'LFZ', d1, d2)
+    lqe = client.get_waveforms('EM', stn, location, 'LQE', d1, d2)
+    lqn = client.get_waveforms('EM', stn, location, 'LQN', d1, d2)
+    assert len(lfe) == len(lfn) == len(lfz) == len(lqe) == len(lqn)
+    dt_list = []
+    Bx_list = []
+    By_list = []
+    Bz_list = []
+    Ex_list = []
+    Ey_list = []
+    for i in range(len(lfe)):
+        # time sanity checks
+        assert lfe.traces[i].meta.starttime == lfn.traces[i].meta.starttime \
+            == lfe.traces[i].meta.starttime == lqe.traces[i].meta.starttime \
+            == lqn.traces[i].meta.starttime
+        assert (lfe.traces[i].times() == lfn.traces[i].times()).all()
+        assert (lfe.traces[i].times() == lfz.traces[i].times()).all()
+        assert (lfe.traces[i].times() == lqe.traces[i].times()).all()
+        assert (lfe.traces[i].times() == lqn.traces[i].times()).all()
+        dt = [(lfe.traces[i].meta.starttime + x).datetime for x in lfe.traces[i].times()]
+        # log information about data
+        logger.info('time of first record = {}'.format(dt[0]))
+        logger.info('time of last record = {}'.format(dt[-1]))
+        logger.info('total data points = {}'.format(len(dt)))
+        # get instrument response if needed
+        if resp is None:
+            try:
+                resp = get_station_resp(stn, dt[0])
+            except:
+                logger.warning('could not find instrument response for {} on {:%Y-%m-%d} --- skipping trace {:%Y-%m-%d %H:%M:%S} -- {:%Y-%m-%d %H:%M:%S} (N={})'.format(stn, dt1, dt[0], dt[1], len(dt)))
+                continue
+        if dt[-1] not in resp['interval']:
+            raise NotImplementedError('date range {} -- {} spans multiple station response records'.format(dt[0], dt[-1]))
+        assert resp['station'] == stn
+        assert resp['network'] == 'EM'
+        # apply calibration values and store data from trace
+        dt_list.extend(dt)
+        Bx_list.append(lfn.traces[i].data / resp['LFN'] * 1e9)
+        By_list.append(lfe.traces[i].data / resp['LFE'] * 1e9)
+        Bz_list.append(lfz.traces[i].data / resp['LFZ'] * 1e9)
+        Ex_list.append(lqn.traces[i].data / resp['LQN'] * 1e6)
+        Ey_list.append(lqe.traces[i].data / resp['LQE'] * 1e6)
+    return PD.DataFrame(index=dt_list,
+                        data={'B_X': NP.hstack(Bx_list),
+                              'B_Y': NP.hstack(By_list),
+                              'B_Z': NP.hstack(Bz_list),
+                              'E_X': NP.hstack(Ex_list),
+                              'E_Y': NP.hstack(Ey_list)})
 
 
 def main(argv=None):
