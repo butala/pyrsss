@@ -90,7 +90,9 @@ def parse_block_info(fid):
 def parse_block(fid):
     """
     Parse a single information block found in *fid*. Return the tuple
-    containing the block header and the list of block information.
+    containing the block header, the list of block information, and
+    whether or not the end of file has been detected (and parsing
+    should terminate).
     """
     # header
     block_header = parse_block_header(fid)
@@ -98,9 +100,9 @@ def parse_block(fid):
     while True:
         block_type, block_info = parse_block_info(fid)
         if block_type == BlockType.eof:
-            return None, None
+            return block_header, block, True
         elif block_type == BlockType.end:
-            return block_header, block
+            return block_header, block, False
         elif block_type == BlockType.decimation:
             continue
         elif block_type == BlockType.sensitivity:
@@ -152,9 +154,7 @@ def parse_station_resp(fid):
     # skip initial header comment block
     skip_block_header_comments(fid)
     while True:
-        block_header, block = parse_block(fid)
-        if block_header is None and block is None:
-            break
+        block_header, block, eof = parse_block(fid)
         # sanity check (same network, station, and location across recorded blocks)
         network = check(block_header, 'Network', network)
         stn = check(block_header, 'Station', stn)
@@ -163,29 +163,35 @@ def parse_station_resp(fid):
         interval = DateTimeInterval.closed_open(block_header['Start_date'],
                                                 block_header['End_date'])
         resp_map.setdefault(interval, {})[block_header['Channel']] = block
+        if eof:
+            break
+    resp_map.network = network
+    resp_map.stn = stn
+    resp_map.location = location
     return resp_map
 
 
-def build_url(station, date):
+def build_url(station, d1, d2):
     """
     Return the URL to fetch the response record for USArray MT station
-    identifier *station* for *date*.
+    identifier *station* for the time range *d1* to *d2*.
     """
-    return 'http://service.iris.edu/irisws/resp/1/query?net=EM&sta={}&loc=--&cha=*&time={:%Y-%m-%dT%H:%M:%S}'.format(station, date)
+    return 'http://service.iris.edu/irisws/resp/1/query?net=EM&sta={}&loc=--&cha=*&starttime={:%Y-%m-%dT%H:%M:%S}&endtime={:%Y-%m-%dT%H:%M:%S}'.format(station, d1, d2)
 
 
-def get_station_resp(station, date):
+def get_station_resp(station, d1, d2):
     """
-    For the given USArray MT station ID *station* and *date*, return
-    the instrument response function.
+    For the given USArray MT station ID *station* and date range *d1*
+    to *d2*, return the instrument response function.
     """
-    url = build_url(station, date)
+    url = build_url(station, d1, d2)
     with closing(urlopen(url)) as fid:
         return parse_station_resp(fid)
 
 
 if __name__ == '__main__':
-    date = datetime(2013, 7, 2)
+    d1 = datetime(2013, 7, 2)
+    d2 = datetime(2013, 7, 2, 23, 59, 59)
     station = 'KSP33'
 
-    print(get_station_resp(station, date))
+    print(get_station_resp(station, d1, d2))
