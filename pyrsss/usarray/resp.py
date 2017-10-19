@@ -39,6 +39,23 @@ def parse_block_header(fid):
     return block_header
 
 
+def parse_complex(fid, N):
+    """
+    Parse *N* lines of complex number information (real component,
+    imaginary component, and errors) found in *fid*. Return a list
+    containing this information.
+    """
+    line1 = fid.next()
+    assert line1 == '#              i  real          imag          real_error    imag_error\n'
+    complex = []
+    for i in range(N):
+        line = fid.next()
+        toks = line.split()
+        assert len(toks) == 6
+        complex.append(map(float, toks[2:]))
+    return complex
+
+
 class BlockType(Enum):
     """
     Block information type identifier.
@@ -47,6 +64,7 @@ class BlockType(Enum):
     end = 1
     decimation = 2
     sensitivity = 3
+    poles_zeros = 4
 
 
 def parse_block_info(fid):
@@ -69,20 +87,34 @@ def parse_block_info(fid):
         block_type = BlockType.decimation
     elif line2 == '#                  |      Channel Sensitivity/Gain     |\n':
         block_type = BlockType.sensitivity
+    elif line2 == '#                  |    Response (Poles and Zeros)     |\n':
+        block_type = BlockType.poles_zeros
     else:
         raise RuntimeError('error parsing data block in {}'.format(fid.name))
     for i in range(4):
         fid.next()
     block_info = {}
-    for line in fid:
-        if line == '#\n':
-            break
-        toks = line.split()
-        key = '_'.join(toks[1:-1])[:-1]
+    while True:
         try:
-            val = int(toks[-1])
-        except ValueError:
-            val = float(toks[-1])
+            line = fid.next()
+        except StopIteration:
+            break
+        if line == '#              Complex poles:\n':
+            val = parse_complex(fid, block_info['Number_of_poles'])
+        elif line == '#              Complex zeros:\n':
+            val = parse_complex(fid, block_info['Number_of_zeros'])
+        else:
+            if line == '#\n':
+                break
+            key_toks, val_tok = line.split(':')
+            key = '_'.join(key_toks.split()[1:])
+            try:
+                val = int(val_tok)
+            except ValueError:
+                try:
+                    val = float(val_tok)
+                except ValueError:
+                    val = val_tok.strip()
         block_info[key] = val
     return block_type, block_info
 
@@ -107,6 +139,8 @@ def parse_block(fid):
             continue
         elif block_type == BlockType.sensitivity:
             block.append(block_info)
+        elif block_type == BlockType.poles_zeros:
+            block.append(block_info)
         else:
             assert False
     raise RuntimeError('error parsing {}'.format(fid.name))
@@ -125,7 +159,7 @@ class RespMap(OrderedDict):
 
     def sensitivity(self, dt, channel):
         for stage in self(dt)[channel]:
-            if stage['Stage_sequence_number'] == 0:
+            if stage.get('Stage_sequence_number', None) == 0:
                 return stage['Sensitivity']
         assert False
 
@@ -193,5 +227,11 @@ if __name__ == '__main__':
     d1 = datetime(2013, 7, 2)
     d2 = datetime(2013, 7, 2, 23, 59, 59)
     station = 'KSP33'
+
+    print(get_station_resp(station, d1, d2))
+
+    d1 = datetime(2011, 7, 29)
+    d2 = datetime(2011, 8, 12)
+    station = 'MBB03'
 
     print(get_station_resp(station, d1, d2))
