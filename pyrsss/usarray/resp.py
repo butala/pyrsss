@@ -1,71 +1,168 @@
 from datetime import datetime
 from contextlib import closing
 from urllib2 import urlopen
+from collections import OrderedDict
+from enum import Enum
 
 from intervals import DateTimeInterval
 
 
-def check_same(var, value, parser):
+
+def skip_block_header_comments(fid):
     """
-    If *var* is not `None` first check that *var* and *value* (first
-    converted with *parser*) match. Return the parsed *value*.
+    Skip past the initial three line header of the response record
+    found in *fid*
     """
-    parsed_value = parser(value)
-    if var is not None:
-        assert var == parsed_value
-    return parsed_value
+    line1 = fid.next()
+    line2 = fid.next()
+    line3 = fid.next()
+    assert line1 == line3 == '#\n'
+    assert line2 == '#' * 83 + '\n'
+    return fid
 
 
-def check_same_date(var, value):
+def parse_block_header(fid):
     """
-    The version of :func:`check_same` tailored to resp file formatted
-    date values.
+    Parse the block header found in *fid*. Return a mapping containing
+    the header information.
     """
-    parser = lambda x: datetime.strptime(x, '%Y,%j,%H:%M:%S')
-    return check_same(var, value, parser)
+    block_header = {}
+    for line in fid:
+        if line.startswith('#'):
+            break
+        toks = line.split()
+        key = '_'.join(toks[1:-1])[:-1]
+        value = toks[-1]
+        if key.endswith('date'):
+            value = datetime.strptime(value, '%Y,%j,%H:%M:%S')
+        block_header[key] = value
+    return block_header
 
 
-def check_same_str(var, value):
+class BlockType(Enum):
     """
-    The version of :func:`check_same` tailored to string values.
+    Block information type identifier.
     """
-    return check_same(var, value, lambda x: x)
+    eof = 0
+    end = 1
+    decimation = 2
+    sensitivity = 3
+
+
+def parse_block_info(fid):
+    """
+    Parse the decimation or sensitivity information record found in
+    the block in *fid*. Return the tuple containing the
+    :class:`BlockType` and the mapping of block information.
+    """
+    try:
+        line1 = fid.next()
+    except StopIteration:
+        return BlockType.eof, {}
+    if line1 == '#' * 83 + '\n':
+        line2 = fid.next()
+        assert line2 == '#\n'
+        return BlockType.end, {}
+    assert line1 == '#                  +-----------------------------------+\n'
+    line2 = fid.next()
+    if line2 == '#                  |            Decimation             |\n':
+        block_type = BlockType.decimation
+    elif line2 == '#                  |      Channel Sensitivity/Gain     |\n':
+        block_type = BlockType.sensitivity
+    else:
+        raise RuntimeError('error parsing data block in {}'.format(fid.name))
+    for i in range(4):
+        fid.next()
+    block_info = {}
+    for line in fid:
+        if line == '#\n':
+            break
+        toks = line.split()
+        key = '_'.join(toks[1:-1])[:-1]
+        try:
+            val = int(toks[-1])
+        except ValueError:
+            val = float(toks[-1])
+        block_info[key] = val
+    return block_type, block_info
+
+
+def parse_block(fid):
+    """
+    Parse a single information block found in *fid*. Return the tuple
+    containing the block header and the list of block information.
+    """
+    # header
+    block_header = parse_block_header(fid)
+    block = []
+    while True:
+        block_type, block_info = parse_block_info(fid)
+        if block_type == BlockType.eof:
+            return None, None
+        elif block_type == BlockType.end:
+            return block_header, block
+        elif block_type == BlockType.decimation:
+            continue
+        elif block_type == BlockType.sensitivity:
+            block.append(block_info)
+        else:
+            assert False
+    raise RuntimeError('error parsing {}'.format(fid.name))
+
+
+class RespMap(OrderedDict):
+    """
+    Object in which to store IRIS station response information for a
+    single site.
+    """
+    def __call__(self, dt):
+        for key, value in self.iteritems():
+            if dt in key:
+                return value
+        raise KeyError('{:%Y-%m-%d %H:%M:%S} does not intersect with any stored datetime interval'.format(dt))
+
+    def sensitivity(self, dt, channel):
+        for stage in self(dt)[channel]:
+            if stage['Stage_sequence_number'] == 0:
+                return stage['Sensitivity']
+        assert False
+
+
+def check(header, key, value):
+    """
+    If *var* is not `None` first check that *var* and *value*
+    match. Return the parsed *value*.
+    """
+    if value is None:
+        return header[key]
+    assert header[key] == value
+    return value
 
 
 def parse_station_resp(fid):
     """
     Gather information from a single station IRIS response file
-    *fid*. Return the information as a mapping.
+    *fid*. Return the information as a :class:`RespMap`.
     """
-    station = None
+    resp_map = RespMap()
+    # sanity check initialization
     network = None
-    start_date = None
-    end_date = None
-    resp_map = {}
-    for line in fid:
-        if line.startswith('#'):
-            continue
-        toks = line.split()
-        key = '_'.join(toks[1:-1])[:-1]
-        value = toks[-1]
-        if key == 'Channel':
-            channel = value
-        elif key == 'Station':
-            station = check_same_str(station, value)
-        elif key == 'Network':
-            network = check_same_str(network, value)
-        elif key == 'Start_date':
-            start_date = check_same_date(start_date, value)
-        elif key == 'End_date':
-            end_date = check_same_date(end_date, value)
-        elif key == 'Stage_sequence_number':
-            stage_number = int(value)
-        elif key == 'Sensitivity':
-            if stage_number == 0:
-                resp_map[channel] = float(value)
-    resp_map['station'] = station
-    resp_map['network'] = network
-    resp_map['interval'] = DateTimeInterval.closed(start_date, end_date)
+    stn = None
+    location = None
+    # skip initial header comment block
+    skip_block_header_comments(fid)
+    while True:
+        block_header, block = parse_block(fid)
+        if block_header is None and block is None:
+            break
+        # sanity check (same network, station, and location across recorded blocks)
+        network = check(block_header, 'Network', network)
+        stn = check(block_header, 'Station', stn)
+        location = check(block_header, 'Location', location)
+        # store block information
+        interval = DateTimeInterval.closed_open(block_header['Start_date'],
+                                                block_header['End_date'])
+        resp_map.setdefault(interval, {})[block_header['Channel']] = block
     return resp_map
 
 
