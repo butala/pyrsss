@@ -21,6 +21,12 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
     are stored with units nT. Electric field components are stored in
     mV / km.
     """
+    # get instrument response if needed
+    if resp is None:
+        try:
+            resp = get_station_resp(stn, dt1, dt2)
+        except:
+            raise RuntimeError('could not find instrument response for {} in time range {:%Y-%m-%d %H:%M:%S} -- {:%Y-%m-%d %H:%M:%S}'.format(stn, dt1, dt2))
     d1 = UTCDateTime((dt1 - UNIX_EPOCH).total_seconds())
     d2 = UTCDateTime((dt2 - UNIX_EPOCH).total_seconds())
     client = Client('IRIS')
@@ -50,24 +56,19 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
         logger.info('time of first record = {}'.format(dt[0]))
         logger.info('time of last record = {}'.format(dt[-1]))
         logger.info('total data points = {}'.format(len(dt)))
-        # get instrument response if needed
-        if resp is None:
-            try:
-                resp = get_station_resp(stn, dt[0])
-            except:
-                logger.warning('could not find instrument response for {} on {:%Y-%m-%d} --- skipping trace {:%Y-%m-%d %H:%M:%S} -- {:%Y-%m-%d %H:%M:%S} (N={})'.format(stn, dt1, dt[0], dt[1], len(dt)))
-                continue
-        if dt[-1] not in resp['interval']:
-            raise NotImplementedError('date range {} -- {} spans multiple station response records'.format(dt[0], dt[-1]))
-        assert resp['station'] == stn
-        assert resp['network'] == 'EM'
+        # if dt[-1] not in resp['interval']:
+            #raise NotImplementedError('date range {} -- {} spans multiple station response records'.format(dt[0], dt[-1]))
+            # logger.warning('date range {} -- {} spans multiple station response records --- skipping'.format(dt[0], dt[-1]))
+            # continue
+        assert resp.stn == stn
+        assert resp.network == 'EM'
         # apply calibration values and store data from trace
         dt_list.extend(dt)
-        Bx_list.append(lfn.traces[i].data / resp['LFN'] * 1e9)
-        By_list.append(lfe.traces[i].data / resp['LFE'] * 1e9)
-        Bz_list.append(lfz.traces[i].data / resp['LFZ'] * 1e9)
-        Ex_list.append(lqn.traces[i].data / resp['LQN'] * 1e6)
-        Ey_list.append(lqe.traces[i].data / resp['LQE'] * 1e6)
+        Bx_list.append(lfn.traces[i].data / resp.sensitivity(dt[0], 'LFN') * 1e9)
+        By_list.append(lfe.traces[i].data / resp.sensitivity(dt[0], 'LFE') * 1e9)
+        Bz_list.append(lfz.traces[i].data / resp.sensitivity(dt[0], 'LFZ') * 1e9)
+        Ex_list.append(lqn.traces[i].data / resp.sensitivity(dt[0], 'LQN') * 1e6)
+        Ey_list.append(lqe.traces[i].data / resp.sensitivity(dt[0], 'LQE') * 1e6)
     return PD.DataFrame(index=dt_list,
                         data={'B_X': NP.hstack(Bx_list),
                               'B_Y': NP.hstack(By_list),
@@ -95,7 +96,6 @@ def main(argv=None):
                         type=dt_parser,
                         help='end date and time (UTC)')
     args = parser.parse_args(argv[1:])
-
     df = fetch(args.station_id,
                args.dt1,
                args.dt2)
