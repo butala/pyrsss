@@ -6,7 +6,6 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 import numpy as NP
 import pandas as PD
-from geomagio.StreamConverter import get_obs_from_geo
 from obspy.core.stream import Stream
 from obspy.core.utcdatetime import UTCDateTime
 from obspy.core.trace import Trace
