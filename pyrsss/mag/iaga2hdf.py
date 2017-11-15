@@ -84,7 +84,10 @@ def get_dec_tenths_arcminute(header, date):
                   header['Elevation'])
     point.run_igrf()
     dec_deg = point.dec
-    logger.info('using declination angle {:f} (deg) for {}'.format(dec_deg, header['IAGA CODE']))
+    if 'IAGA CODE' in header:
+        logger.info('using declination angle {:f} (deg) for {}'.format(dec_deg, header['IAGA CODE']))
+    else:
+        logger.info('using declination angle {:f} (deg)'.format(dec_deg))
     return fix_sign(deg2tenths_of_arcminute(dec_deg))
 
 
