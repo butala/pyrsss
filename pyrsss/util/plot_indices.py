@@ -115,6 +115,7 @@ def plot_indices(d1,
     height = kp
     color = [kp_colors[int(math.floor(x))] for x in kp]
     hatch = [kp_hatch[int(math.floor(x))] if kp_hatch else None for x in kp]
+    left = [x.to_pydatetime() for x in left]
     bars = PL.bar(left,
                   height,
                   width=width,
