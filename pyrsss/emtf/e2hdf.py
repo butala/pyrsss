@@ -189,8 +189,6 @@ def e2hdf_3D(hdf_fname,
     logger.info('Applying EMTFs: {}'.format(', '.join(sorted(emtf_list))))
     for emtf_key in emtf_list:
         df_e = apply_emtf(df_e, df, emtf_key, index)
-        print(df.iloc[:4])
-        print(df_e.iloc[:4])
     # output DataFrame
     write_hdf(hdf_fname, df_e, key, header)
     return hdf_fname
