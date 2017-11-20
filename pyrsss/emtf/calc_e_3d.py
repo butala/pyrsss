@@ -223,7 +223,11 @@ class Zw_interpolator(object):
         """
         Construct a cubic-spline 3-D E-M transfer function interpolater
         using the information in *Z_map* returned from
-        :func:`parse_xml` as the function samples.
+        :func:`parse_xml` as the function samples. If *extrapolate0*,
+        then 0s are inserted in the transfer function response where
+        extrapolation would occur (this happens when transfer function
+        response is requested at frequencies outside the range
+        provided in the .XML file record).
         """
         self.Z_map = Z_map
         periods = Z_map.keys()
@@ -263,7 +267,9 @@ def apply_transfer_function(Bx, By, interval, xml_fname, extrapolate0=False):
     """
     Filter *Bx* and *By* (in [T]) with 3-D transfer function where
     *interval* is the sample period (in [s]). Uses the 3-D transfer
-    function model given in *xml_fname*. Return Ex and Ey (in [V/m]).
+    function model given in *xml_fname*. Return Ex and Ey (in
+    [V/m]). If *extrapolate0*, use 0s in the transfer function
+    response at frequencies outside the range provided in *xml_fname*.
     """
     # setup surface impedance function
     Z_map = parse_xml(xml_fname)
