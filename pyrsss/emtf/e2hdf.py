@@ -46,7 +46,8 @@ def find_3D(index,
 def apply_emtf(df_E,
                df_B,
                emtf_key,
-               index):
+               index,
+               extrapolate0=True):
     """
     Apply the EMTF associated with *emtf_key* to magnetometer data
     found in *df_B* and store result to *df_E*. Use USArray .xml
@@ -58,7 +59,7 @@ def apply_emtf(df_E,
     By = df_B.B_Y.values
     if emtf_key.startswith('USArray'):
         xml_fname = index[emtf_key][1]
-        Ex, Ey = tf_3D(Bx, By, interval, xml_fname)
+        Ex, Ey = tf_3D(Bx, By, interval, xml_fname, extrapolate0=extrapolate0)
     else:
         Ex, Ey = tf_1D(Bx, By, interval, emtf_key)
     df_E[emtf_key + '_X'] = Ex
@@ -135,6 +136,61 @@ def e2hdf(hdf_fname,
         logger.info('Applying EMTFs: {}'.format(', '.join(sorted(emtf_set))))
     for emtf_key in sorted(emtf_set):
         df_e = apply_emtf(df_e, df, emtf_key, index)
+    # output DataFrame
+    write_hdf(hdf_fname, df_e, key, header)
+    return hdf_fname
+
+
+
+def e2hdf_3D(hdf_fname,
+             keys_3D,
+             repository_path,
+             source_key='B',
+             key='E',
+             replace=False):
+    """
+    Add modeled E columns to the :class:`DataFrame` record stored at
+    *hdf_fname*. The input to the process (processed magnetometer B_X
+    and B_Y) are found at *source_key* and the output (E_X and E_Y for
+    various models) is stored associated with *key*. If *replace*,
+    replace the *key* data record otherwise add to the data
+    record. Apply the 3-D transfer functions identified by the list
+    *keys_3D*. Search for EMTF data records at *repository_path*.
+    """
+    # setup target DataFrame
+    df, header = read_hdf(hdf_fname, source_key)
+    def empty_record():
+        return PD.DataFrame(index=df.index)
+    if replace:
+        logger.info('creating new E record')
+        df_e = empty_record()
+    else:
+        try:
+            df_e, _ = read_hdf(hdf_fname, key)
+            logger.info('appending to existing E record')
+        except KeyError:
+            logger.info('creating new E record')
+            df_e = empty_record()
+    # determine which EMTFs to use
+    emtf_list = []
+    index = get_index(repository_path)
+    for key_3D in keys_3D:
+        candidates = [x for x in index if key_3D in x]
+        if len(candidates) == 1:
+            emtf_list.append(candidates[0])
+        elif len(candidates) == 0:
+            raise KeyError('could not find {} in index.pkl at {}'.format(key_3D,
+                                                                         repository_path))
+        else:
+            raise KeyError('could not unambiguously resolve {} in index.pkl at {} ({} are all candidates)'.format(key_3D,
+                                                                                                                  repository_path,
+                                                                                                                  ', '.join(candidates)))
+    # apply EMTFs
+    logger.info('Applying EMTFs: {}'.format(', '.join(sorted(emtf_list))))
+    for emtf_key in emtf_list:
+        df_e = apply_emtf(df_e, df, emtf_key, index)
+        print(df.iloc[:4])
+        print(df_e.iloc[:4])
     # output DataFrame
     write_hdf(hdf_fname, df_e, key, header)
     return hdf_fname
