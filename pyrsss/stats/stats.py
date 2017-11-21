@@ -29,12 +29,12 @@ def robust_std(l, alpha=1/scipy.stats.norm.ppf(0.75)):
 
 def despike(df, window=31, l=6):
     """
-    Despike the columns of :class:`DataFrame` by comparing the
-    absolute deviation from the windowed median to the windowed robust
-    standard deviation (see :func:`robust_std`). Use a centered window
-    of length *window* (must be odd). Replace values that are *l*
-    robust standard deviations from the absolute difference from the
-    median with the median.
+    Remove outliers from the columns of :class:`DataFrame` by
+    comparing the absolute deviation from the windowed median to the
+    windowed robust standard deviation (see :func:`robust_std`). Use a
+    centered window of length *window* (must be odd). Replace values
+    that are *l* robust standard deviations from the absolute
+    difference from the median with the median.
 
     Reference: Hampel F. R., "The influence curve and its role in
     robust estimation," Journal of the American Statistical
