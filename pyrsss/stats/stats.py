@@ -46,8 +46,9 @@ def despike(df, window=31, l=6):
     df_rolling_median = df_rolling.median()
     df_robust_std = df_rolling.apply(robust_std)
     I = (df - df_rolling_median).abs() > l * df_robust_std
-    df[I] = df_rolling_median
-    return df.iloc[(window-1):-(window-1)]
+    df_despike = df.copy()
+    df_despike[I] = df_rolling_median
+    return df_despike.iloc[(window-1):-(window-1)]
 
 
 def weighted_avg_and_std(values, weights):
