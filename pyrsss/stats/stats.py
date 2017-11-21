@@ -27,6 +27,29 @@ def robust_std(l, alpha=1/scipy.stats.norm.ppf(0.75)):
     return alpha * mad(l)[0]
 
 
+def despike(df, window=31, l=6):
+    """
+    Despike the columns of :class:`DataFrame` by comparing the
+    absolute deviation from the windowed median to the windowed robust
+    standard deviation (see :func:`robust_std`). Use a centered window
+    of length *window* (must be odd). Replace values that are *l*
+    robust standard deviations from the absolute difference from the
+    median with the median.
+
+    Reference: Hampel F. R., "The influence curve and its role in
+    robust estimation," Journal of the American Statistical
+    Association, 69, 382-393, 1974.
+    """
+    if window % 2 == 0:
+        raise ValueError('window length must be odd')
+    df_rolling = df.rolling(window, center=True)
+    df_rolling_median = df_rolling.median()
+    df_robust_std = df_rolling.apply(robust_std)
+    I = (df - df_rolling_median).abs() > l * df_robust_std
+    df[I] = df_rolling_median
+    return df.iloc[(window-1):-(window-1)]
+
+
 def weighted_avg_and_std(values, weights):
     """
     Return the weighted average and standard deviation.
