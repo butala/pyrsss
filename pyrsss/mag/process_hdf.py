@@ -12,6 +12,7 @@ import scipy.signal
 from iaga2hdf import read_hdf, write_hdf
 from ..util.nan import nan_interp
 from ..util.signal import lp_fir_filter
+from ..stats.stats import despike
 
 logger = logging.getLogger('pyrsss.mag.process_hdf')
 
@@ -172,13 +173,15 @@ def process_timeseries(dt,
                        By,
                        c1='B_X',
                        c2='B_Y',
+                       despike_data=True,
                        remove_mean=True):
     """
     Process surface magnetic field measurement time series with
     indices *dt* and components *Bx* and *By*. Output a
     :class:`DataFrame` with columns *c1* and *c2* associated with the
-    processed output time series. If *remove_mean*, remove the mean
-    from the output time series.
+    processed output time series. If *despike_data*, remove outliers
+    prior to filtering. If *remove_mean*, remove the mean from the
+    output time series.
     """
     n = consecutive_nans(Bx, By)
     interval = (dt[1] - dt[0]).total_seconds()
@@ -187,6 +190,15 @@ def process_timeseries(dt,
     # fill data gaps via linear interpolation
     Bx = nan_interp(Bx)
     By = nan_interp(By)
+    if despike_data:
+        # remove outliers
+        df = PD.DataFrame(index=dt,
+                          data={'Bx': Bx,
+                                'By': By})
+        df = despike(df)
+        dt = df.index.to_pydatetime()
+        Bx = df.Bx.values
+        By = df.By.values
     # apply 1 - 100 mHz bandpass filter
     if interval == 1.0:
         h = second_interval_filter()
@@ -210,6 +222,7 @@ def process(hdf_fname,
             source_key='B_raw',
             key='B',
             he=False,
+            despike_data=True,
             remove_mean=True):
     """
     Process the magnetic field columns of *hdf_fname*, applying
@@ -226,6 +239,7 @@ def process(hdf_fname,
     df_filtered = process_timeseries(dt,
                                      Bx_raw,
                                      By_raw,
+                                     despike_data=depike_data,
                                      remove_mean=remove_mean)
     if he:
         Bh_raw = df_raw['B_H'].values * 1e-9
@@ -235,6 +249,7 @@ def process(hdf_fname,
                                             Be_raw,
                                             c1='B_H',
                                             c2='B_E',
+                                            despike_data=depike_data,
                                             remove_mean=remove_mean)
         df_filtered = df_filtered.join(df_he_filtered)
     write_hdf(hdf_fname, df_filtered, key, header)
