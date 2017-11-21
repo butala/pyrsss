@@ -15,7 +15,7 @@ def mad(l):
     of the list of values *l*.
     """
     median = NP.median(l)
-    return NP.median([abs(x - median) for x in l]), median
+    return NP.median(NP.abs(l - median)), median
 
 
 def robust_std(l, alpha=1/scipy.stats.norm.ppf(0.75)):
