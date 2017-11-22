@@ -239,7 +239,7 @@ def process(hdf_fname,
     df_filtered = process_timeseries(dt,
                                      Bx_raw,
                                      By_raw,
-                                     despike_data=depike_data,
+                                     despike_data=despike_data,
                                      remove_mean=remove_mean)
     if he:
         Bh_raw = df_raw['B_H'].values * 1e-9
@@ -249,7 +249,7 @@ def process(hdf_fname,
                                             Be_raw,
                                             c1='B_H',
                                             c2='B_E',
-                                            despike_data=depike_data,
+                                            despike_data=despike_data,
                                             remove_mean=remove_mean)
         df_filtered = df_filtered.join(df_he_filtered)
     write_hdf(hdf_fname, df_filtered, key, header)
