@@ -142,9 +142,9 @@ def plot_indices(d1,
     if stats:
         index_stats = IndexStats(Stats(*kp),
                                  Stats(*dst))
-        return index_stats, fig
+        return index_stats, fig, ax1, ax2
     else:
-        return fig
+        return fig, ax1, ax2
 
 
 def main(argv=None):
