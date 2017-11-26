@@ -159,6 +159,8 @@ def lp_fir_filter(h, x, real=True, mode='same', index=None):
     to *mode*. The purpose is to associate the correct time indices
     with the filter output.
     """
+    # DEPRECATED --- use pyrsss.signal.filter
+    assert False
     lp_type = lp_fir_type(h)
     if lp_type is None:
         raise ValueError('FIR filter is not linear phase')
