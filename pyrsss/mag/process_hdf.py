@@ -2,6 +2,7 @@ from __future__ import division
 
 import sys
 import logging
+import warnings
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from itertools import groupby
 
@@ -183,6 +184,8 @@ def process_timeseries(dt,
     prior to filtering. If *remove_mean*, remove the mean from the
     output time series.
     """
+    warnings.warn('use process_df instead',
+                  PendingDeprecationWarning)
     n = consecutive_nans(Bx, By)
     interval = (dt[1] - dt[0]).total_seconds()
     if n > 0:
