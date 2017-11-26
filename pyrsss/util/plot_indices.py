@@ -3,7 +3,7 @@ from __future__ import division
 import sys
 import logging
 import math
-from datetime import timedelta
+from datetime import datetime, timedelta
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import namedtuple
 
@@ -86,6 +86,7 @@ def plot_indices(d1,
                  bar_lw=0.2,
                  dst_lw=1.75,
                  edgecolor=(0.1, 0.1, 0.1),
+                 title_dt_format='%Y-%m-%d %H:%M',
                  stats=False):
     """
     """
@@ -136,9 +137,10 @@ def plot_indices(d1,
                  marker=None,
                  ls='-')
     PL.ylabel('Hourly DST [nT]')
-    PL.title('GFZ $K_p$ and Dst Indices {:%Y-%m-%d %H:%M} to '
-             '{:%Y-%m-%d %H:%M}'.format(dst_dt[0],
-                                        dst_dt[-1]))
+    d1_str = datetime.strftime(dst_dt[0], title_dt_format)
+    d2_str = datetime.strftime(dst_dt[-1], title_dt_format)
+    title = 'GFZ $K_p$ and Dst Indices, {} to {}'.format(d1_str, d2_str)
+    PL.title(title)
     if stats:
         index_stats = IndexStats(Stats(*kp),
                                  Stats(*dst))
