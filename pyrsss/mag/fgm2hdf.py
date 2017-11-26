@@ -82,8 +82,9 @@ def fgm2hdf(hdf_fname,
         data_list.append(parse(fgm_fname))
     header = build_header(data_list,
                           elevation=elevation)
-
-    df = PD.concat([x[['x', 'y', 'z', 'f']] for x in data_list])
+    df = PD.concat(data_list)
+    df.loc[df.flag, ['x', 'y', 'z', 'f']] = NP.nan
+    df.drop(columns='flag', inplace=True)
     df.rename(columns={'x': 'B_X',
                        'y': 'B_Y',
                        'z': 'B_Z',
