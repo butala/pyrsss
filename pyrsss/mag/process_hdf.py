@@ -233,7 +233,7 @@ def process(hdf_fname,
     """
     logger.info('processing {}'.format(hdf_fname))
     df_raw, header = read_hdf(hdf_fname, source_key)
-    dt = [PD.to_datetime(x).to_pydatetime() for x in df_raw.index.values]
+    dt = df_raw.index.to_pydatetime()
     Bx_raw = df_raw['B_X'].values * 1e-9
     By_raw = df_raw['B_Y'].values * 1e-9
     df_filtered = process_timeseries(dt,
