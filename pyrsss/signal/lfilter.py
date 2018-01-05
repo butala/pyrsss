@@ -6,7 +6,7 @@ import numpy as NP
 
 from spectrum import nextpow2
 
-logger = logging.getLogger('pyrsss.signal.filter')
+logger = logging.getLogger('pyrsss.signal.lfilter')
 
 
 def lp_fir_type(h):

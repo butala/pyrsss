@@ -14,7 +14,7 @@ import scipy.signal
 
 from iaga2hdf import read_hdf, write_hdf
 from ..util.nan import nan_interp
-from ..signal.filter import lp_fir_filter
+from ..signal.lfilter import lp_fir_filter
 from ..stats.stats import despike
 
 logger = logging.getLogger('pyrsss.mag.process_hdf')
