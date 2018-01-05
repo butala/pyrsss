@@ -12,7 +12,7 @@ from scipy.io import savemat
 
 from conductivity import surface_impedance_1D
 from usgs_conductivity import USGS_MODEL_MAP
-from ..util.signal import nextpow2
+from ..signal.spectrum import nextpow2
 from ..mag.iaga2002 import parse
 from ..util.nan import nan_interp
 from ..util.date import toJ2000

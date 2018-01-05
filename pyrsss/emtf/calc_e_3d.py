@@ -13,7 +13,7 @@ from scipy.constants import mu_0
 from scipy.io import savemat
 from scipy.interpolate import CubicSpline
 
-from ..util.signal import nextpow2
+from ..signal.spectrum import nextpow2
 from ..mag.iaga2002 import parse
 from ..util.nan import nan_interp
 from ..util.date import toJ2000
