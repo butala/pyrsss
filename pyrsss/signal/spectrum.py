@@ -59,7 +59,6 @@ def blackman_tukey(x,
                    L,
                    y=None,
                    window='boxcar',
-                   window_args=[],
                    d=1,
                    full=False):
     """
