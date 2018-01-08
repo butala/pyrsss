@@ -89,7 +89,7 @@ def blackman_tukey(x,
     window = scipy.signal.get_window(window, 2*M + 1, fftbins=False)
     k_range = NP.arange(0, L)
     shift = NP.exp(2j * NP.pi * k_range * M / L)
-    Sxy = NP.fft.fft(window * Rxy_window, n=L) * shift * d
+    Sxy = NP.fft.fft(window * Rxy_window, n=L) * shift
     f = NP.fft.fftfreq(L, d=d)
     if full:
         return (Sxy, f, Rxy, window)
