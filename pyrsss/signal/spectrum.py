@@ -109,6 +109,29 @@ def periodogram(x,
     return blackman_tukey(x, len(x) - 1, L, y=y, d=d, full=full)
 
 
+def etfe(x,
+         y,
+         M,
+         L,
+         d=1,
+         window='parzen'):
+    """
+    Compute the empirical transfer function estimate (ETFE) relating
+    the input time series *x* to the output time series *y*. Compute
+    the response at *L* equally spaced frequency samples (where the
+    sampling period is *D*). Limit the correlations to a lag of *M*
+    (and *M* <= len(*x*) - 1) and use the window function *window*
+    (see :func:`scipy.signal.get_window`). Return the tuple containing
+    the ETFE and the frequency sample points.
+
+    See Section 6.3 of Ljung, System Identification Theory for the
+    User, 2nd Edition.
+    """
+    Phi_yu, f = blackman_tukey(y, M, L, y=x, d=d, window=window)
+    Phi_u, _ = blackman_tukey(x, M, L, d=d, window=window)
+    return Phi_yu / Phi_u, f
+
+
 if __name__ == '__main__':
     import pylab as PL
 
