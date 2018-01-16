@@ -16,9 +16,9 @@ def arma_predictor_model(x, y, m, n):
     and the vector b corresponds to y[k] for k >= max(*m*, *n*).
     """
     assert len(x) == len(y)
-    k = max(m, n)
-    A1 = SP.linalg.toeplitz(-y[k:-1], r=-y[(k - m):k][::-1])
-    A2 = SP.linalg.toeplitz(x[k:-1], r=x[(k - n):k][::-1])
+    k = max(m, n) - 1
+    A1 = SP.linalg.toeplitz(-y[k:-1], r=-y[(k + 1 - m):(k + 1)][::-1])
+    A2 = SP.linalg.toeplitz(x[k:-1], r=x[(k + 1 - n):(k + 1)][::-1])
     A = NP.hstack((A1, A2))
     b = y[k+1:]
     return A, b
@@ -29,6 +29,11 @@ def arma_predictor_linear(x, y, m, n):
     Return the (*m*, *n*) one-step ARMA predictor trained on the input
     *x* and output *y*. The output is the tuple of the *m* AR and *n*
     MA coefficients.
+
+    The implemented functionality compares with the single-input,
+    single-output and no additional delay (i.e., `nk=1`) version of
+    the Matlab routine `arx` (see
+    http://www.mathworks.com/help/ident/ref/arx.html).
     """
     assert len(x) == len(y)
     N = len(x)
