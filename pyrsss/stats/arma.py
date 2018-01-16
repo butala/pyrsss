@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 import numpy as NP
 import scipy as SP
 import scipy.signal
@@ -94,6 +96,51 @@ def arma_predictor_nonlinear(x, y, m, n, x_hat0=None):
     return a_hat, b_hat
 
 
+"""ARMA fit assessment metrics""",
+Assessment = namedtuple('Assessment',
+                        'RSE '\
+                        'R2 '\
+                        'F_stat '\
+                        'Cp '\
+                        'AIC '\
+                        'BIC '\
+                        'adjusted_R2')
+
+
+def assessment(x, y, m, n, x_hat):
+    """
+    WARNING --- UNTESTED!
+    """
+    # assert n + 1 == len(x_hat) - m
+    # a_hat = x_hat[:m+1]
+    # b_hat = x_hat[m+1:]
+    a_hat, b_hat = x_hat
+    m = len(a_hat)
+    n = len(b_hat)
+    k = max(m, n)
+    y_hat = scipy.signal.lfilter(b_hat, a_hat, x[k:-1])
+    N = len(y_hat)
+    P = len(x_hat)
+    RSS = NP.sum((y[k+1:] - y_hat)**2)
+    RSE = NP.sqrt(RSS / (N - P - 1))
+    TSS = NP.sum((y - NP.mean(y))**2)
+    R2 = 1 - RSS / TSS
+    F_stat = (TSS - RSS) / P / (RSS / (N - P - 1))
+    sigma_hat = RSE
+    d = P
+    Cp = (RSS + 2 * d * sigma_hat**2) / N
+    AIC = (RSS + 2 * d * sigma_hat**2) / (N * sigma_hat**2)
+    BIC = (RSS + NP.log(N) * d * sigma_hat**2) / N
+    adjusted_R2 = 1 - (RSS / (N - d - 1)) / (TSS / (N - 1))
+    return Assessment(RSE,
+                      R2,
+                      F_stat,
+                      Cp,
+                      AIC,
+                      BIC,
+                      adjusted_R2)
+
+
 if __name__ == '__main__':
     poles = [0.2, 0.6, 0.9]
 
@@ -115,3 +162,10 @@ if __name__ == '__main__':
 
     print(a_hat, a_hat_nl, a_true)
     print(b_hat, b_hat_nl, b_true)
+
+    # print(a_hat)
+
+    # print(m, n)
+    # print(len(a_hat), len(b_hat))
+
+    print(assessment(x, y, m, n, NP.concatenate((a_hat, b_hat))))
