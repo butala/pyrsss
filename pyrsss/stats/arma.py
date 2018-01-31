@@ -55,6 +55,7 @@ def arma_predictor_linear(x, y, Na, Nb, Nk=1):
     a_hat = x_hat[:Na]
     b_hat = x_hat[Na:]
     a_hat = NP.insert(a_hat, 0, 1)
+    b_hat = NP.insert(x_hat[Na:], 0, NP.zeros(Nk))
     return a_hat, b_hat
 
 
