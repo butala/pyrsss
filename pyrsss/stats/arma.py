@@ -59,58 +59,51 @@ def arma_predictor_linear(x, y, Na, Nb, Nk=1):
     return a_hat, b_hat
 
 
-def residual(x_hat, m, x, y):
+def arma_residual(x_hat, Na, Nb, Nk, x, y):
     """
     Return the residual between the ARMA filter *x_hat* (the tuple of
-    *m* AR and MA coefficients) for the input *x* and output *y*.
+    *Na* AR and *Nb* MA coefficients with input delay of *Nk* time
+    steps) for the input *x* and output *y*.
     """
-    n = len(x_hat) - m
-    k = max(m, n)
-    x = x[k:-1]
-    y = y[k+1:]
     assert(len(x) == len(y))
-    a_hat = x_hat[:m]
-    b_hat = x_hat[m:]
+    assert len(x_hat) == Na + Nb
+    a_hat = x_hat[:Na]
+    b_hat = x_hat[Na:]
     a_hat = NP.insert(a_hat, 0, 1)
+    b_hat = NP.insert(x_hat[Na:], 0, NP.zeros(Nk))
     y_hat = scipy.signal.lfilter(b_hat, a_hat, x)
-    return NP.abs(y_hat - y)
+    return y_hat - y
 
 
-def Dfun(x_hat, m, x, y):
+def arma_predictor_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None):
     """
-    Return the Jacobian matrix for the ARMA model, i.e., the ith row
-    corresponds to the ith data equation and the jth column is the jth
-    parameter partial derivative.
-    """
-    n = len(x_hat) - m
-    A, _ = arma_predictor_model(x, y, m, n)
-    return -A
+    Calculate the nonlinear fit between the (*Na*, *Nb*, with *Nk*
+    time step delay on the input) ARMA model and the input *x* and
+    output *y*. The optimization starts at *x_hat0* (a vector with all
+    0s when `None`). The output is the tuple of the AR and MA
+    coefficients.
 
-
-def arma_predictor_nonlinear(x, y, m, n, x_hat0=None):
-    """
-    Calculate the nonlinear fit between the (*m*, *n*) ARMA model and
-    the input *x* and output *y*. The optimization starts at *x_hat*
-    (a vector with all 0s when `None`). The output is the tuple of the
-    *m* AR and *n* MA coefficients.
+    The implemented functionality compares with the single-input,
+    single-output Matlab routine `oe` (see
+    http://www.mathworks.com/help/ident/ref/oe.html).
     """
     if x_hat0 is None:
-        x_hat0 = NP.zeros(m + n)
+        x_hat0 = NP.zeros(Na + Nb)
     (x_hat,
      cov_x,
      info,
      mesg,
-     ier) = SP.optimize.leastsq(residual,
+     ier) = SP.optimize.leastsq(arma_residual,
                                 x_hat0,
-                                args=(m, x, y),
-                                Dfun=Dfun,
+                                args=(Na, Nb, Nk, x, y),
                                 full_output=True)
     if ier not in [1, 2, 3, 4]:
         raise RuntimeError('optimization failed (ier={}) --- {}'.fomat(ier,
                                                                        mesg))
-    a_hat = x_hat[:m]
-    b_hat = x_hat[m:]
+    a_hat = x_hat[:Na]
+    b_hat = x_hat[Na:]
     a_hat = NP.insert(a_hat, 0, 1)
+    b_hat = NP.insert(x_hat[Na:], 0, NP.zeros(Nk))
     return a_hat, b_hat
 
 
