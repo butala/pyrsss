@@ -5,43 +5,55 @@ import scipy as SP
 import scipy.signal
 
 
-def arma_predictor_model(x, y, m, n):
+def arma_predictor_model(x, y, Na, Nb, Nk=1):
     """
-    Return matrix and vector relating (*m*, *n*) ARMA model to the
-    input *x* and output *y*. In other words, construct the max(*m*,
-    *n*) - 1 by (*m* - 1 + *n* - 1) matrix A such that
+    Return matrix and vector relating (*Na*, *Nb*) ARMA model to the
+    input *x* and output *y*.
 
-    y[k] + a_1 y[k - 1] + ... + a_m y[k - m] = b_1 x[k - 1] + ... + b_n x[k - n]
+    In other words, construct the matrix with A_M = N - max(*Na*, *Nb*
+    + *Nk* - 1) rows and *Na* + *Nb* columns such that
 
-    and the vector b corresponds to y[k] for k >= max(*m*, *n*).
-    """
-    assert len(x) == len(y)
-    k = max(m, n) - 1
-    A1 = SP.linalg.toeplitz(-y[k:-1], r=-y[(k + 1 - m):(k + 1)][::-1])
-    A2 = SP.linalg.toeplitz(x[k:-1], r=x[(k + 1 - n):(k + 1)][::-1])
-    A = NP.hstack((A1, A2))
-    b = y[k+1:]
-    return A, b
+    y[n] + a_1 y[n - 1] + ... + a_Na y[n - Na] = b_1 x[n - k] + ... + b_Nb x[n - Nb - k + 1]
 
-
-def arma_predictor_linear(x, y, m, n):
-    """
-    Return the (*m*, *n*) one-step ARMA predictor trained on the input
-    *x* and output *y*. The output is the tuple of the *m* AR and *n*
-    MA coefficients.
-
-    The implemented functionality compares with the single-input,
-    single-output and no additional delay (i.e., `nk=1`) version of
-    the Matlab routine `arx` (see
-    http://www.mathworks.com/help/ident/ref/arx.html).
+    for N - A_M <= n < N (where N is the length of *x* and *y*).
     """
     assert len(x) == len(y)
     N = len(x)
-    k = max(m, n)
-    A, b = arma_predictor_model(x, y, m, n)
+
+    A_M = N - max(Na, Nb + Nk - 1)
+    if A_M <= 0:
+        raise ValueError('problem specification results in matrix with {} rows'.format(A_M))
+
+    A_N = Na + Nb
+
+    A1r = -y[(N - A_M - Na):(N - A_M)][::-1]
+    A1c = -y[(N - A_M - 1):-1]
+    A1 = SP.linalg.toeplitz(A1c, r=A1r)
+
+    A2r = x[(N - A_M - Nk - Nb + 1):(N - A_M - Nk + 1)][::-1]
+    A2c = x[(N - A_M - Nk):(N - Nk)]
+    A2 = SP.linalg.toeplitz(A2c, r=A2r)
+
+    A = NP.hstack((A1, A2))
+    b = y[(N - A_M):]
+    return A, b
+
+
+def arma_predictor_linear(x, y, Na, Nb, Nk=1):
+    """
+    Return the (*Na*, *Nb*) ARMA predictor trained on the input
+    *x* with a delay of *Nk* and output *y*. The output is the
+    tuple of the *Na* AR and *Nb* MA coefficients.
+
+    The implemented functionality compares with the single-input,
+    single-output Matlab routine `arx` (see
+    http://www.mathworks.com/help/ident/ref/arx.html).
+    """
+    assert len(x) == len(y)
+    A, b = arma_predictor_model(x, y, Na, Nb, Nk=Nk)
     x_hat = NP.linalg.lstsq(A, b)[0]
-    a_hat = x_hat[:m]
-    b_hat = x_hat[m:]
+    a_hat = x_hat[:Na]
+    b_hat = x_hat[Na:]
     a_hat = NP.insert(a_hat, 0, 1)
     return a_hat, b_hat
 
