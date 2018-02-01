@@ -1,8 +1,11 @@
 from __future__ import division
 
 import logging
+from itertools import repeat
 
 import numpy as NP
+import scipy as SP
+import scipy.signal
 
 from spectrum import nextpow2
 
