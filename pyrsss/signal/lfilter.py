@@ -164,3 +164,38 @@ def fir_response(h, bands, desired, Hz=1, names=None, verbose=True):
             print('max = {:.3e} (db={:f})'.format(stats.max,
                                                   20 * math.log10(stats.max)))
     return band_stats
+
+
+def miso_lfilter(b, a, x, zi=None):
+    """
+    Multiple input, single output (MISO) IIR filter. The transfer
+    function numerator terms are stored in the list *b* and the
+    denominator terms in the list *a* (the length of *a* and *b* must
+    be equal). The multiple inputs are stored in the list *x* (same
+    length as *a* and *b* and each element of *x* must be the same
+    length). The initial filter delay initial conditions are stored in
+    *zi* (use 0 initial condition if not provided). If *zi* is given,
+    then return the tuple containing the filter output and the final
+    delay values. Otherwise, return just the filter output.
+
+    This routine produced the same output as the Matlab routine *sim*.
+    """
+    assert len(b) == len(a) == len(x)
+
+    N_set = set(map(len, x))
+    assert len(N_set) == 1
+
+    if zi is None:
+        zi = repeat(zi)
+        return_zf = False
+    else:
+        assert len(zi) == len(b)
+        return_zf = True
+
+    y_i = [SP.signal.lfilter(b_i, a_i, x_i, zi=zi_i) for b_i, a_i, x_i, zi_i in zip(b, a, x, zi)]
+
+    if return_zf:
+        y_i, zf = zip(*y_i)
+        return NP.sum(y_i, axis=0), zf
+    else:
+        return NP.sum(y_i, axis=0)
