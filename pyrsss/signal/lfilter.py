@@ -178,7 +178,7 @@ def miso_lfilter(b, a, x, zi=None):
     then return the tuple containing the filter output and the final
     delay values. Otherwise, return just the filter output.
 
-    This routine produced the same output as the Matlab routine *sim*.
+    This routine produces the same output as the Matlab routine *sim*.
     """
     assert len(b) == len(a) == len(x)
 
