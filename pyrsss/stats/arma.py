@@ -4,6 +4,8 @@ import numpy as NP
 import scipy as SP
 import scipy.signal
 
+from ..signal.lfilter import miso_lfilter
+
 
 def arma_predictor_model(x, y, Na, Nb, Nk=1):
     """
@@ -39,7 +41,7 @@ def arma_predictor_model(x, y, Na, Nb, Nk=1):
     return A, b
 
 
-def arma_predictor_linear(x, y, Na, Nb, Nk=1):
+def arma_fit_linear(x, y, Na, Nb, Nk=1):
     """
     Return the (*Na*, *Nb*) ARMA predictor trained on the input
     *x* with a delay of *Nk* and output *y*. The output is the
@@ -75,7 +77,7 @@ def arma_residual(x_hat, Na, Nb, Nk, x, y):
     return y_hat - y
 
 
-def arma_predictor_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None):
+def arma_fit_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None):
     """
     Calculate the nonlinear fit between the (*Na*, *Nb*, with *Nk*
     time step delay on the input) ARMA model and the input *x* and
@@ -105,6 +107,103 @@ def arma_predictor_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None):
     a_hat = NP.insert(a_hat, 0, 1)
     b_hat = NP.insert(x_hat[Na:], 0, NP.zeros(Nk))
     return a_hat, b_hat
+
+
+def miso_pack(b, a):
+    """
+    Pack MISO transfer function components (numerator coefficients *b*
+    and denominator coefficients *a*, both lists of vectors) into a
+    vector representation.
+    """
+    assert len(b) == len(a)
+    x = []
+    for b_i, a_i in zip(b, a):
+        if a_i[0] != 1:
+            a_i /= a[0]
+            b_i /= a[0]
+        x.extend(b_i)
+        x.extend(a_i[1:])
+    return NP.array(x)
+
+
+def miso_unpack(x, Na, Nb, Nk):
+    """
+    Unpack the MISO vector transfer function representation *x* to
+    lists of numerator and denominator coefficients. *Na* is the list
+    of the number of denominator terms per system, *Nb* is the list of
+    the number of numerator terms per system, and *Nk* is the list of
+    input delays per system.
+    """
+    assert len(x) == sum(Na) + sum(Nb)
+    i = 0
+    b = []
+    a = []
+    for Na_i, Nb_i, Nk_i in zip(Na, Nb, Nk):
+        b_i = x[i:i+Nb_i]
+        b.append(NP.insert(b_i, 0, NP.zeros(Nk_i)))
+        i += Nb_i
+        a_i = x[i:i+Na_i]
+        a.append(NP.insert(a_i, 0, 1))
+        i += Na_i
+    return b, a
+
+
+def miso_arma_residual(x_hat, Na, Nb, Nk, x, y, I=slice(None)):
+    """
+    Return the residual between the MISO ARMA filter *x_hat* (see
+    func:`miso_pack`). the for the inputs *x* and output *y*. The
+    lists *Na*, *Nb*, and *Nk* store the number of denominator,
+    numerator, and input delay time steps per system. *I* indicates
+    the slice of the residual to return (useful for leaving off the
+    portion dominated by the transient response).
+    """
+    assert len(Na) == len(Nb) == len(Nk) == len(x)
+    for x_i in x:
+        assert len(x_i) == len(y)
+    assert len(x_hat) == sum(Na) + sum(Nb)
+    b_hat, a_hat = miso_unpack(x_hat, Na, Nb, Nk)
+    y_hat = miso_lfilter(b_hat, a_hat, x)
+    return (y_hat - y)[I]
+
+
+def miso_arma_fit_nonlinear(x, y, Na, Nb, Nk=None, x_hat0=None, I=slice(None)):
+    """
+    Fit MISO ARMA model to list of inputs *x* and corresponding output
+    *y*. Use a model with the list *Na* and *Nb* of the number of
+    denominator and numerator parameters, respectively, per
+    system. Use the list of *Nk* input delays per system (assume 1 for
+    all systems if not provided). Start the optimization with the
+    vector parameter set *x_hat0* (see :func:`pack` for the ordering
+    and start from all 0s if not provided). *I* indicates the slice of
+    the residuals to consider (see :func:`miso_arma_residual`).
+
+    The implemented functionality compares with the multiple-input,
+    single-output Matlab routine `oe` (see
+    http://www.mathworks.com/help/ident/ref/oe.html).
+    """
+    assert len(x) == len(Na) == len(Nb)
+    if Nk is None:
+        Nk = [1] * len(Na)
+    else:
+        assert len(Nk) == len(x)
+    if x_hat0 is None:
+        x_hat0 = NP.zeros(sum(Na) + sum(Nb))
+    N_set = set(map(len, x))
+    assert len(N_set) == 1
+    assert N_set.pop() == len(y)
+    J = lambda *args: miso_arma_residual(*args, **{'I': I})
+    (x_hat,
+     cov_x,
+     info,
+     mesg,
+     ier) = SP.optimize.leastsq(J,
+                                x_hat0,
+                                args=(Na, Nb, Nk, x, y),
+                                full_output=True)
+    if ier not in [1, 2, 3, 4]:
+        raise RuntimeError('optimization failed (ier={}) --- {}'.fomat(ier,
+                                                                       mesg))
+    return miso_unpack(x_hat, Na, Nb, Nk)
 
 
 """ARMA fit assessment metrics""",
