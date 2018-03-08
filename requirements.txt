@@ -1,7 +1,6 @@
 apexpy
-basemap
 Cython
-enum34
+enum34   # not required in python >= 3.4
 intervals
 matplotlib
 more-itertools
@@ -10,7 +9,6 @@ numpy
 pandas
 pyfftw
 pyglow
-pyNFFT
 pyproj
 python-dateutil
 scipy
