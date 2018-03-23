@@ -1,5 +1,3 @@
-from __future__ import division
-
 import logging
 import sys
 import os
@@ -230,16 +228,17 @@ class Zw_interpolator(object):
         provided in the .XML file record).
         """
         self.Z_map = Z_map
-        periods = Z_map.keys()
+        periods = list(Z_map.keys())
+        values = list(Z_map.values())
         self.f = NP.array([1/x for x in periods[::-1]])
         self.omega = 2 * math.pi * self.f
-        self.Zxx_interp = CubicSpline(self.omega, [x[0, 0] for x in Z_map.values()[::-1]],
+        self.Zxx_interp = CubicSpline(self.omega, [x[0, 0] for x in values[::-1]],
                                       extrapolate=False)
-        self.Zxy_interp = CubicSpline(self.omega, [x[0, 1] for x in Z_map.values()[::-1]],
+        self.Zxy_interp = CubicSpline(self.omega, [x[0, 1] for x in values[::-1]],
                                       extrapolate=False)
-        self.Zyx_interp = CubicSpline(self.omega, [x[1, 0] for x in Z_map.values()[::-1]],
+        self.Zyx_interp = CubicSpline(self.omega, [x[1, 0] for x in values[::-1]],
                                       extrapolate=False)
-        self.Zyy_interp = CubicSpline(self.omega, [x[1, 1] for x in Z_map.values()[::-1]],
+        self.Zyy_interp = CubicSpline(self.omega, [x[1, 1] for x in values[::-1]],
                                       extrapolate=False)
         self.key_map = {'xx': self.Zxx_interp,
                         'xy': self.Zxy_interp,
@@ -304,8 +303,8 @@ def process(output_mat_fname,
     # gather Bx and By magnetometer measurements
     _, data_map = parse(input_iaga2002_fname)
     interval = int((data_map.keys()[1] - data_map.keys()[0]).total_seconds())
-    Bx = nan_interp([record.x * 1e-9 for record in data_map.itervalues()])
-    By = nan_interp([record.y * 1e-9 for record in data_map.itervalues()])
+    Bx = nan_interp([record.x * 1e-9 for record in data_map.values()])
+    By = nan_interp([record.y * 1e-9 for record in data_map.values()])
     # filter with transfer function
     Ex, Ey = apply_transfer_function(Bx,
                                      By,
@@ -313,7 +312,7 @@ def process(output_mat_fname,
                                      xml_fname)
     # save E field
     stn_name = os.path.basename(input_iaga2002_fname)[:3]
-    j2000 = map(toJ2000, data_map.iterkeys())
+    j2000 = map(toJ2000, data_map.keys())
     mdict = {'Ex': Ex,
              'Ey': Ey,
              'j2000': j2000,
@@ -322,8 +321,8 @@ def process(output_mat_fname,
     if save_B:
         mdict['Bx'] = Bx
         mdict['By'] = By
-        mdict['Bx_raw'] = [x.x * 1e-9 for x in data_map.itervalues()]
-        mdict['By_raw'] = [x.y * 1e-9 for x in data_map.itervalues()]
+        mdict['Bx_raw'] = [x.x * 1e-9 for x in data_map.values()]
+        mdict['By_raw'] = [x.y * 1e-9 for x in data_map.values()]
     savemat(output_mat_fname, mdict)
     return output_mat_fname
 
