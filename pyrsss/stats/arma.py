@@ -26,8 +26,6 @@ def arma_predictor_model(x, y, Na, Nb, Nk=1):
     if A_M <= 0:
         raise ValueError('problem specification results in matrix with {} rows'.format(A_M))
 
-    A_N = Na + Nb
-
     A1r = -y[(N - A_M - Na):(N - A_M)][::-1]
     A1c = -y[(N - A_M - 1):-1]
     A1 = SP.linalg.toeplitz(A1c, r=A1r)
@@ -77,7 +75,7 @@ def arma_residual(x_hat, Na, Nb, Nk, x, y):
     return y_hat - y
 
 
-def arma_fit_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None):
+def arma_fit_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None, **kwds):
     """
     Calculate the nonlinear fit between the (*Na*, *Nb*, with *Nk*
     time step delay on the input) ARMA model and the input *x* and
@@ -98,10 +96,11 @@ def arma_fit_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None):
      ier) = SP.optimize.leastsq(arma_residual,
                                 x_hat0,
                                 args=(Na, Nb, Nk, x, y),
-                                full_output=True)
+                                full_output=True,
+                                **kwds)
     if ier not in [1, 2, 3, 4]:
-        raise RuntimeError('optimization failed (ier={}) --- {}'.fomat(ier,
-                                                                       mesg))
+        raise RuntimeError('optimization failed (ier={}) --- {}'.format(ier,
+                                                                        mesg))
     a_hat = x_hat[:Na]
     b_hat = x_hat[Na:]
     a_hat = NP.insert(a_hat, 0, 1)
@@ -166,7 +165,7 @@ def miso_arma_residual(x_hat, Na, Nb, Nk, x, y, I=slice(None)):
     return (y_hat - y)[I]
 
 
-def miso_arma_fit_nonlinear(x, y, Na, Nb, Nk=None, x_hat0=None, I=slice(None)):
+def miso_arma_fit_nonlinear(x, y, Na, Nb, Nk=None, x_hat0=None, I=slice(None), **kwds):
     """
     Fit MISO ARMA model to list of inputs *x* and corresponding output
     *y*. Use a model with the list *Na* and *Nb* of the number of
@@ -199,10 +198,11 @@ def miso_arma_fit_nonlinear(x, y, Na, Nb, Nk=None, x_hat0=None, I=slice(None)):
      ier) = SP.optimize.leastsq(J,
                                 x_hat0,
                                 args=(Na, Nb, Nk, x, y),
-                                full_output=True)
+                                full_output=True,
+                                **kwds)
     if ier not in [1, 2, 3, 4]:
-        raise RuntimeError('optimization failed (ier={}) --- {}'.fomat(ier,
-                                                                       mesg))
+        raise RuntimeError('optimization failed (ier={}) --- {}'.format(ier,
+                                                                        mesg))
     return miso_unpack(x_hat, Na, Nb, Nk)
 
 
