@@ -18,7 +18,7 @@ def parse_conductivity(fid):
             if 'thicknesses' in line.split('!')[1].lower():
                 thicknesses = map(float, line[1:].split('/')[1].split(',')[:-1])
             elif 'resistivities' in line.split('!')[1].lower():
-                resistivites = map(float, line[1:].split('/')[1].split(',')[:-1])
+                resistivites = list(map(float, line[1:].split('/')[1].split(',')[:-1]))
             else:
                 break
     last_depth = 0
@@ -36,7 +36,7 @@ def surface_impedance_1D(conductivity_map, omega):
     model *conductivity_map* at angular frequencies *omega* [rad].
     """
     # start at bottom layer
-    sigma = conductivity_map.values()[-1]
+    sigma = list(conductivity_map.values())[-1]
     # (5) in NERC, Application Guide: Computing
     # geomagnetically-induced current in the bulk power-system, 2013.
     #
@@ -45,7 +45,7 @@ def surface_impedance_1D(conductivity_map, omega):
     # (6)
     Z = 1j * omega * scipy.constants.mu_0 / k
     # iterate in reversed order (i.e., interior to exterior) and skip the bottom layer
-    for interval_i, sigma_i in conductivity_map.items()[-1::-1]:
+    for interval_i, sigma_i in list(conductivity_map.items())[-1::-1]:
         k = NP.sqrt(1j * omega * scipy.constants.mu_0 * sigma_i)
         # (7)
         A = k * Z / (1j * omega * scipy.constants.mu_0)
