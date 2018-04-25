@@ -35,6 +35,8 @@ def surface_impedance_1D(conductivity_map, omega):
     Calculate the surface impedance [Ohm] given the 1-D conductivity
     model *conductivity_map* at angular frequencies *omega* [rad].
     """
+    # check that bottom layer is an open half space
+    assert list(conductivity_map.keys())[-1].length == float('inf')
     # start at bottom layer
     sigma = list(conductivity_map.values())[-1]
     # (5) in NERC, Application Guide: Computing
@@ -45,7 +47,7 @@ def surface_impedance_1D(conductivity_map, omega):
     # (6)
     Z = 1j * omega * scipy.constants.mu_0 / k
     # iterate in reversed order (i.e., interior to exterior) and skip the bottom layer
-    for interval_i, sigma_i in list(conductivity_map.items())[-1::-1]:
+    for interval_i, sigma_i in list(conductivity_map.items())[-2::-1]:
         k = NP.sqrt(1j * omega * scipy.constants.mu_0 * sigma_i)
         # (7)
         A = k * Z / (1j * omega * scipy.constants.mu_0)
@@ -58,7 +60,7 @@ def surface_impedance_1D(conductivity_map, omega):
 
 
 if __name__ == '__main__':
-    from usgs_conductivity import USGS_MODEL_MAP
+    from .usgs_conductivity import USGS_MODEL_MAP
 
     import pylab as PL
 
@@ -69,12 +71,12 @@ if __name__ == '__main__':
     depths = NP.logspace(2, 6, N)
 
     resistivites_pt1 = NP.empty(N)
-    for interval, sigma in usgs_map_pt1.iteritems():
+    for interval, sigma in usgs_map_pt1.items():
         I = [i for i, d in enumerate(depths) if d in interval]
         resistivites_pt1[I] = 1 / sigma
 
     resistivites_ip4 = NP.empty(N)
-    for interval, sigma in usgs_map_ip4.iteritems():
+    for interval, sigma in usgs_map_ip4.items():
         I = [i for i, d in enumerate(depths) if d in interval]
         resistivites_ip4[I] = 1 / sigma
 
