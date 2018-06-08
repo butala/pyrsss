@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 
 from Cython.Build import cythonize
 
@@ -50,18 +50,5 @@ setup(name='pyrsss',
       description='Remote sensing and space science python tools.',
       author='Mark D. Butala, Matthew A. Grawe, et al.',
       author_email='butala@illinois.edu',
-      packages=['pyrsss',
-                'pyrsss.emission',
-                'pyrsss.emtf',
-                'pyrsss.gnss',
-                'pyrsss.igrf',
-                'pyrsss.ionex',
-                'pyrsss.iri',
-                'pyrsss.kalman',
-                'pyrsss.l1',
-                'pyrsss.mag',
-                'pyrsss.stats',
-                'pyrsss.usarray',
-                'pyrsss.usarray_emtf',
-                'pyrsss.util'],
+      packages=find_packages(),
       ext_modules=ext_modules)
