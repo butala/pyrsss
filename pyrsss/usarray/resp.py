@@ -1,11 +1,13 @@
+import logging
 from datetime import datetime
 from contextlib import closing
-from urllib2 import urlopen
+from urllib.request import urlopen
 from collections import OrderedDict
 from enum import Enum
 
 from intervals import DateTimeInterval
 
+logger = logging.getLogger('pyrsss.usarray.resp')
 
 
 def skip_block_header_comments(fid):
@@ -13,9 +15,9 @@ def skip_block_header_comments(fid):
     Skip past the initial three line header of the response record
     found in *fid*
     """
-    line1 = fid.next()
-    line2 = fid.next()
-    line3 = fid.next()
+    line1 = next(fid).decode('utf-8')
+    line2 = next(fid).decode('utf-8')
+    line3 = next(fid).decode('utf-8')
     assert line1 == line3 == '#\n'
     assert line2 == '#' * 83 + '\n'
     return fid
@@ -28,6 +30,7 @@ def parse_block_header(fid):
     """
     block_header = {}
     for line in fid:
+        line = line.decode('utf-8')
         if line.startswith('#'):
             break
         toks = line.split()
@@ -45,14 +48,14 @@ def parse_complex(fid, N):
     imaginary component, and errors) found in *fid*. Return a list
     containing this information.
     """
-    line1 = fid.next()
+    line1 = next(fid).decode('utf-8')
     assert line1 == '#              i  real          imag          real_error    imag_error\n'
     complex = []
     for i in range(N):
-        line = fid.next()
+        line = next(fid).decode('utf-8')
         toks = line.split()
         assert len(toks) == 6
-        complex.append(map(float, toks[2:]))
+        complex.append(list(map(float, toks[2:])))
     return complex
 
 
@@ -74,15 +77,15 @@ def parse_block_info(fid):
     :class:`BlockType` and the mapping of block information.
     """
     try:
-        line1 = fid.next()
+        line1 = next(fid).decode('utf-8')
     except StopIteration:
         return BlockType.eof, {}
     if line1 == '#' * 83 + '\n':
-        line2 = fid.next()
+        line2 = next(fid).decode('utf-8')
         assert line2 == '#\n'
         return BlockType.end, {}
     assert line1 == '#                  +-----------------------------------+\n'
-    line2 = fid.next()
+    line2 = next(fid).decode('utf-8')
     if line2 == '#                  |            Decimation             |\n':
         block_type = BlockType.decimation
     elif line2 == '#                  |      Channel Sensitivity/Gain     |\n':
@@ -92,11 +95,11 @@ def parse_block_info(fid):
     else:
         raise RuntimeError('error parsing data block in {}'.format(fid.name))
     for i in range(4):
-        fid.next()
+        next(fid).decode('utf-8')
     block_info = {}
     while True:
         try:
-            line = fid.next()
+            line = next(fid).decode('utf-8')
         except StopIteration:
             break
         if line == '#              Complex poles:\n':
@@ -152,7 +155,7 @@ class RespMap(OrderedDict):
     single site.
     """
     def __call__(self, dt):
-        for key, value in self.iteritems():
+        for key, value in self.items():
             if dt in key:
                 return value
         raise KeyError('{:%Y-%m-%d %H:%M:%S} does not intersect with any stored datetime interval'.format(dt))
@@ -219,19 +222,22 @@ def get_station_resp(station, d1, d2):
     to *d2*, return the instrument response function.
     """
     url = build_url(station, d1, d2)
+    logger.debug('fetching {}'.format(url))
     with closing(urlopen(url)) as fid:
         return parse_station_resp(fid)
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+
     d1 = datetime(2013, 7, 2)
     d2 = datetime(2013, 7, 2, 23, 59, 59)
     station = 'KSP33'
 
     print(get_station_resp(station, d1, d2))
 
-    d1 = datetime(2011, 7, 29)
-    d2 = datetime(2011, 8, 12)
+    d1 = datetime(2008, 9, 10)
+    d2 = datetime(2012, 4, 5)
     station = 'MBB03'
 
     print(get_station_resp(station, d1, d2))

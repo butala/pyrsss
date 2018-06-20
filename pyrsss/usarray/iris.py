@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from builtins import range
 import logging
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -7,7 +9,7 @@ from obspy import UTCDateTime
 import numpy as NP
 import pandas as PD
 
-from resp import get_station_resp
+from .resp import get_station_resp
 from ..util.date import dt_parser, UNIX_EPOCH
 
 logger = logging.getLogger('pyrsss.usarray.iris')
