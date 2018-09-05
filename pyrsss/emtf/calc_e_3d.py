@@ -4,7 +4,7 @@ import os
 import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import xml.etree.ElementTree as ET
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 import numpy as NP
 from scipy.constants import mu_0
@@ -149,6 +149,57 @@ def parse_xml(xml_fname):
         Z_array.shape = 2, 2
         Z_map[float(period.attrib['value'])] = Z_array
     return Z_map
+
+
+class XMLRecord(namedtuple('XMLRecord', ['T', 'Z', 'V', 'S', 'N'])):
+    pass
+
+
+def parse_xml_all(xml_fname):
+    """
+    Parse the E-M transfer function file *xml_fname* returning a
+    record of response period (`T` in [s]), impedance (`Z`), variance
+    (`V`), inverse coherent signal power (`S`), and residual
+    covariance (`N`). The impedance has units [mV / km] / [nT] and
+    matrices have the squared impedance units.
+
+    This routine should, at some point, supersede :func:`parse_xml` .
+
+    These files are available at http://ds.iris.edu/spud/emtf.
+    """
+    record = XMLRecord(*[[] for i in range(5)])
+
+    tree = ET.parse(xml_fname)
+    root = tree.getroot()
+
+    data_list = root.findall('Data')
+    assert len(data_list) == 1
+    data = data_list[0]
+
+    def parse_mat(tree, mat_key, is_complex=True, strict=True):
+        Z_list = tree.findall(mat_key)
+        assert len(Z_list) == 1
+        Z = Z_list[0]
+        assert len(Z) == 4
+        values = []
+        for value, name in zip(Z, ['Zxx', 'Zxy', 'Zyx', 'Zyy']):
+            if strict and value.attrib['name'] != name and value.attrib['name'] != name.upper():
+                raise ValueError('name mismatch ({} != {})'.format(value.attrib['name'], name))
+            if is_complex:
+                values.append(complex(*map(float, value.text.split())))
+            else:
+                values.append(float(value.text))
+        Z_array = NP.array(values)
+        Z_array.shape = 2, 2
+        return Z_array
+
+    for period in data.findall('Period'):
+        record.T.append(float(period.attrib['value']))
+        record.Z.append(parse_mat(period, 'Z'))
+        record.V.append(parse_mat(period, 'Z.VAR', is_complex=False))
+        record.S.append(parse_mat(period, 'Z.INVSIGCOV', strict=False))
+        record.N.append(parse_mat(period, 'Z.RESIDCOV', strict=False))
+    return record
 
 
 def parse_xml_header(xml_fname):
