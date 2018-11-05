@@ -19,7 +19,7 @@ def read_sm_csv(csv_fname):
                      date_parser=lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'),
                      index_col=0)
     df_map = {name: group for name, group in df.groupby('IAGA')}
-    for df in df_map.itervalues():
+    for df in df_map.values():
         del df['IAGA']
         df.rename(columns={'N': 'B_N',
                            'E': 'B_E',
@@ -37,11 +37,11 @@ def sm2hdf(hdf_fname, csv_fname):
     """
     df_map = read_sm_csv(csv_fname)
     if len(df_map) == 1:
-        df_map.values()[0].to_hdf(hdf_fname,
-                                  key='raw',
-                                  mode='w')
+        df_map.pop().to_hdf(hdf_fname,
+                            key='raw',
+                            mode='w')
     else:
-        for i, (stn, df_stn) in enumerate(df_map.iteritems()):
+        for i, (stn, df_stn) in enumerate(df_map.items()):
             df_stn.to_hdf(hdf_fname,
                           key='{}_raw'.format(stn),
                           mode='w' if i == 0 else 'a')

@@ -1,12 +1,10 @@
-from __future__ import division
-
 import logging
 import sys
 import os
 import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import xml.etree.ElementTree as ET
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 import numpy as NP
 from scipy.constants import mu_0
@@ -153,6 +151,57 @@ def parse_xml(xml_fname):
     return Z_map
 
 
+class XMLRecord(namedtuple('XMLRecord', ['T', 'Z', 'V', 'S', 'N'])):
+    pass
+
+
+def parse_xml_all(xml_fname):
+    """
+    Parse the E-M transfer function file *xml_fname* returning a
+    record of response period (`T` in [s]), impedance (`Z`), variance
+    (`V`), inverse coherent signal power (`S`), and residual
+    covariance (`N`). The impedance has units [mV / km] / [nT] and
+    matrices have the squared impedance units.
+
+    This routine should, at some point, supersede :func:`parse_xml` .
+
+    These files are available at http://ds.iris.edu/spud/emtf.
+    """
+    record = XMLRecord(*[[] for i in range(5)])
+
+    tree = ET.parse(xml_fname)
+    root = tree.getroot()
+
+    data_list = root.findall('Data')
+    assert len(data_list) == 1
+    data = data_list[0]
+
+    def parse_mat(tree, mat_key, is_complex=True, strict=True):
+        Z_list = tree.findall(mat_key)
+        assert len(Z_list) == 1
+        Z = Z_list[0]
+        assert len(Z) == 4
+        values = []
+        for value, name in zip(Z, ['Zxx', 'Zxy', 'Zyx', 'Zyy']):
+            if strict and value.attrib['name'] != name and value.attrib['name'] != name.upper():
+                raise ValueError('name mismatch ({} != {})'.format(value.attrib['name'], name))
+            if is_complex:
+                values.append(complex(*map(float, value.text.split())))
+            else:
+                values.append(float(value.text))
+        Z_array = NP.array(values)
+        Z_array.shape = 2, 2
+        return Z_array
+
+    for period in data.findall('Period'):
+        record.T.append(float(period.attrib['value']))
+        record.Z.append(parse_mat(period, 'Z'))
+        record.V.append(parse_mat(period, 'Z.VAR', is_complex=False))
+        record.S.append(parse_mat(period, 'Z.INVSIGCOV', strict=False))
+        record.N.append(parse_mat(period, 'Z.RESIDCOV', strict=False))
+    return record
+
+
 def parse_xml_header(xml_fname):
     """
     Parse the E-M transfer function file *xml_fname* returning a
@@ -230,16 +279,17 @@ class Zw_interpolator(object):
         provided in the .XML file record).
         """
         self.Z_map = Z_map
-        periods = Z_map.keys()
+        periods = list(Z_map.keys())
+        values = list(Z_map.values())
         self.f = NP.array([1/x for x in periods[::-1]])
         self.omega = 2 * math.pi * self.f
-        self.Zxx_interp = CubicSpline(self.omega, [x[0, 0] for x in Z_map.values()[::-1]],
+        self.Zxx_interp = CubicSpline(self.omega, [x[0, 0] for x in values[::-1]],
                                       extrapolate=False)
-        self.Zxy_interp = CubicSpline(self.omega, [x[0, 1] for x in Z_map.values()[::-1]],
+        self.Zxy_interp = CubicSpline(self.omega, [x[0, 1] for x in values[::-1]],
                                       extrapolate=False)
-        self.Zyx_interp = CubicSpline(self.omega, [x[1, 0] for x in Z_map.values()[::-1]],
+        self.Zyx_interp = CubicSpline(self.omega, [x[1, 0] for x in values[::-1]],
                                       extrapolate=False)
-        self.Zyy_interp = CubicSpline(self.omega, [x[1, 1] for x in Z_map.values()[::-1]],
+        self.Zyy_interp = CubicSpline(self.omega, [x[1, 1] for x in values[::-1]],
                                       extrapolate=False)
         self.key_map = {'xx': self.Zxx_interp,
                         'xy': self.Zxy_interp,
@@ -304,8 +354,8 @@ def process(output_mat_fname,
     # gather Bx and By magnetometer measurements
     _, data_map = parse(input_iaga2002_fname)
     interval = int((data_map.keys()[1] - data_map.keys()[0]).total_seconds())
-    Bx = nan_interp([record.x * 1e-9 for record in data_map.itervalues()])
-    By = nan_interp([record.y * 1e-9 for record in data_map.itervalues()])
+    Bx = nan_interp([record.x * 1e-9 for record in data_map.values()])
+    By = nan_interp([record.y * 1e-9 for record in data_map.values()])
     # filter with transfer function
     Ex, Ey = apply_transfer_function(Bx,
                                      By,
@@ -313,7 +363,7 @@ def process(output_mat_fname,
                                      xml_fname)
     # save E field
     stn_name = os.path.basename(input_iaga2002_fname)[:3]
-    j2000 = map(toJ2000, data_map.iterkeys())
+    j2000 = map(toJ2000, data_map.keys())
     mdict = {'Ex': Ex,
              'Ey': Ey,
              'j2000': j2000,
@@ -322,8 +372,8 @@ def process(output_mat_fname,
     if save_B:
         mdict['Bx'] = Bx
         mdict['By'] = By
-        mdict['Bx_raw'] = [x.x * 1e-9 for x in data_map.itervalues()]
-        mdict['By_raw'] = [x.y * 1e-9 for x in data_map.itervalues()]
+        mdict['Bx_raw'] = [x.x * 1e-9 for x in data_map.values()]
+        mdict['By_raw'] = [x.y * 1e-9 for x in data_map.values()]
     savemat(output_mat_fname, mdict)
     return output_mat_fname
 

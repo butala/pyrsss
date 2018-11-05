@@ -1,6 +1,6 @@
-from cStringIO import StringIO
+from io import StringIO
 
-from conductivity import parse_conductivity
+from .conductivity import parse_conductivity
 
 
 """
@@ -1114,6 +1114,6 @@ USGS_CONDUCTIVITY_MAP = {
 Mapping between USGS region and conductivity specification.
 """
 USGS_MODEL_MAP = {}
-for name, spec in USGS_CONDUCTIVITY_MAP.iteritems():
+for name, spec in USGS_CONDUCTIVITY_MAP.items():
     fid = StringIO(spec)
     USGS_MODEL_MAP[name] = parse_conductivity(fid)
