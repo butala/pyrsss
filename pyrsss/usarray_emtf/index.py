@@ -98,5 +98,5 @@ def get_index(repository_path, pkl_fname=PKL_FNAME):
     *repository_path*.
     """
     pkl_fname, _ = initialize(repository_path, pkl_fname=pkl_fname)
-    with open(pkl_fname) as fid:
+    with open(pkl_fname, 'rb') as fid:
         return pickle.load(fid)
