@@ -188,6 +188,9 @@ def parse_xml_header(xml_fname):
                 elif child.tag == 'Elevation':
                     assert child.attrib['units'] == 'meters'
                     header_map['el'] = float(child.text)
+                elif child.tag == 'Declination':
+                    header_map['dec'] = float(child.text)
+                    header_map['dec_epoch'] = float(child.attrib['epoch'])
         elif site_node.tag == 'DataQualityNotes':
             for child in site_node:
                 if child.tag == 'Rating':
