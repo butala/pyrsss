@@ -3,7 +3,7 @@ from __future__ import division
 import numpy as NP
 import pyproj
 
-from angle import convert_lon
+from .angle import convert_lon
 
 
 WGS84 = pyproj.Geod(ellps='WGS84')

@@ -4,7 +4,7 @@ import logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from zipfile import ZipFile
 
-from index import initialize
+from .index import initialize
 from ..util.path import touch_path
 
 
@@ -30,8 +30,7 @@ def mirror(destination_path,
     records processed is equal to *expected*. Return the full path to
     the pickle file containing the index of EMTF records.
     """
-    zip_fnames = filter(lambda x: x.startswith('SPUD') and x.endswith('.zip'),
-                        os.listdir(zip_path))
+    zip_fnames = [x for x in os.listdir(zip_path) if x.startswith('SPUD') and x.endswith('.zip')]
     logger.info('found {} SPUDS .zip files at {}:'.format(len(zip_fnames),
                                                           zip_path))
     for zip_fname in zip_fnames:
@@ -64,14 +63,14 @@ def mirror(destination_path,
                         xml_set_copy.remove(xml_fname)
                         target_fname = os.path.join(xml_target_path, xml_fname)
                         with zipfile.open(name) as fid, open(target_fname, 'w') as out_fid:
-                            out_fid.write(fid.read())
+                            out_fid.buffer.write(fid.read())
                 elif name.endswith('png'):
                     png_fname = name.split('/')[-1]
                     if png_fname in png_set_copy:
                         png_set_copy.remove(png_fname)
                         target_fname = os.path.join(png_target_path, png_fname)
                         with zipfile.open(name) as fid, open(target_fname, 'w') as out_fid:
-                            out_fid.write(fid.read())
+                            out_fid.buffer.write(fid.read())
     assert len(xml_set_copy) == len(png_set_copy) == 0
     # index the repository
     return initialize(xml_target_path)

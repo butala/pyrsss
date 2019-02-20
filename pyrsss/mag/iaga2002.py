@@ -1,4 +1,3 @@
-from __future__ import division
 import logging
 import sys
 import os
@@ -6,7 +5,7 @@ import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime, timedelta
 from collections import OrderedDict, namedtuple, defaultdict
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod, abstractproperty
 
 import pandas as PD
 
@@ -59,9 +58,7 @@ def convert_float(s):
     return f
 
 
-class IAGARecord(object):
-    __metaclass__ = ABCMeta
-
+class IAGARecord(ABC):
     @abstractproperty
     def x(self):
         pass
@@ -215,7 +212,7 @@ def parse(fname, strict=True):
                 key = line[:24].strip().replace(' ', '_')
                 try:
                     header_map[key] = HEADER_TYPES[key](line[24:69].strip())
-                except ValueError, e:
+                except ValueError as e:
                     logger.warning('could not parse header line {} --- skipping'.format(line))
                     header_map[key] = None
                     continue
@@ -238,7 +235,7 @@ def parse(fname, strict=True):
         for line in fid:
             try:
                 dt = datetime.strptime(line[:23], '%Y-%m-%d %H:%M:%S.%f')
-            except ValueError, e:
+            except ValueError as e:
                 if strict:
                     raise e
                 else:
@@ -354,9 +351,9 @@ def main(argv=None):
 
     header, data_map = parse(args.iaga2002_fname)
 
-    for key, value in header._asdict().iteritems():
+    for key, value in header._asdict().items():
         print('{} = {}'.format(key.replace(' ', '-'), value))
-    for dt, values in data_map.iteritems():
+    for dt, values in data_map.items():
         print('{:%Y-%m-%d %H:%M:%S.%f}:  {}  {}  {}  {}'.format(dt,
                                                                 values[1],
                                                                 values[2],

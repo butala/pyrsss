@@ -1,6 +1,6 @@
 import os
 import logging
-import cPickle
+import pickle
 from glob import glob
 
 from ..emtf.calc_e_3d import parse_xml_header
@@ -35,7 +35,7 @@ class EMTFIndex(dict):
         quality index of at least *min_quality*.
         """
         index = super(EMTFIndex, self).__new__(EMTFIndex)
-        for key, (info, fname) in self.iteritems():
+        for key, (info, fname) in self.items():
             if info['rating'] >= min_quality:
                 index[key] = (info, fname)
         return index
@@ -46,7 +46,7 @@ class EMTFIndex(dict):
         *d_km* (in km) of geodetic *lat* and *lon*.
         """
         usarray_lat, usarray_lon = [], []
-        for key, (info, fname) in self.iteritems():
+        for key, (info, fname) in self.items():
             usarray_lat.append(info['lat'])
             usarray_lon.append(info['lon'])
         lat_list = [lat] * len(usarray_lat)
@@ -54,7 +54,7 @@ class EMTFIndex(dict):
         d = distance(lat_list, lon_list,
                      usarray_lat, usarray_lon)
         index = super(EMTFIndex, self).__new__(EMTFIndex)
-        for d_i, (k, v) in zip(d, self.iteritems()):
+        for d_i, (k, v) in zip(d, self.items()):
             if d_i <= d_km:
                 index[k] = v
         return index
@@ -70,8 +70,8 @@ def update(repository_path, pkl_fname=PKL_FNAME):
     pkl_fullpath = os.path.join(repository_path,
                                 pkl_fname)
     logger.info('updating index file {}'.format(pkl_fullpath))
-    with open(pkl_fullpath, 'w') as fid:
-        cPickle.dump(index, fid, -1)
+    with open(pkl_fullpath, 'wb') as fid:
+        pickle.dump(index, fid, -1)
     return pkl_fullpath
 
 
@@ -99,4 +99,4 @@ def get_index(repository_path, pkl_fname=PKL_FNAME):
     """
     pkl_fname, _ = initialize(repository_path, pkl_fname=pkl_fname)
     with open(pkl_fname) as fid:
-        return cPickle.load(fid)
+        return pickle.load(fid)
