@@ -7,7 +7,7 @@ import numpy as NP
 import scipy as SP
 import scipy.signal
 
-from spectrum import nextpow2
+from .spectrum import nextpow2
 
 logger = logging.getLogger('pyrsss.signal.lfilter')
 
@@ -202,3 +202,68 @@ def miso_lfilter(b, a, x, zi=None):
         return NP.sum(y_i, axis=0), zf
     else:
         return NP.sum(y_i, axis=0)
+
+
+def difference_eq(b, a, x, prior=None):
+    """
+    A simple implementation of a linear, constant-coefficient,
+    difference equation calculator and a crude reimplementation of
+    `scipy.signal.lfilter` for testing purposes. The values *b* and
+    *a* are the MA and AR filter parameters and *x* is the input
+    sequence. If *prior* is given, it is the tuple containing the
+    prior input and output values (otherwise a initial conditions of
+    0s are used).
+    """
+    N = max(len(b), len(a)) - 1
+    b = NP.concatenate((b, NP.zeros(N + 1 - len(b))))
+    a = NP.concatenate((a, NP.zeros(N + 1 - len(a))))
+    if prior:
+        xn, yn = prior
+        assert len(xn) == len(yn) == N
+    else:
+        xn = NP.zeros(N)
+        yn = NP.zeros(N)
+    Nx = len(x)
+    x = NP.concatenate((xn, x))
+    y = NP.concatenate((yn, NP.empty(Nx)))
+    a_rev = a[1:][::-1]
+    b_rev = b[::-1]
+    for i in range(N, N + Nx):
+        y[i] = -NP.dot(a_rev, y[i-N:i]) + NP.dot(b_rev, x[i-N:i+1])
+    return y[N:]
+
+
+def directform2Tzi(b, a, x, y):
+    """
+    Compute transposed direct form 2 (the structure used by the
+    :func:`scipy.signal.filter`) initial conditions. The coefficients
+    *a* and *b* are the AR and MA filter parameters. The filter prior
+    input and output are given in *x* and *y* indexed using the
+    convention that x[-1] (in the Python indexing convention) is the
+    input at time n=-1 (mathematical convention), x[-2] (in the Python
+    indexing convention) is the input at time n=-2 (mathematical
+    convention), and so on.
+
+    In particular, if
+
+    zi = directform2Tzi(b, a, xn, yn)
+    y_lfilter = SP.signal.lfilter(b, a, x, zi=zi)[0]
+
+    then
+
+    difference_eq(b, a, x, prior=(xn, yn)) == y_lfilter
+    """
+    assert NP.allclose(a[0], 1)
+    assert len(x) == len(y) == max(len(b), len(a)) - 1
+    N = len(x)
+    if N == 0:
+        return []
+    z = NP.empty(N)
+    b = NP.concatenate((b, NP.zeros(N + 1 - len(b))))
+    a = NP.concatenate((a, NP.zeros(N + 1 - len(a))))
+    x = x[::-1]
+    y = y[::-1]
+    z[0] = NP.dot(b[1:], x) - NP.dot(a[1:], y)
+    for i in range(1, N):
+        z[i] = NP.dot(b[i+1:], x[:-i]) - NP.dot(a[i+1:], y[:-i])
+    return z
