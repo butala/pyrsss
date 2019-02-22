@@ -1,5 +1,3 @@
-from __future__ import division
-
 import sys
 import logging
 import math
@@ -14,7 +12,7 @@ import pandas as PD
 
 from pyglow.pyglow import Point
 
-from date import dt_parser
+from .date import dt_parser
 from ..stats.stats import Stats
 
 
