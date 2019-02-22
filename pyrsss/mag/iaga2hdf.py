@@ -1,5 +1,3 @@
-from __future__ import division
-
 import os
 import sys
 import math
@@ -14,7 +12,7 @@ from obspy.core.stream import Stream
 from obspy.core.utcdatetime import UTCDateTime
 from obspy.core.trace import Trace
 
-from iaga2002 import iaga2df
+from .iaga2002 import iaga2df
 from ..util.angle import deg2tenths_of_arcminute
 
 logger = logging.getLogger('pyrsss.mag.iaga2hdf')
@@ -257,7 +255,7 @@ def iaga2hdf(hdf_fname,
         header['geodetic_latitude'] = header.pop('Geodetic Latitude')
     if 'Geodetic Longitude' in header:
         header['geodetic_longitude'] = header.pop('Geodetic Longitude')
-    write_hdf(hdf_fname, df, key, {k.lower(): v for k, v in header.iteritems()})
+    write_hdf(hdf_fname, df, key, {k.lower(): v for k, v in header.items()})
     return hdf_fname
 
 
