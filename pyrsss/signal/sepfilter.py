@@ -1,5 +1,3 @@
-from __future__ import division
-
 import numpy as NP
 import scipy.sparse
 

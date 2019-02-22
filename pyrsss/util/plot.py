@@ -1,5 +1,3 @@
-from __future__ import division
-
 import numpy as NP
 import pylab as PL
 from mpl_toolkits.axes_grid1 import make_axes_locatable

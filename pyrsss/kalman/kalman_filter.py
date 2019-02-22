@@ -1,5 +1,3 @@
-from __future__ import division
-
 from itertools import repeat
 from collections import namedtuple
 

@@ -1,6 +1,3 @@
-from __future__ import division
-
-
 """
 The following (ALPHA1 through K3) are from Table 2.3 from Makela's
 dissertation.

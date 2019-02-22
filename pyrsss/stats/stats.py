@@ -1,5 +1,3 @@
-from __future__ import division
-
 import sys
 import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter

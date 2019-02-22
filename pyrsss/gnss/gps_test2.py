@@ -1,5 +1,3 @@
-from __future__ import division
-
 import scipy.constants as const
 import matplotlib
 matplotlib.use('agg')
