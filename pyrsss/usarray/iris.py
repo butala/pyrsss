@@ -20,6 +20,8 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
     *dt2*. Return as a :class:`DataFrame`. Magnetic field components
     are stored with units nT. Electric field components are stored in
     mV / km.
+
+    Note that USArray sensors are aligned to geomagnetic coordinates.
     """
     # get instrument response if needed
     if resp is None:
@@ -37,11 +39,11 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
     lqn = client.get_waveforms('EM', stn, location, 'LQN', d1, d2)
     assert len(lfe) == len(lfn) == len(lfz) == len(lqe) == len(lqn)
     dt_list = []
-    Bx_list = []
-    By_list = []
+    Bn_list = []
+    Be_list = []
     Bz_list = []
-    Ex_list = []
-    Ey_list = []
+    En_list = []
+    Ee_list = []
     for i in range(len(lfe)):
         # time sanity checks
         assert lfe.traces[i].meta.starttime == lfn.traces[i].meta.starttime \
@@ -64,17 +66,17 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
         assert resp.network == 'EM'
         # apply calibration values and store data from trace
         dt_list.extend(dt)
-        Bx_list.append(lfn.traces[i].data / resp.sensitivity(dt[0], 'LFN') * 1e9)
-        By_list.append(lfe.traces[i].data / resp.sensitivity(dt[0], 'LFE') * 1e9)
+        Bn_list.append(lfn.traces[i].data / resp.sensitivity(dt[0], 'LFN') * 1e9)
+        Be_list.append(lfe.traces[i].data / resp.sensitivity(dt[0], 'LFE') * 1e9)
         Bz_list.append(lfz.traces[i].data / resp.sensitivity(dt[0], 'LFZ') * 1e9)
-        Ex_list.append(lqn.traces[i].data / resp.sensitivity(dt[0], 'LQN') * 1e6)
-        Ey_list.append(lqe.traces[i].data / resp.sensitivity(dt[0], 'LQE') * 1e6)
+        En_list.append(lqn.traces[i].data / resp.sensitivity(dt[0], 'LQN') * 1e6)
+        Ee_list.append(lqe.traces[i].data / resp.sensitivity(dt[0], 'LQE') * 1e6)
     return PD.DataFrame(index=dt_list,
-                        data={'B_X': NP.hstack(Bx_list),
-                              'B_Y': NP.hstack(By_list),
+                        data={'B_N': NP.hstack(Bn_list),
+                              'B_E': NP.hstack(Be_list),
                               'B_Z': NP.hstack(Bz_list),
-                              'E_X': NP.hstack(Ex_list),
-                              'E_Y': NP.hstack(Ey_list)})
+                              'E_N': NP.hstack(En_list),
+                              'E_E': NP.hstack(Ee_list)})
 
 
 def main(argv=None):
