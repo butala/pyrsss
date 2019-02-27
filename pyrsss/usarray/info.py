@@ -15,21 +15,21 @@ def get_info_map(info_link=INFO_LINK):
     *info_link*, a link to a tab delineated text file containing
     information for each USArray MT site.
     """
-    df = PD.read_table(info_link,
-                       sep='\t',
-                       skiprows=1,
-                       names=['vnet',
-                              'net',
-                              'sta',
-                              'location',
-                              'lat',
-                              'lon',
-                              'elev',
-                              'start',
-                              'end',
-                              'status',
-                              'install',
-                              'cert'],
-                       parse_dates=[7, 8],
-                       index_col=2)
+    df = PD.read_csv(info_link,
+                     sep='\t',
+                     skiprows=1,
+                     names=['vnet',
+                            'net',
+                            'sta',
+                            'location',
+                            'lat',
+                            'lon',
+                            'elev',
+                            'start',
+                            'end',
+                            'status',
+                            'install',
+                            'cert'],
+                     parse_dates=[7, 8],
+                     index_col=2)
     return df
