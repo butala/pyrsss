@@ -49,7 +49,8 @@ def mirror(destination_path,
                     xml_set.add(name.split('/')[-1])
                 elif name.endswith('png'):
                     png_set.add(name.split('/')[-1])
-    assert len(xml_set) == expected
+    if len(xml_set) != expected:
+        raise ValueError('expected={} and found={}'.format(expected, len(xml_set)))
     # unpack XML and PNG files
     xml_set_copy = set(xml_set)
     png_set_copy = set(png_set)
