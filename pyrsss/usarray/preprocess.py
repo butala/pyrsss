@@ -81,13 +81,13 @@ def preprocess(hdf_fname,
     # median subtraction
     if apply_median_subtraction:
         logger.info('median subtraction')
-        df_filtered = df_filtered.sub(df.median(axis=1), axis=0)
+        df_filtered = df_filtered - df_filtered.median()
     # output result
     if output_hdf_fname is None:
         output_hdf_fname = hdf_fname
     logger.info('storing preprocessed data to {} with key={}'.format(output_hdf_fname, output_key))
     df_filtered.to_hdf(output_hdf_fname, output_key)
-    return df_filtered
+    return output_hdf_fname
 
 
 def main(argv=None):
@@ -115,7 +115,7 @@ def main(argv=None):
                         nargs='*',
                         default='all',
                         help='columns to preprocess (all columns by default)')
-    parser.add_argument('--output_hdf_fname',
+    parser.add_argument('--output-hdf-fname',
                         type=str,
                         default=None,
                         help='output HDF file name (if not specified, use the input HDF file)')
