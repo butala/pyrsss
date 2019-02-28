@@ -12,7 +12,7 @@ from .info import get_info_map
 logger = logging.getLogger('pyrsss.usarray.mag2geo')
 
 
-def mag2geo(df, dec_deg):
+def compute_mag2geo(df, dec_deg):
     """
     """
     cos_dec = np.cos(np.deg2rad(dec_deg))
@@ -54,6 +54,30 @@ def get_declination(station_id):
     return dec
 
 
+def mag2geo(hdf_fname,
+            input_key,
+            output_key,
+            declination=None,
+            station_id=None,
+            output_fname=None):
+    """
+    """
+    df = pd.read_hdf(hdf_fname, input_key)
+
+    if declination is None:
+        assert station_id is not None
+        dec_deg = get_declination(station_id)
+    else:
+        dec_deg = declination
+
+    if output_fname is None:
+        output_fname = hdf_fname
+
+    df_geo = compute_mag2geo(df, dec_deg)
+    df_geo.to_hdf(output_fname, output_key)
+    return output_fname
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
@@ -88,21 +112,12 @@ def main(argv=None):
                         help='output HDF file (use the input file if not specified)')
     args = parser.parse_args(argv[1:])
 
-    df = pd.read_hdf(args.hdf_fname, args.input_key)
-
-    if args.declination is None:
-        assert args.station_id is not None
-        dec_deg = get_declination(args.station_id)
-    else:
-        dec_deg = args.declination
-
-    if args.output_fname is None:
-        hdf_out = args.hdf_fname
-    else:
-        hdf_out = args.output_fname
-
-    df_geo = mag2geo(df, dec_deg)
-    df_geo.to_hdf(hdf_out, args.output_key)
+    mag2geo(args.hdf_fname,
+            args.input_key,
+            args.output_key,
+            declination=args.declination,
+            station_id=args.station_id,
+            output_fname=args.output_fname)
 
 
 if __name__ == '__main__':
