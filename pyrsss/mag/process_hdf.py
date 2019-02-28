@@ -10,7 +10,7 @@ import numpy as NP
 import pandas as PD
 import scipy.signal
 
-from iaga2hdf import read_hdf, write_hdf
+from .iaga2hdf import read_hdf, write_hdf
 from ..util.nan import nan_interp
 from ..signal.lfilter import lp_fir_filter
 from ..stats.stats import despike
@@ -266,7 +266,7 @@ def fill_nans(df, delta=None):
         delta_timedelta64 = min(dt_diff)
         delta_seconds = delta_timedelta64 / NP.timedelta64(1, 's')
         delta = timedelta(seconds=delta_seconds)
-    logger.info('Using delta = {} (s)'.format(delta.total_seconds()))
+    logger.info('using delta = {} (s)'.format(delta.total_seconds()))
     index_new = PD.date_range(start=df.index[0],
                               end=df.index[-1],
                               freq=delta)
@@ -275,7 +275,8 @@ def fill_nans(df, delta=None):
         logger.warning('Missing time indices (filled by NaNs):')
         for x in missing:
             logger.warning(x)
-    return df.reindex(index_new, copy=False), delta
+        df = df.reindex(index_new, copy=False)
+    return df, delta
 
 
 def nan_interpolate(df):
