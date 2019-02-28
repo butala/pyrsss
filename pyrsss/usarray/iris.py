@@ -54,23 +54,27 @@ def fetch(stn, dt1, dt2, location=0, resp=None):
         assert (lfe.traces[i].times() == lqe.traces[i].times()).all()
         assert (lfe.traces[i].times() == lqn.traces[i].times()).all()
         dt = [(lfe.traces[i].meta.starttime + x).datetime for x in lfe.traces[i].times()]
+        # get sensitivities
+        sensitivity_LFN = NP.array([resp.sensitivity(dt_i, 'LFN') for dt_i in dt])
+        sensitivity_LFE = NP.array([resp.sensitivity(dt_i, 'LFE') for dt_i in dt])
+        sensitivity_LFZ = NP.array([resp.sensitivity(dt_i, 'LFZ') for dt_i in dt])
+        sensitivity_LQN = NP.array([resp.sensitivity(dt_i, 'LQN') for dt_i in dt])
+        sensitivity_LQE = NP.array([resp.sensitivity(dt_i, 'LQE') for dt_i in dt])
+        if len(set(sensitivity_LFN)) > 1 or len(set(sensitivity_LFE)) > 1 or len(set(sensitivity_LFZ)) > 1 or len(set(sensitivity_LQN)) > 1 or len(set(sensitivity_LQE)) > 1:
+            logger.warning('measurements span multiple instrument sensitivities --- further scrutiny is warranted')
         # log information about data
         logger.info('time of first record = {}'.format(dt[0]))
         logger.info('time of last record = {}'.format(dt[-1]))
         logger.info('total data points = {}'.format(len(dt)))
-        # if dt[-1] not in resp['interval']:
-            #raise NotImplementedError('date range {} -- {} spans multiple station response records'.format(dt[0], dt[-1]))
-            # logger.warning('date range {} -- {} spans multiple station response records --- skipping'.format(dt[0], dt[-1]))
-            # continue
         assert resp.stn == stn
         assert resp.network == 'EM'
         # apply calibration values and store data from trace
         dt_list.extend(dt)
-        Bn_list.append(lfn.traces[i].data / resp.sensitivity(dt[0], 'LFN') * 1e9)
-        Be_list.append(lfe.traces[i].data / resp.sensitivity(dt[0], 'LFE') * 1e9)
-        Bz_list.append(lfz.traces[i].data / resp.sensitivity(dt[0], 'LFZ') * 1e9)
-        En_list.append(lqn.traces[i].data / resp.sensitivity(dt[0], 'LQN') * 1e6)
-        Ee_list.append(lqe.traces[i].data / resp.sensitivity(dt[0], 'LQE') * 1e6)
+        Bn_list.append(lfn.traces[i].data / sensitivity_LFN * 1e9)
+        Be_list.append(lfe.traces[i].data / sensitivity_LFE * 1e9)
+        Bz_list.append(lfz.traces[i].data / sensitivity_LFZ * 1e9)
+        En_list.append(lqn.traces[i].data / sensitivity_LQN * 1e6)
+        Ee_list.append(lqe.traces[i].data / sensitivity_LQE * 1e6)
     return PD.DataFrame(index=dt_list,
                         data={'B_N': NP.hstack(Bn_list),
                               'B_E': NP.hstack(Be_list),
