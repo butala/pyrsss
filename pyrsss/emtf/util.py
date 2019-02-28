@@ -45,7 +45,7 @@ def plot_3D_reponse(xml_fname,
     Zxy_xml = NP.array([x[0,1] for x in Z_map.values()]) * mu_0 * 1e3
     Zyx_xml = NP.array([x[1,0] for x in Z_map.values()]) * mu_0 * 1e3
     Zyy_xml = NP.array([x[1,1] for x in Z_map.values()]) * mu_0 * 1e3
-    T_xml = NP.array(Z_map.keys())
+    T_xml = NP.array(list(Z_map.keys()))
     f_xml = 1 / T_xml
     f_xml_mHz = f_xml * 1e3
     # plot magnitude response in Figure 1
