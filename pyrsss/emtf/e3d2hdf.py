@@ -126,7 +126,7 @@ def main(argv=None):
                         '-i',
                         type=str,
                         default='B',
-                        help='')
+                        help='HDF record key for the B-field data')
     parser.add_argument('--output-key-prefix',
                         '-o',
                         type=str,
