@@ -92,11 +92,15 @@ def initialize(repository_path, pkl_fname=PKL_FNAME):
     return pkl_fullpath, did_update
 
 
-def get_index(repository_path, pkl_fname=PKL_FNAME):
+def get_index(repository_path, pkl_fname=PKL_FNAME, call_initialize=False):
     """
     Return the index information for the EMTF repository located at
-    *repository_path*.
+    *repository_path*. If *call_initialize*, initialize the repository
+    with :func:`initialize` prior to accessing the index pickle file.
     """
-    pkl_fname, _ = initialize(repository_path, pkl_fname=pkl_fname)
+    if call_initialize:
+        pkl_fname, _ = initialize(repository_path, pkl_fname=pkl_fname)
+    else:
+        pkl_fname = os.path.join(repository_path, pkl_fname)
     with open(pkl_fname, 'rb') as fid:
         return pickle.load(fid)
