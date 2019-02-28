@@ -208,7 +208,7 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    parser = ArgumentParser('Added modeled E field records to HDF file containing processed B field data.',
+    parser = ArgumentParser('Add modeled E field records to HDF file containing processed B field data.',
                             formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument('hdf_fnames',
                         type=str,
