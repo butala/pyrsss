@@ -59,6 +59,7 @@ def get_xml_map(repository_path, station_names):
 def e3d2hdf(hdf_fname,
             station_names,
             input_key='B',
+            output_key_prefix='E',
             N_suffix='_X',
             E_suffix='_Y',
             output_hdf_fname=None,
@@ -67,12 +68,12 @@ def e3d2hdf(hdf_fname,
     Compute the 3-D EMTF modeled E-field for the B-field data found in
     *hdf_fname* for each station identifier given in
     *station_names*. Use the B-field data associated with record
-    *input_key*. Write the data to a data frame record with key
-    prefixed by *output_key_prefix*. Northward data (B and E) use
-    suffix *N_suffix* and eastward data use suffix *E_suffix*. Output
-    records to *output_hdf_fname* (and use *hdf_fname* by
-    default). Use *repository_path* to find XML 3-D EMTF
-    records. Return *output_hdf_fname*.
+    *input_key*. Write the data to a data frame record in the output
+    HDF file with key prefixed by *output_key_prefix*. Northward data
+    (B and E) use suffix *N_suffix* and eastward data use suffix
+    *E_suffix*. Output records to *output_hdf_fname* (and use
+    *hdf_fname* by default). Use *repository_path* to find XML 3-D
+    EMTF records. Return *output_hdf_fname*.
     """
     df_B = pd.read_hdf(hdf_fname, input_key)
     if output_hdf_fname is None:
@@ -85,20 +86,25 @@ def e3d2hdf(hdf_fname,
         df_E = pd.DataFrame(index=df_B.index)
         B_north = df_B['B_' + N_suffix].values
         B_east = df_B['B_' + E_suffix].values
-        E_north, E_east = apply_transfer_function(B_north,
-                                                  B_east,
-                                                  interval,
-                                                  xml_fname,
-                                                  extrapolate0=True)
-        E_north_key = '{}_{}'.format(output_key_prefix, N_suffix)
-        E_east_key = '{}_{}'.format(output_key_prefix, E_suffix)
+        # the units of B_north and B_east are in [nT]
+        E_north_Vm, E_east_Vm = apply_transfer_function(B_north * 1e-9,
+                                                        B_east * 1e-9,
+                                                        interval,
+                                                        xml_fname,
+                                                        extrapolate0=True)
+        # convert from V / m to mV / km
+        E_north = E_north_Vm * 1e6
+        E_east = E_east_Vm * 1e6
+        E_north_key = 'E_{}'.format(N_suffix)
+        E_east_key = 'E_{}'.format(E_suffix)
+        output_key = '{}_{}'.format(output_key_prefix, station_name)
         logger.info('writing columns {} and {} to {} with key {}'.format(E_north_key,
                                                                          E_east_key,
                                                                          output_hdf_fname,
-                                                                         station_name))
+                                                                         output_key))
         df_E[E_north_key] = E_north
         df_E[E_east_key] = E_east
-        df_E.to_hdf(output_hdf_fname, station_name)
+        df_E.to_hdf(output_hdf_fname, output_key)
     return output_hdf_fname
 
 
@@ -148,7 +154,6 @@ def main(argv=None):
             args.station_names,
             input_key=args.input_key,
             output_key_prefix=args.output_key_prefix,
-            #coordinate_frame=args.coordinate_frame,
             N_suffix=COORDINATE_FRAME_SUFFIX[args.coordinate_frame]['north'],
             E_suffix=COORDINATE_FRAME_SUFFIX[args.coordinate_frame]['east'],
             output_hdf_fname=args.output_hdf_fname,
