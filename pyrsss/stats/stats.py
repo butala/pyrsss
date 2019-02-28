@@ -1,3 +1,4 @@
+import logging
 import sys
 import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -5,6 +6,8 @@ from collections import Iterable
 
 import scipy.stats
 import numpy as NP
+
+logger = logging.getLogger('pyrsss.stats.stats')
 
 
 def mad(l):
@@ -25,6 +28,18 @@ def robust_std(l, alpha=1/scipy.stats.norm.ppf(0.75)):
     return alpha * mad(l)[0]
 
 
+def max_consectuive_true(df):
+    """
+    Return the tuple of the number of `True` elements in each column
+    of *df* and the largest consecutive run of `True` elements.
+    """
+    # see https://stackoverflow.com/questions/52717996/how-can-i-count-the-number-of-consecutive-trues-in-a-dataframe
+    cumsum = df.cumsum()
+    c = cumsum.sub(cumsum.mask(df).ffill().fillna(0)).astype(int)
+    mask = df.any()
+    return cumsum.iloc[-1].tolist(), NP.where(mask, c.max(), -1).tolist()
+
+
 def despike(df, window=31, l=6):
     """
     Remove outliers from the columns of :class:`DataFrame` by
@@ -42,8 +57,14 @@ def despike(df, window=31, l=6):
         raise ValueError('window length must be odd')
     df_rolling = df.rolling(window, center=True)
     df_rolling_median = df_rolling.median()
-    df_robust_std = df_rolling.apply(robust_std)
+    df_robust_std = df_rolling.apply(robust_std, raw=True)
+    # it may be possible to speed this up:
+    # https://stackoverflow.com/questions/42865103/numpy-version-of-rolling-mad-mean-absolute-deviation
     I = (df - df_rolling_median).abs() > l * df_robust_std
+    cumsum, consecutive = max_consectuive_true(I)
+    for column, cumsum_i, consecutive_i in zip(df.columns, cumsum, consecutive):
+        if cumsum_i > 0:
+            logger.info('column {}: {} points ({:.2f}%) removed --- max run removed = {} points'.format(column, cumsum_i, cumsum_i / len(df) * 100, consecutive_i))
     df_despike = df.copy()
     df_despike[I] = df_rolling_median
     return df_despike.iloc[(window-1):-(window-1)]
