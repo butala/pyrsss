@@ -1,7 +1,7 @@
 import logging
 import os
 import shutil
-from urllib2 import urlopen
+from urllib.request import urlopen
 from contextlib import closing
 
 import sh
