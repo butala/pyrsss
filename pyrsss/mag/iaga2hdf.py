@@ -167,7 +167,10 @@ def read_hdf(hdf_fname, key):
         raise ValueError('file {} does not exist'.format(hdf_fname))
     with PD.HDFStore(hdf_fname) as store:
         df = store.get(key)
-        header = store.get_storer(key).attrs.header
+        try:
+            header = store.get_storer(key).attrs.header
+        except AttributeError:
+            header = None
         return df, header
 
 
