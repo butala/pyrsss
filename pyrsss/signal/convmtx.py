@@ -3,7 +3,7 @@ import scipy.linalg
 import scipy.signal
 import scipy.sparse as sparse
 
-from util import zero_pad
+from .util import zero_pad
 
 
 class Convmtx(sparse.coo_matrix):
@@ -102,15 +102,13 @@ class Convmtx(sparse.coo_matrix):
         else:
             raise ValueError('Unknown mode {0}'.format(mode))
 
-        blocks = map(toeplitz_mapper, c_list)
+        blocks = [toeplitz_mapper(x) for x in c_list]
 
         for n_i, k_i in zip(n[-2::-1], k[-2::-1]):
             if mode == 'full' or mode == 'circ':
-                blocks = map(lambda x: block_mapper(n_i, k_i, x),
-                             NP.split(NP.array(blocks), len(blocks)/k_i))
+                blocks = [block_mapper(n_i, k_i, x) for x in NP.split(NP.array(blocks), len(blocks)/k_i)]
             elif mode =='valid':
-                blocks = map(lambda x: block_mapper(n_i, k_i, x),
-                             NP.split(NP.array(blocks), len(blocks)/n_i))
+                blocks = [block_mapper(n_i, k_i, x) for x in NP.split(NP.array(blocks), len(blocks)/n_i)]
             else:
                 raise ValueError('Unknown mode {0}'.format(mode))
 
