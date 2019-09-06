@@ -39,6 +39,7 @@ if 'GPSTK_SRC' in os.environ:
                           library_dirs=[os.environ['GPSTK_BUILD']],
                           runtime_library_dirs=[os.environ['GPSTK_BUILD']],
                           libraries=['gpstk'],
+                          language_level=3,
                           language='c++')
     ext_modules = cythonize([gpstk_ext])
 else:
