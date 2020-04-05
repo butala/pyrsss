@@ -36,9 +36,9 @@ class SepFilter(object):
             self.k = self.k_full
         else:
             assert(False)
-        self.H_list = map(lambda x: NP.fft.fft(x[1],
-                                               n=self.k_full[x[0]]),
-                          enumerate(self.h_list))
+        self.H_list = list(map(lambda x: NP.fft.fft(x[1],
+                                                    n=self.k_full[x[0]]),
+                               enumerate(self.h_list)))
 
         def reducer(x, y):
             i, y_i = y
