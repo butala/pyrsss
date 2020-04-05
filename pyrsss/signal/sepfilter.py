@@ -1,8 +1,8 @@
 import numpy as NP
 import scipy.sparse
 
-from util import zero_pad
-from convmtx import Convmtx
+from .util import zero_pad
+from .convmtx import Convmtx
 
 
 class SepFilter(object):
