@@ -86,7 +86,11 @@ class Gradient2Filter(SepFilter):
             super(Gradient2Filter, self).__init__(n, h_list, mode=mode)
 
 
-if __name__ == '__main__':
+def plot_diff_spectra(l=[2, 4, 10]):
+    """Plot the magnitude response of differentiators of length *l* and
+    include the response of the ideal differentiator. Each length in
+    *l* must be even.
+    """
     from collections import OrderedDict
 
     import numpy as NP
@@ -94,7 +98,6 @@ if __name__ == '__main__':
 
     from pyrsss.signal.spectrum import spectrum
 
-    l = [2, 4, 10]
     h_map = OrderedDict()
     for l_i in l:
         h_map[l_i] = differentiator(l_i)
@@ -124,3 +127,7 @@ if __name__ == '__main__':
     PL.title('Comparison of Differentiator Magnitude Responses')
 
     PL.show()
+
+
+if __name__ == '__main__':
+    plot_diff_spectra()
