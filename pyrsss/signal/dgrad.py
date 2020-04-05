@@ -1,7 +1,7 @@
 import numpy as NP
 import scipy.signal
 
-from sepfilter import SepFilter
+from .sepfilter import SepFilter
 
 
 def differentiator(n, Hz=1):
@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     oversample = 8
     H_map = OrderedDict()
-    for l_i, h_i in h_map.iteritems():
+    for l_i, h_i in h_map.items():
         H_map[l_i] = spectrum(h_i, oversample=oversample)
 
     f_ideal = NP.linspace(0, 0.5, 129)
@@ -113,7 +113,7 @@ if __name__ == '__main__':
             c='C0',
             zorder=10,
             label='l=$\infty$')
-    for i, (l_i, (H_i, f_i)) in enumerate(H_map.iteritems(), 1):
+    for i, (l_i, (f_i, H_i)) in enumerate(H_map.items(), 1):
         PL.plot(f_i,
                 NP.abs(H_i),
                 c='C{}'.format(i),
