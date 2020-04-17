@@ -15,7 +15,7 @@ def arma_predictor_model(x, y, Na, Nb, Nk=1):
     In other words, construct the matrix with A_M = N - max(*Na*, *Nb*
     + *Nk* - 1) rows and *Na* + *Nb* columns such that
 
-    y[n] + a_1 y[n - 1] + ... + a_Na y[n - Na] = b_1 x[n - k] + ... + b_Nb x[n - Nb - k + 1]
+    y[n] + a_1 y[n - 1] + ... + a_Na y[n - Na] = b_1 x[n - Nk] + ... + b_Nb x[n - Nb - Nk + 1]
 
     for N - A_M <= n < N (where N is the length of *x* and *y*).
     """
@@ -261,21 +261,24 @@ if __name__ == '__main__':
     n = len(b_true) - 1
     k = max(m, n)
 
-    N = 100
-    x = NP.zeros(N)
-    x[10] = 1
+    N = 10000
+    #x = NP.zeros(N)
+    #x[10] = 1
+    x = NP.random.randn(N)
 
     y = scipy.signal.lfilter(b_true, a_true, x)
 
-    a_hat, b_hat = arma_predictor_linear(x, y, m, n)
-    a_hat_nl, b_hat_nl = arma_predictor_nonlinear(x, y, m, n)
+    a_hat, b_hat = arma_fit_linear(x, y, m, n)
+    a_hat_nl, b_hat_nl = arma_fit_nonlinear(x, y, m, n)
 
-    print(a_hat, a_hat_nl, a_true)
-    print(b_hat, b_hat_nl, b_true)
+    print(f'truth a:     {a_true}')
+    print(f'linear a:    {a_hat}')
+    print(f'nonlinear a: {a_hat_nl}')
 
-    # print(a_hat)
+    print()
 
-    # print(m, n)
-    # print(len(a_hat), len(b_hat))
+    print(f'truth b:     {b_true}')
+    print(f'linear b:    {b_hat}')
+    print(f'nonlinear b: {b_hat_nl}')
 
-    print(assessment(x, y, m, n, NP.concatenate((a_hat, b_hat))))
+    # print(assessment(x, y, m, n, NP.concatenate((a_hat, b_hat))))
