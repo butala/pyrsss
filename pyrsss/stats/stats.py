@@ -126,7 +126,7 @@ class Stats(object):
     def __call__(self, *x):
         """
         """
-        if len(x) is 1 and isinstance(x[0], Iterable):
+        if len(x) == 1 and isinstance(x[0], Iterable):
             x = x[0]
         for x_i in x:
             self.N += 1
