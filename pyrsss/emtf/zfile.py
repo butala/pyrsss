@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 from typing import List
+import logging
 
 import numpy as np
+
+logger = logging.getLogger('pyrsss.emtf.zfile')
 
 
 @dataclass
@@ -16,8 +19,13 @@ class ZRecord:
     def f(self):
         return 1/np.array(self.T)
 
+    @property
+    def w(self):
+        return self.f * 2 * np.pi
 
-def parse_zfile(fname):
+
+
+def parse_zfile(fname, skip=True):
     """
     """
     with open(fname) as fid:
@@ -44,7 +52,16 @@ def parse_zfile(fname):
             assert line.startswith('period :')
             toks = line.split()
             assert len(toks) == 12
-            T.append(float(toks[2]))
+            try:
+                T.append(float(toks[2]))
+            except ValueError:
+                if skip:
+                    logger.warning(f'Could not parse "{toks[2]}" --- skipping past record')
+                    for _ in range(12):
+                        next(fid)
+                    continue
+                else:
+                    raise
             # data points line
             line = next(fid)
             # start of transfer function block
