@@ -130,6 +130,18 @@ def etfe(x,
     return Phi_yu / Phi_u, f
 
 
+def etfe_welch(x,
+               y,
+               fs=1,
+               **kwds):
+    """
+    """
+    assert len(x) == len(y)
+    fxx, Pxx = scipy.signal.welch(x, fs=fs, **kwds)
+    fxy, Pxy = scipy.signal.csd(x, y, fs=fs, **kwds)
+    return fxx, Pxy / Pxx
+
+
 if __name__ == '__main__':
     import pylab as PL
 
