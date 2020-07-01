@@ -139,7 +139,7 @@ class Stats(object):
                 self._max = x_i
         return self
 
-    def __str__(self):
+    def __repr__(self):
         return 'N={} mean={:f} sigma={:f} min={:f} max={:f}'.format(self.N,
                                                                     self.mean,
                                                                     self.sigma,
