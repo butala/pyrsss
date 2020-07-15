@@ -187,16 +187,16 @@ if __name__ == '__main__':
     w2 = f2 / fs * 2 * math.pi
     V_dtft = V(w2, A0, 2*math.pi/14, A1, 4*math.pi/15, N)
 
-    V_spectrum, f_spectrum = spectrum(v,
+    f_spectrum, V_spectrum = spectrum(v,
                                       T_s=T,
                                       only_positive=False)
 
-    V_spectrum2, f_spectrum2 = spectrum(v,
+    f_spectrum2, V_spectrum2 = spectrum(v,
                                         T_s=T,
                                         oversample=2,
                                         only_positive=False)
 
-    V_spectrum3, f_spectrum3 = spectrum(v,
+    f_spectrum3, V_spectrum3 = spectrum(v,
                                         T_s=T)
 
     PL.figure(figsize=(10, 4))
