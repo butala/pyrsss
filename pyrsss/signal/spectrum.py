@@ -1,6 +1,6 @@
 import math
 
-import numpy as NP
+import numpy as np
 import scipy.signal
 
 
@@ -9,9 +9,9 @@ def rect(t, a):
     Return a vector of the same length as $t$ that is equal to 1 for
     absolute values of $t$ less than $a$/2 and 0 otherwise.
     """
-    x = NP.zeros_like(t)
-    x[NP.abs(t) < a/2] = 1
-    x[NP.abs(t) == a/2] = 1/2
+    x = np.zeros_like(t)
+    x[np.abs(t) < a/2] = 1
+    x[np.abs(t) == a/2] = 1/2
     return x
 
 
@@ -39,16 +39,16 @@ def spectrum(x,
     assert oversample >= 1 and isinstance(oversample, int)
     N = nextpow2(len(x)) * 2**(oversample - 1)
     if only_positive:
-        X = NP.fft.rfft(x, n=N) * T_s
-        f = NP.fft.rfftfreq(N, d=T_s)
+        X = np.fft.rfft(x, n=N) * T_s
+        f = np.fft.rfftfreq(N, d=T_s)
     else:
-        X = NP.fft.fft(x, n=N) * T_s
-        f = NP.fft.fftfreq(N, d=T_s)
+        X = np.fft.fft(x, n=N) * T_s
+        f = np.fft.fftfreq(N, d=T_s)
 
-        X = NP.fft.fftshift(X)
-        f = NP.fft.fftshift(f)
+        X = np.fft.fftshift(X)
+        f = np.fft.fftshift(f)
     if n0 != 0:
-        X *= NP.exp(-1j * 2 * math.pi * NP.arange(N) * n0 / N)
+        X *= np.exp(-1j * 2 * math.pi * np.arange(N) * n0 / N)
     return f, X
 
 
@@ -84,10 +84,10 @@ def blackman_tukey(x,
     Rxy = scipy.signal.correlate(x, y) / N
     Rxy_window = Rxy[(N - 1) - M:(N - 1) + M + 1]
     window = scipy.signal.get_window(window, 2*M + 1, fftbins=False)
-    k_range = NP.arange(0, L)
-    shift = NP.exp(2j * NP.pi * k_range * M / L)
-    Sxy = NP.fft.fft(window * Rxy_window, n=L) * shift
-    f = NP.fft.fftfreq(L, d=d)
+    k_range = np.arange(0, L)
+    shift = np.exp(2j * np.pi * k_range * M / L)
+    Sxy = np.fft.fft(window * Rxy_window, n=L) * shift
+    f = np.fft.fftfreq(L, d=d)
     if full:
         return (Sxy, f, Rxy, window)
     else:
@@ -143,7 +143,7 @@ def etfe_welch(x,
 
 
 if __name__ == '__main__':
-    import pylab as PL
+    import matplotlib.pyplot as plt
 
     # Reproduction of Oppenheim and Schafer (O&S), 3rd edition,
     # Example 10.4. The example considers the effects of windowing and
@@ -159,14 +159,14 @@ if __name__ == '__main__':
         DTFT of rectangular window of length *L* evaluated an angular
         frequencies *w*. See O&S (10.11).
         """
-        return NP.exp(-1j * w * (L - 1) / 2) * NP.sin(w * L / 2) / NP.sin(w / 2)
+        return np.exp(-1j * w * (L - 1) / 2) * np.sin(w * L / 2) / np.sin(w / 2)
 
     K = 2048    # number of frequency samples
-    w = NP.linspace(-math.pi, math.pi, K)
+    w = np.linspace(-math.pi, math.pi, K)
     W = W_r(w, N)
 
-    n = NP.arange(N)
-    v = NP.cos(2*math.pi/14 * n) + 0.75 * NP.cos(4*math.pi/15 * n)
+    n = np.arange(N)
+    v = np.cos(2*math.pi/14 * n) + 0.75 * np.cos(4*math.pi/15 * n)
 
     def V(w, A0, w0, A1, w1, L):
         """
@@ -183,7 +183,7 @@ if __name__ == '__main__':
     A0 = 1
     A1 = 0.75
 
-    f2 = NP.linspace(-fs/2, fs/2, K)
+    f2 = np.linspace(-fs/2, fs/2, K)
     w2 = f2 / fs * 2 * math.pi
     V_dtft = V(w2, A0, 2*math.pi/14, A1, 4*math.pi/15, N)
 
@@ -199,31 +199,31 @@ if __name__ == '__main__':
     f_spectrum3, V_spectrum3 = spectrum(v,
                                         T_s=T)
 
-    PL.figure(figsize=(10, 4))
-    PL.plot(f2,
-            NP.abs(V_dtft) * T,
+    plt.figure(figsize=(10, 4))
+    plt.plot(f2,
+            np.abs(V_dtft) * T,
             c='C0',
             label='DTFT (scaled)')
-    PL.scatter(f_spectrum,
-               NP.abs(V_spectrum),
+    plt.scatter(f_spectrum,
+               np.abs(V_spectrum),
                c='C1',
                s=10,
                label='spectrum')
-    PL.scatter(f_spectrum2,
-               NP.abs(V_spectrum2),
+    plt.scatter(f_spectrum2,
+               np.abs(V_spectrum2),
                c='C2',
                zorder=-1,
                s=20,
                label='spectrum (oversample=2)')
-    PL.scatter(f_spectrum3,
-               NP.abs(V_spectrum3),
+    plt.scatter(f_spectrum3,
+               np.abs(V_spectrum3),
                c='C3',
                zorder=-2,
                s=40,
                label='spectrum (positive-only)')
-    PL.legend()
-    PL.xlabel('Frequency (Hz)')
-    PL.ylabel('Amplitude')
-    PL.title('Comparison of pyrsss spectrum and scaled DTFT')
+    plt.legend()
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Amplitude')
+    plt.title('Comparison of pyrsss spectrum and scaled DTFT')
 
-    PL.show()
+    plt.show()
