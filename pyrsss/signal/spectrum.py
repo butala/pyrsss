@@ -142,6 +142,30 @@ def etfe_welch(x,
     return fxx, Pxy / Pxx
 
 
+def bartlett(x, fs=1.0, window='boxcar', nfft=None):
+    """Estimate the power spectrum of the sequence *x* using Bartlett's
+    method (the method of averaged periodograms). The sequence is
+    split into consecutive, disjoint, length *nfft* segments. Each
+    segment is windowed and real FFT'ed. The periodogram is estimated
+    as the mean of the squared magnitude over the set of processed
+    segments. See `scipy.signal.get_window` for available options for
+    *window*. Return a tuple with the vector of frequency sample
+    points (taking into consideration the sampling frequency *fs* and
+    the power spectral density estimate.
+    """
+    if nfft is None:
+        nfft = len(x)
+    nseg = len(x) // nfft
+    Pxx = np.zeros(nfft // 2 + 1)
+    window = scipy.signal.get_window(window, nfft)
+    while True:
+        x_i, x = x[:nfft], x[nfft:]
+        if len(x_i) < nfft:
+            break
+        Pxx += np.abs(np.fft.rfft(x_i * window, n=nfft))**2 / nseg / nfft
+    return np.fft.rfftfreq(nfft, d=1/fs), Pxx
+
+
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
