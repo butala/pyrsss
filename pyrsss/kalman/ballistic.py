@@ -4,7 +4,7 @@ from itertools import repeat
 import numpy as NP
 import pylab as PL
 
-from kalman_filter import kalman_filter
+from .kalman_filter import kalman_filter
 
 
 if __name__ == '__main__':
