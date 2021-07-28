@@ -117,7 +117,7 @@ def etfe(x,
     Compute the empirical transfer function estimate (ETFE) relating
     the input time series *x* to the output time series *y*. Compute
     the response at *L* equally spaced frequency samples (where the
-    sampling period is *D*). Limit the correlations to a lag of *M*
+    sampling period is *d*). Limit the correlations to a lag of *M*
     (and *M* <= len(*x*) - 1) and use the window function *window*
     (see :func:`scipy.signal.get_window`). Return the tuple containing
     the ETFE and the frequency sample points.
