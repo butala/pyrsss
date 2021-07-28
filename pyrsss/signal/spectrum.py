@@ -166,6 +166,50 @@ def bartlett(x, fs=1.0, window='boxcar', nfft=None):
     return np.fft.rfftfreq(nfft, d=1/fs), Pxx
 
 
+def bartlett_csd(y, x, fs=1.0, window='boxcar', nfft=None):
+    """Estimate the cross power spectrum of the sequences *x* and *y*
+    using Bartlett's method (the method of averaged periodograms). The
+    sequence is split into consecutive, disjoint, length *nfft*
+    segments. Each segment is windowed and real FFT'ed. The
+    periodogram is estimated as the mean of the squared magnitude over
+    the set of processed segments. See `scipy.signal.get_window` for
+    available options for *window*. Return a tuple with the vector of
+    frequency sample points (taking into consideration the sampling
+    frequency *fs* and the power spectral density estimate.
+    """
+    # NOTE: this code could be used to generalize the bartlett
+    # function above (with x=y). However, the code would then
+    # needlessly calculate rfft twice (once for x and y when
+    # x=y). Instead of writing complicating logic to avoid the
+    # needless calculation, I have left the two functions separate.
+    # --- MDB
+    assert len(y) == len(x)
+    if nfft is None:
+        nfft = len(x)
+    nseg = len(x) // nfft
+    Pyx = np.zeros(nfft // 2 + 1, dtype=complex)
+    window = scipy.signal.get_window(window, nfft)
+    while True:
+        y_i, y = y[:nfft], y[nfft:]
+        x_i, x = x[:nfft], x[nfft:]
+        if len(x_i) < nfft:
+            break
+        Pyx += np.fft.rfft(y_i * window, n=nfft) * np.conj(np.fft.rfft(x_i * window, n=nfft)) / nseg / nfft
+    return np.fft.rfftfreq(nfft, d=1/fs), Pyx
+
+
+def etfe_bartlett(x,
+                  y,
+                  fs=1,
+                  **kwds):
+    """
+    """
+    assert len(x) == len(y)
+    fxx, Pxx = bartlett(x, fs=fs, **kwds)
+    fyx, Pyx = bartlett_csd(y, x, fs=fs, **kwds)
+    return fxx, np.conj(Pyx) / Pxx
+
+
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
