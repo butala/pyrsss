@@ -75,18 +75,37 @@ def blackman_tukey(x,
     cross correlation and window function (i.e., a tuple with four
     elements).
     """
+    # For an explanation of the circular shift below:
+    # https://dsp.stackexchange.com/questions/34642/practical-cross-spectrum-estimation-using-blackman-tukey-approach
+    #
+    # Also, consider adding support for a lab parameter. A
+    # cross-correlation does not necessarily peak at k=0 and a lag,
+    # k_0 in Stoica and Moses section 2.8.4, can be used to avoid
+    # having the window attenuate the cross-correlation where it is
+    # most significant.
     N = len(x)
     assert M <= N
     if y is None:
         y = x
+        autocorrelation = True
     else:
         assert len(y) == N
+        autocorrelation = False
+
     Rxy = scipy.signal.correlate(x, y) / N
     Rxy_window = Rxy[(N - 1) - M:(N - 1) + M + 1]
     window = scipy.signal.get_window(window, 2*M + 1, fftbins=False)
-    k_range = np.arange(0, L)
-    shift = np.exp(2j * np.pi * k_range * M / L)
-    Sxy = np.fft.fft(window * Rxy_window, n=L) * shift
+    #k_range = np.arange(0, L)
+    #shift = np.exp(2j * np.pi * k_range * M / L)
+    #Sxy = np.fft.fft(window * Rxy_window, n=L) * shift
+
+    # I assume a circular shift (as below) would be more efficient
+    # than multiplying by a complex exponential (as above) to achieve
+    # the same result.
+    zp = np.pad(window * Rxy_window, (0, L - (2*M+1)), constant_values=0)
+    Sxy = np.fft.fft(np.roll(zp, -M))
+    if autocorrelation:
+        Sxy = np.real(Sxy)
     f = np.fft.fftfreq(L, d=d)
     if full:
         return (Sxy, f, Rxy, window)
