@@ -1,25 +1,25 @@
 import logging
 from itertools import combinations
-from collections import namedtuple
+from dataclasses import dataclass
 
-import numpy as NP
+import numpy as np
 import scipy.stats
 
 logger = logging.getLogger('pyrsss.stats.linregress')
 
 
-"""Linear regression assessment metrics""",
-Assessment = namedtuple('Assessment',
-                        'std_error ' \
-                        't_stat '\
-                        'p_value '\
-                        'RSE '\
-                        'R2 '\
-                        'F_stat '\
-                        'Cp '\
-                        'AIC '\
-                        'BIC '\
-                        'adjusted_R2')
+@dataclass
+class Assessment:
+    std_error: np.array
+    t_stat: np.array
+    p_value: list[float]
+    RSE: float
+    R2: float
+    F_stat: float
+    Cp: float
+    AIC: float
+    BIC: float
+    adjusted_R2: float
 
 
 def linregress_assessment(y, X, beta_hat):
@@ -31,19 +31,19 @@ def linregress_assessment(y, X, beta_hat):
     n, p_plus_1 = X.shape
     p = p_plus_1 - 1
     assert len(y) == n
-    RSS = NP.sum((y - NP.dot(X, beta_hat))**2)
-    RSE = NP.sqrt(RSS / (n - p - 1))
-    std_error = NP.sqrt(NP.diag(RSE**2 * NP.linalg.inv(NP.dot(X.T, X))))
+    RSS = np.sum((y - X @ beta_hat)**2)
+    RSE = np.sqrt(RSS / (n - p - 1))
+    std_error = np.sqrt(np.diag(RSE**2 * np.linalg.inv(X.T @ X)))
     t_stat = beta_hat / std_error
-    p_value = [2*scipy.stats.t.sf(NP.abs(t_stat_i), n - 2) for t_stat_i in t_stat]
-    TSS = NP.sum((y - NP.mean(y))**2)
+    p_value = [2*scipy.stats.t.sf(np.abs(t_stat_i), n - 2) for t_stat_i in t_stat]
+    TSS = np.sum((y - np.mean(y))**2)
     R2 = 1 - RSS / TSS
     F_stat = (TSS - RSS) / p / (RSS / (n - p - 1))
     sigma_hat = RSE
     d = p
     Cp = (RSS + 2 * d * sigma_hat**2) / n
     AIC = (RSS + 2 * d * sigma_hat**2) / (n * sigma_hat**2)
-    BIC = (RSS + NP.log(n) * d * sigma_hat**2) / n
+    BIC = (RSS + np.log(n) * d * sigma_hat**2) / n
     adjusted_R2 = 1 - (RSS / (n - d - 1)) / (TSS / (n - 1))
     return Assessment(std_error,
                       t_stat,
@@ -77,15 +77,15 @@ def linregress(df, y_column):
     """
     y = df[y_column].values
     n = len(y)
-    cols = [NP.ones(n)]
+    cols = [np.ones(n)]
     for col in df.columns:
         if col == y_column:
             continue
         cols.append(df[col].values)
-    X = NP.column_stack(cols)
+    X = np.column_stack(cols)
     p = X.shape[1] - 1
     # compute least-squares fit
-    beta_hat, delme, _, _ = NP.linalg.lstsq(X, y)
+    beta_hat, delme, _, _ = np.linalg.lstsq(X, y)
     return beta_hat, linregress_assessment(y, X, beta_hat)
 
 
