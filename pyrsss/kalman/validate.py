@@ -2,10 +2,9 @@ import sys
 import math
 import logging
 from collections import defaultdict
-from itertools import izip
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-import numpy as NP
+import numpy as np
 
 from pyrsss.kalman.kalman_filter import kalman_filter, sqrt_kalman_filter
 
@@ -15,9 +14,9 @@ def randn_pd(N):
     Generate a random NxN positive definite matrix with norm 1. Return
     the tuple containing this matrix and its square root.
     """
-    A_sqrt = NP.random.randn(N, N)
-    A = NP.dot(A_sqrt, A_sqrt.T)
-    norm = NP.linalg.norm(A)
+    A_sqrt = np.random.randn(N, N)
+    A = np.dot(A_sqrt, A_sqrt.T)
+    norm = np.linalg.norm(A)
     return A / norm, A_sqrt / math.sqrt(norm)
 
 
@@ -30,16 +29,16 @@ def setup_random_sim(N, M, I):
     """
     sim = defaultdict(list)
     sim['N'], sim['M'], sim['I'] = N, M, I
-    sim['mu'] = NP.random.randn(N)
+    sim['mu'] = np.random.randn(N)
     sim['PI'], sim['PI_sqrt'] = randn_pd(N)
     for _ in range(I):
         # measurement
-        sim['H'].append(NP.random.randn(M, N))
+        sim['H'].append(np.random.randn(M, N))
         R_i, R_i_sqrt = randn_pd(M)
         sim['R'].append(R_i)
         sim['R_sqrt'].append(R_i_sqrt)
         # time update
-        sim['F'].append(NP.random.randn(N, N))
+        sim['F'].append(np.random.randn(N, N))
         Q_i, Q_i_sqrt = randn_pd(N)
         sim['Q'].append(Q_i)
         sim['Q_sqrt'].append(Q_i_sqrt)
@@ -55,15 +54,15 @@ def run_random_sim(sim, L):
     sim['L'] = L
     for l in range(L):
         sim[l] = defaultdict(list)
-        x_i = sim['mu'] + NP.matmul(sim['PI_sqrt'], NP.random.randn(sim['N']))
+        x_i = sim['mu'] + np.matmul(sim['PI_sqrt'], np.random.randn(sim['N']))
         for i in range(sim['I']):
             sim[l]['x'].append(x_i)
             # measurement
-            v_i = NP.matmul(sim['R_sqrt'][i], NP.random.randn(sim['M']))
-            sim[l]['y'].append(NP.matmul(sim['H'][i], sim[l]['x'][i]) + v_i)
+            v_i = np.matmul(sim['R_sqrt'][i], np.random.randn(sim['M']))
+            sim[l]['y'].append(np.matmul(sim['H'][i], sim[l]['x'][i]) + v_i)
             # time update
-            u_i = NP.matmul(sim['Q_sqrt'][i], NP.random.randn(sim['N']))
-            x_i = NP.matmul(sim['F'][i], x_i) + u_i
+            u_i = np.matmul(sim['Q_sqrt'][i], np.random.randn(sim['N']))
+            x_i = np.matmul(sim['F'][i], x_i) + u_i
     return sim
 
 
@@ -100,7 +99,7 @@ def kf_sim(sim):
         if l == 0:
             post['P'] = P_l
         post[l]['error'] = []
-        for x_i, x_hat_i in izip(sim[l]['x'], post[l]['x_hat']):
+        for x_i, x_hat_i in zip(sim[l]['x'], post[l]['x_hat']):
             post[l]['error'].append(x_hat_i - x_i)
     return post
 
@@ -122,9 +121,9 @@ def sqrt_kf_sim(sim):
                                                sim['PI_sqrt'])
         post[l]['x_hat'] = x_hat_l
         if l == 0:
-            post['P'] = [NP.matmul(x, x.T) for x in P_sqrt_l]
+            post['P'] = [np.matmul(x, x.T) for x in P_sqrt_l]
         post[l]['error'] = []
-        for x_i, x_hat_i in izip(sim[l]['x'], post[l]['x_hat']):
+        for x_i, x_hat_i in zip(sim[l]['x'], post[l]['x_hat']):
             post[l]['error'].append(x_hat_i - x_i)
     return post
 
@@ -144,18 +143,22 @@ def analysis(N, M, I, L, sqrt=False):
     error_I = []
     for l in range(sim['L']):
         error_I.append(post[l]['error'][-1])
-    E_I = NP.stack(error_I, 1)
-    E_I_mean = NP.mean(E_I, 1)
-    P_I = NP.cov(E_I)
+    E_I = np.stack(error_I, 1)
+    E_I_mean = np.mean(E_I, 1)
+    P_I = np.cov(E_I)
     print('Mean of error at time step I={}'.format(I))
     for E_I_mean_n in E_I_mean:
         print('{:9.2e}'.format(E_I_mean_n))
     print('')
+    print(f'Norm of mean of error = {np.linalg.norm(E_I_mean):.3e}')
+    print('')
     print('True posterior covariance at time step I')
-    print(NP.array_str(post['P'][-1], precision=2))
+    print(np.array_str(post['P'][-1], precision=2))
     print('')
     print('Empirical posterior covariance at time step I')
-    print(NP.array_str(P_I, precision=2))
+    print(np.array_str(P_I, precision=2))
+    print('')
+    print(f"||P_{{I|I}}(true) - P_{{I|I}}(empirical)||_F = {np.linalg.norm(post['P'][-1] - P_I):.3e}")
     return sim, post
 
 
@@ -187,7 +190,7 @@ def main(argv=None):
                         help='random number generator seed')
     args = parser.parse_args(argv[1:])
 
-    NP.random.seed(args.seed)
+    np.random.seed(args.seed)
 
     analysis(args.N,
              args.M,
