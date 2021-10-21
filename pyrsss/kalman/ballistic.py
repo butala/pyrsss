@@ -1,5 +1,6 @@
 import math
 from itertools import repeat
+from dataclasses import astuple
 
 import numpy as NP
 import pylab as PL
@@ -108,7 +109,7 @@ if __name__ == '__main__':
                    [      0,       0,       0, var_vy0]])
 
     # execute filter
-    x_hat, P = kalman_filter(y, H, R, F, Q, mu, PI, z=z)
+    x_hat, P = astuple(kalman_filter(y, H, R, F, Q, mu, PI, z=z))
 
     # gather results and plot
     px_hat = [x_hat_i[0] for x_hat_i in x_hat]

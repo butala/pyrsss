@@ -1,6 +1,7 @@
 import sys
 import math
 import logging
+from dataclasses import astuple
 from collections import defaultdict
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
@@ -88,13 +89,13 @@ def kf_sim(sim):
     """
     post = defaultdict(dict)
     for l in range(sim['L']):
-        x_hat_l, P_l = kalman_filter(sim[l]['y'],
-                                     sim['H'],
-                                     sim['R'],
-                                     sim['F'],
-                                     sim['Q'],
-                                     sim['mu'],
-                                     sim['PI'])
+        x_hat_l, P_l = astuple(kalman_filter(sim[l]['y'],
+                                             sim['H'],
+                                             sim['R'],
+                                             sim['F'],
+                                             sim['Q'],
+                                             sim['mu'],
+                                             sim['PI']))
         post[l]['x_hat'] = x_hat_l
         if l == 0:
             post['P'] = P_l
@@ -112,13 +113,13 @@ def sqrt_kf_sim(sim):
     """
     post = defaultdict(dict)
     for l in range(sim['L']):
-        x_hat_l, P_sqrt_l = sqrt_kalman_filter(sim[l]['y'],
-                                               sim['H'],
-                                               sim['R_sqrt'],
-                                               sim['F'],
-                                               sim['Q_sqrt'],
-                                               sim['mu'],
-                                               sim['PI_sqrt'])
+        x_hat_l, P_sqrt_l = astuple(sqrt_kalman_filter(sim[l]['y'],
+                                                       sim['H'],
+                                                       sim['R_sqrt'],
+                                                       sim['F'],
+                                                       sim['Q_sqrt'],
+                                                       sim['mu'],
+                                                       sim['PI_sqrt']))
         post[l]['x_hat'] = x_hat_l
         if l == 0:
             post['P'] = [np.matmul(x, x.T) for x in P_sqrt_l]
