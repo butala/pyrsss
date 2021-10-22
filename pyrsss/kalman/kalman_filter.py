@@ -53,6 +53,48 @@ def kalman_filter(y, H, R, F, Q, mu, PI, z=None):
     return FilterResult(x_hat, P)
 
 
+def extended_kalman_filter(y, H_fun, H_jac, R, F_fun, F_jac, Q, mu, PI, z=None):
+    """
+    Given the following sequences (one item of given dimension for
+    each time step):
+    - *y*: measurements (M)
+    - *H_fun*: function that calculates nonlinear observation (N) -> (M)
+    - *H_jac*: function that calculates the observation Jacobian (N) -> (MxN)
+    - *R*: measurement noise covariance (MxM)
+    - *F_fun*: function that calculates the nonlinear state update (N) -> (N)
+    - *F_jac*: function that calculates the state update Jacobian (N) -> (NxN)
+    - *Q*: time update noise covariance (NxN)
+    - *mu*: initial state (N)
+    - *PI*: initial state covariance (NxN)
+    - *z*: (optional) systematic time update input (N)
+
+    Return the :class:`FilterResult` containing lists of posterior
+    state estimates and error covariances.
+    """
+    x_hat = []
+    P = []
+    x_hat_prior = mu
+    P_prior = PI
+    if z is None:
+        z = repeat(None)
+    for i, (y_i, R_i, Q_i, z_i) in enumerate(zip(y, R, Q, z)):
+        # measurement update
+        H_i = H_jac(x_hat_prior)
+        A = cho_factor(H_i @ (P_prior @ H_i.T) + R_i)
+        B = cho_solve(A, H_i @ P_prior)
+        b = cho_solve(A, y_i - H_fun(x_hat_prior))
+        C = P_prior @ H_i.T
+        x_hat.append(x_hat_prior + C @ b)
+        P.append(P_prior - C @ B)
+        # time update
+        F_i = F_jac(x_hat[-1])
+        x_hat_prior = F_fun(x_hat[-1])
+        if z_i is not None:
+            x_hat_prior += z_i
+        P_prior = F_i @ P[-1] @ F_i.T + Q_i
+    return FilterResult(x_hat, P)
+
+
 """
 Class to store square root  Kalman filter results.
 """
