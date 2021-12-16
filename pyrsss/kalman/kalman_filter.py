@@ -9,10 +9,16 @@ from scipy.linalg import solve_triangular, cho_factor, cho_solve
 """
 Class to store Kalman filter results.
 """
-@dataclass
-class FilterResult:
-    x_hat: list[npt.ArrayLike]
-    P: list[npt.ArrayLike]
+try:
+    @dataclass
+    class FilterResult:
+        x_hat: list[npt.ArrayLike]
+        P: list[npt.ArrayLike]
+except Exception:
+    from collections import namedtuple
+
+    class FilterResult(namedtuple('FilterResult', 'x_hat P')):
+        pass
 
 
 def kalman_filter(y, H, R, F, Q, mu, PI, z=None):
@@ -98,10 +104,16 @@ def extended_kalman_filter(y, H_fun, H_jac, R, F_fun, F_jac, Q, mu, PI, z=None):
 """
 Class to store square root  Kalman filter results.
 """
-@dataclass
-class SqrtFilterResult:
-    x_hat: list[npt.ArrayLike]
-    P_sqrt: list[npt.ArrayLike]
+try:
+    @dataclass
+    class SqrtFilterResult:
+        x_hat: list[npt.ArrayLike]
+        P_sqrt: list[npt.ArrayLike]
+except Exception:
+    from collections import namedtuple
+
+    class SqrtFilterResult(namedtuple('SqrtFilterResult', 'x_hat P_sqrt')):
+        pass
 
 
 def sqrt_kf_mu(x_hat_prior,
