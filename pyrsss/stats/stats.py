@@ -2,7 +2,7 @@ import logging
 import sys
 import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from collections import Iterable
+from collections.abc import Iterable
 
 import scipy.stats
 import numpy as NP
