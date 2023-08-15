@@ -1,5 +1,6 @@
 build/
 pyrsss.egg-info/
 dist/
-gpstk.cpp
 *.pyc
+/pyrsss/gnsstk.cpython-*.so
+/pyrsss/gnsstk.cpp

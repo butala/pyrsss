@@ -12,12 +12,12 @@ from collections import namedtuple
 from enum import Enum
 
 
-cdef extern from 'Triple.hpp' namespace 'gpstk':
+cdef extern from 'Triple.hpp' namespace 'gnsstk':
     cdef cppclass Triple:
         double operator[](const size_t) const
 
 
-cdef extern from 'Position.hpp' namespace 'gpstk::Position':
+cdef extern from 'Position.hpp' namespace 'gnsstk::Position':
     cdef enum CoordinateSystem:
         Unknown = 0,
         Geodetic,
@@ -37,7 +37,7 @@ enum CoordinateSystem
 """
 
 
-cdef extern from 'Position.hpp' namespace 'gpstk':
+cdef extern from 'Position.hpp' namespace 'gnsstk':
     cdef cppclass Position(Triple):
         Position() except +
 
@@ -360,7 +360,7 @@ def point(PyPosition stn_point, double target_az, double target_el, double targe
 #         pass
 
 
-cdef extern from 'RinexObsID.hpp' namespace 'gpstk':
+cdef extern from 'RinexObsID.hpp' namespace 'gnsstk':
     cdef cppclass RinexObsID:
         string asString() const
 
@@ -387,24 +387,24 @@ cdef extern from '<iostream>' namespace 'std':
         fstream(const char *)
 
 
-cdef extern from 'FFStream.hpp' namespace 'gpstk':
+cdef extern from 'FFStream.hpp' namespace 'gnsstk':
    cdef cppclass FFStream(fstream):
        pass
 
 
-cdef extern from 'FFTextStream.hpp' namespace 'gpstk':
+cdef extern from 'FFTextStream.hpp' namespace 'gnsstk':
     cdef cppclass FFTextStream(FFStream):
         pass
 
 
-cdef extern from 'Rinex3ObsStream.hpp' namespace 'gpstk':
+cdef extern from 'Rinex3ObsStream.hpp' namespace 'gnsstk':
     cdef cppclass Rinex3ObsStream(FFTextStream):
         Rinex3ObsStream()
         Rinex3ObsStream(const char *)
         Rinex3ObsStream(const string &)
 
 
-cdef extern from 'FFData.hpp' namespace 'gpstk':
+cdef extern from 'FFData.hpp' namespace 'gnsstk':
     cdef cppclass FFData:
         pass
 
@@ -413,12 +413,12 @@ cdef extern from 'FFData.hpp' namespace 'gpstk':
                               FFData &)
 
 
-cdef extern from 'Rinex3ObsBase.hpp' namespace 'gpstk':
+cdef extern from 'Rinex3ObsBase.hpp' namespace 'gnsstk':
     cdef cppclass Rinex3ObsBase(FFData):
         pass
 
 
-cdef extern from 'Rinex3ObsHeader.hpp' namespace 'gpstk':
+cdef extern from 'Rinex3ObsHeader.hpp' namespace 'gnsstk':
     cdef cppclass Rinex3ObsHeader(Rinex3ObsBase):
         Rinex3ObsHeader()
 
