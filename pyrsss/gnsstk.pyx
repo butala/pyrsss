@@ -138,7 +138,8 @@ cdef class PyPosition(object):
         del self.thisptr
 
     def __repr__(self):
-        return self.thisptr.asString() + ' (' + self.thisptr.getSystemName() + ')'
+       return self.thisptr.asString().decode() + ' (' + self.thisptr.getSystemName().decode() + ')'
+
 
     @staticmethod
     cdef PyPosition toPyPosition(Position p):
