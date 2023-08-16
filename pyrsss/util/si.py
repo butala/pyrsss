@@ -21,7 +21,7 @@ def sistr(x, baseunit=''):
         return '0 ' + baseunit
     d = (decimal.Decimal(str(x)) * SHIFT).normalize()
     m, e = d.to_eng_string().split('E')
-    return (m + ' ' + PREFIX[int(e) // 3] + baseunit).encode('utf-8')
+    return m + ' ' + PREFIX[int(e) // 3] + baseunit
 
 
 if __name__ == '__main__':
