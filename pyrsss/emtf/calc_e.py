@@ -4,7 +4,8 @@ import os
 import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-import numpy as NP
+import numpy as np
+import scipy as sp
 from scipy.constants import mu_0
 from scipy.io import savemat
 
@@ -46,39 +47,39 @@ def calc_e(Bx, By, Zw_function, interval):
     Nfft = nextpow2(N)
     # zero-mean and remove linear trend from the magnetic time series
     # data
-    ax = NP.mean(Bx[:lp])
-    bx = NP.mean(Bx[-lp-1:])
-    N_range = NP.arange(1, N+1)
+    ax = np.mean(Bx[:lp])
+    bx = np.mean(Bx[-lp-1:])
+    N_range = np.arange(1, N+1)
     cx = ax * (N - N_range) / N + bx * N_range / N
     Bx0 = Bx - cx
 
-    ay = NP.mean(By[:lp])
-    by = NP.mean(By[-lp-1:])
+    ay = np.mean(By[:lp])
+    by = np.mean(By[-lp-1:])
     cy = ay * (N - N_range) / N + by * N_range / N
     By0 = By - cy
     # window the magnetic data time series
-    wp = NP.hstack((0.5 * (1 - NP.cos(2 * math.pi * NP.arange(0, p/2) / p)),
-                    NP.ones(N - p),
-                    0.5 * (1 - NP.cos(2 * math.pi * NP.arange(p/2 - 1, -1, -1) / p))))
+    wp = np.hstack((0.5 * (1 - np.cos(2 * math.pi * np.arange(0, p/2) / p)),
+                    np.ones(N - p),
+                    0.5 * (1 - np.cos(2 * math.pi * np.arange(p/2 - 1, -1, -1) / p))))
     Bx1 = Bx0 * wp
     By1 = By0 * wp
     # compute FFT
-    Sbx = NP.fft.fft(Bx1, n=Nfft) / N
-    Sby = NP.fft.fft(By1, n=Nfft) / N
-    freq = NP.arange(0, Nfft) / Nfft / interval
+    Sbx = sp.fft.fft(Bx1, n=Nfft) / N
+    Sby = sp.fft.fft(By1, n=Nfft) / N
+    freq = np.arange(0, Nfft) / Nfft / interval
     omega = 2 * math.pi * freq
 
     Zw_positive = Zw_function(omega[1:])
-    Zw = NP.hstack(([0], Zw_positive))
+    Zw = np.hstack(([0], Zw_positive))
 
-    Zw2 = NP.hstack((Zw[:(int(Nfft/2)+1)],
-                     NP.conj(Zw[1:int(Nfft/2)])[::-1]))
+    Zw2 = np.hstack((Zw[:(int(Nfft/2)+1)],
+                     np.conj(Zw[1:int(Nfft/2)])[::-1]))
 
     Se_x =  Zw2 * Sby / mu_0
     Se_y = -Zw2 * Sbx / mu_0
 
-    Ex = NP.real(NP.fft.ifft(Se_x, Nfft) * N)
-    Ey = NP.real(NP.fft.ifft(Se_y, Nfft) * N)
+    Ex = np.real(sp.fft.ifft(Se_x, Nfft) * N)
+    Ey = np.real(sp.fft.ifft(Se_y, Nfft) * N)
 
     return (Ex[:N],
             Ey[:N])
