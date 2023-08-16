@@ -6,7 +6,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import xml.etree.ElementTree as ET
 from collections import OrderedDict, namedtuple
 
-import numpy as NP
+import numpy as np
 from scipy.constants import mu_0
 from scipy.io import savemat
 from scipy.interpolate import CubicSpline
@@ -57,63 +57,63 @@ def calc_e_3d(Bx,
     Nfft = nextpow2(N)
     # zero-mean and remove linear trend from the magnetic time series
     # data
-    ax = NP.mean(Bx[:lp])
-    bx = NP.mean(Bx[-lp-1:])
-    N_range = NP.arange(1, N+1)
+    ax = np.mean(Bx[:lp])
+    bx = np.mean(Bx[-lp-1:])
+    N_range = np.arange(1, N+1)
     cx = ax * (N - N_range) / N + bx * N_range / N
     Bx0 = Bx - cx
 
-    ay = NP.mean(By[:lp])
-    by = NP.mean(By[-lp-1:])
+    ay = np.mean(By[:lp])
+    by = np.mean(By[-lp-1:])
     cy = ay * (N - N_range) / N + by * N_range / N
     By0 = By - cy
     # window the magnetic data time series
-    wp = NP.hstack((0.5 * (1 - NP.cos(2 * math.pi * NP.arange(0, p/2) / p)),
-                    NP.ones(N - p),
-                    0.5 * (1 - NP.cos(2 * math.pi * NP.arange(p/2 - 1, -1, -1) / p))))
+    wp = np.hstack((0.5 * (1 - np.cos(2 * math.pi * np.arange(0, p/2) / p)),
+                    np.ones(N - p),
+                    0.5 * (1 - np.cos(2 * math.pi * np.arange(p/2 - 1, -1, -1) / p))))
     Bx1 = Bx0 * wp
     By1 = By0 * wp
     # compute FFT
-    Sbx = NP.fft.fft(Bx1, n=Nfft) / N
-    Sby = NP.fft.fft(By1, n=Nfft) / N
-    freq = NP.arange(0, Nfft) / Nfft / interval
+    Sbx = sp.fft.fft(Bx1, n=Nfft) / N
+    Sby = sp.fft.fft(By1, n=Nfft) / N
+    freq = np.arange(0, Nfft) / Nfft / interval
     omega = 2 * math.pi * freq
 
     Zxx_positive = Zxx_function(omega[1:])
-    Zxx = NP.hstack(([0], Zxx_positive))
+    Zxx = np.hstack(([0], Zxx_positive))
 
-    Zxx2 = NP.hstack((Zxx[:(int(Nfft/2)+1)],
-                      NP.conj(Zxx[1:int(Nfft/2)])[::-1]))
+    Zxx2 = np.hstack((Zxx[:(int(Nfft/2)+1)],
+                      np.conj(Zxx[1:int(Nfft/2)])[::-1]))
 
     Zxy_positive = Zxy_function(omega[1:])
-    Zxy = NP.hstack(([0], Zxy_positive))
+    Zxy = np.hstack(([0], Zxy_positive))
 
-    Zxy2 = NP.hstack((Zxy[:(int(Nfft/2)+1)],
-                      NP.conj(Zxy[1:int(Nfft/2)])[::-1]))
+    Zxy2 = np.hstack((Zxy[:(int(Nfft/2)+1)],
+                      np.conj(Zxy[1:int(Nfft/2)])[::-1]))
 
     Zyx_positive = Zyx_function(omega[1:])
-    Zyx = NP.hstack(([0], Zyx_positive))
+    Zyx = np.hstack(([0], Zyx_positive))
 
-    Zyx2 = NP.hstack((Zyx[:(int(Nfft/2)+1)],
-                      NP.conj(Zyx[1:int(Nfft/2)])[::-1]))
+    Zyx2 = np.hstack((Zyx[:(int(Nfft/2)+1)],
+                      np.conj(Zyx[1:int(Nfft/2)])[::-1]))
 
     Zyy_positive = Zyy_function(omega[1:])
-    Zyy = NP.hstack(([0], Zyy_positive))
+    Zyy = np.hstack(([0], Zyy_positive))
 
-    Zyy2 = NP.hstack((Zyy[:(int(Nfft/2)+1)],
-                      NP.conj(Zyy[1:int(Nfft/2)])[::-1]))
+    Zyy2 = np.hstack((Zyy[:(int(Nfft/2)+1)],
+                      np.conj(Zyy[1:int(Nfft/2)])[::-1]))
 
     Se_x = []
     Se_y = []
     for Zxx_i, Zxy_i, Zyx_i, Zyy_i, Sbx_i, Sby_i in zip(Zxx2, Zxy2, Zyx2, Zyy2, Sbx, Sby):
-        Z = NP.array([[Zxx_i, Zxy_i], [Zyx_i, Zyy_i]])
-        Sb_i = NP.array([[Sbx_i / mu_0], [Sby_i / mu_0]])
-        Se_i = NP.dot(Z, Sb_i)
+        Z = np.array([[Zxx_i, Zxy_i], [Zyx_i, Zyy_i]])
+        Sb_i = np.array([[Sbx_i / mu_0], [Sby_i / mu_0]])
+        Se_i = np.dot(Z, Sb_i)
         Se_x.append(Se_i[0, 0])
         Se_y.append(Se_i[1, 0])
 
-    Ex = NP.real(NP.fft.ifft(Se_x, Nfft) * N)
-    Ey = NP.real(NP.fft.ifft(Se_y, Nfft) * N)
+    Ex = np.real(sp.fft.ifft(Se_x, Nfft) * N)
+    Ey = np.real(sp.fft.ifft(Se_y, Nfft) * N)
 
     return (Ex[:N],
             Ey[:N])
@@ -145,7 +145,7 @@ def parse_xml(xml_fname):
             if value.attrib['name'] != name and value.attrib['name'] != name.upper():
                 raise ValueError('name mismatch ({} != {})'.format(value.attrib['name'], name))
             values.append(complex(*map(float, value.text.split())))
-        Z_array = NP.array(values)
+        Z_array = np.array(values)
         Z_array.shape = 2, 2
         Z_map[float(period.attrib['value'])] = Z_array
     return Z_map
@@ -189,7 +189,7 @@ def parse_xml_all(xml_fname):
                 values.append(complex(*map(float, value.text.split())))
             else:
                 values.append(float(value.text))
-        Z_array = NP.array(values)
+        Z_array = np.array(values)
         Z_array.shape = 2, 2
         return Z_array
 
@@ -284,7 +284,7 @@ class Zw_interpolator(object):
         self.Z_map = Z_map
         periods = list(Z_map.keys())
         values = list(Z_map.values())
-        self.f = NP.array([1/x for x in periods[::-1]])
+        self.f = np.array([1/x for x in periods[::-1]])
         self.omega = 2 * math.pi * self.f
         self.Zxx_interp = CubicSpline(self.omega, [x[0, 0] for x in values[::-1]],
                                       extrapolate=False)
@@ -309,9 +309,9 @@ class Zw_interpolator(object):
         [mV/km]/[nT] by default).
         """
         if self.extrapolate0:
-            y = NP.zeros_like(omega, dtype=NP.complex128)
-            I = NP.where((omega >= self.omega[0]) & (omega <= self.omega[-1]))
-            y[I] = self.key_map[key](NP.asarray(omega)[I])
+            y = np.zeros_like(omega, dtype=np.complex128)
+            I = np.where((omega >= self.omega[0]) & (omega <= self.omega[-1]))
+            y[I] = self.key_map[key](np.asarray(omega)[I])
             return y
         return self.key_map[key](omega)
 
