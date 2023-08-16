@@ -1,6 +1,6 @@
 apexpy
 Cython
-enum34   # not required in python >= 3.4
+igrf
 intervals
 matplotlib
 more-itertools
