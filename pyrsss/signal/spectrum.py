@@ -97,7 +97,7 @@ def blackman_tukey(x,
     window = sp.signal.get_window(window, 2*M + 1, fftbins=False)
     #k_range = np.arange(0, L)
     #shift = np.exp(2j * np.pi * k_range * M / L)
-    #Sxy = np.fft.fft(window * Rxy_window, n=L) * shift
+    #Sxy = sp.fft.fft(window * Rxy_window, n=L) * shift
 
     # I assume a circular shift (as below) would be more efficient
     # than multiplying by a complex exponential (as above) to achieve
