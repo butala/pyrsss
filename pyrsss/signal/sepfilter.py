@@ -1,3 +1,5 @@
+from functools import reduce
+
 import numpy as NP
 import scipy.sparse
 
