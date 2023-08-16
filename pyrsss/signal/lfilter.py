@@ -1,9 +1,8 @@
 import logging
 from itertools import repeat
 
-import numpy as NP
-import scipy as SP
-import scipy.signal
+import numpy as np
+import scipy as sp
 
 from .spectrum import nextpow2
 
@@ -19,16 +18,16 @@ def lp_fir_type(h):
     M = len(h) - 1
     n_range = range(M + 1)
     if M % 2 == 0:
-        if all([NP.isclose(h[n], h[M - n]) for n in n_range]):
+        if all([np.isclose(h[n], h[M - n]) for n in n_range]):
             return 1
-        elif all([NP.isclose(h[n], -h[M - n]) for n in n_range]):
+        elif all([np.isclose(h[n], -h[M - n]) for n in n_range]):
             return 3
         else:
             return None
     else:
-        if all([NP.isclose(h[n], h[M - n]) for n in n_range]):
+        if all([np.isclose(h[n], h[M - n]) for n in n_range]):
             return 2
-        elif all([NP.isclose(h[n], -h[M - n]) for n in n_range]):
+        elif all([np.isclose(h[n], -h[M - n]) for n in n_range]):
             return 4
         else:
             return None
@@ -62,11 +61,11 @@ def lp_fir_filter(h, x, real=True, mode='same', index=None):
     K = len(h)
     L = N + K - 1
     L_fft = nextpow2(L)
-    H = NP.fft.fft(h, n=L_fft)
-    X = NP.fft.fft(x, n=L_fft)
-    y = NP.fft.ifft(H * X)
+    H = sp.fft.fft(h, n=L_fft)
+    X = sp.fft.fft(x, n=L_fft)
+    y = sp.fft.ifft(H * X)
     if real:
-        y = NP.real(y)
+        y = np.real(y)
     M = len(h) - 1
     if mode == 'same':
         y_out = y[int(M/2):int(M/2) + N]
@@ -107,7 +106,7 @@ def fir_response(h, bands, desired, Hz=1, names=None, verbose=True):
     value. If *vervose*, dump a report to stdout.
     """
     # check for argument consistency
-    bands = NP.array(bands)
+    bands = np.array(bands)
     if len(bands) % 2 != 0:
         raise ValueError('# of band boundaries must be even')
     if len(bands) / 2 != len(desired):
@@ -121,16 +120,16 @@ def fir_response(h, bands, desired, Hz=1, names=None, verbose=True):
             raise ValueError('there should be an equal number of bands as names')
     # compute filter frequency response
     L = nextpow2(10 * len(h))
-    H = NP.fft.rfft(h, n=L)
-    f = NP.fft.rfftfreq(L, 1/Hz)
+    H = sp.fft.rfft(h, n=L)
+    f = sp.fft.rfftfreq(L, 1/Hz)
     # gather stats per band
     band_stats = OrderedDict()
     medians = OrderedDict()
     band_tuples = zip(bands[::2], bands[1::2])
     for index, ((b1, b2), d) in enumerate(zip(band_tuples, desired)):
         I = [i for  i, f_i in enumerate(f) if b1 <= f_i < b2]
-        diff = d - NP.abs([H[i] for i in I])
-        band_stats[index] = Stats(*NP.abs(diff)), NP.median(diff)
+        diff = d - np.abs([H[i] for i in I])
+        band_stats[index] = Stats(*np.abs(diff)), np.median(diff)
         if names:
             band_stats[names[index]] = band_stats[index]
     if verbose:
@@ -193,13 +192,13 @@ def miso_lfilter(b, a, x, zi=None):
         assert len(zi) == len(b)
         return_zf = True
 
-    y_i = [SP.signal.lfilter(b_i, a_i, x_i, zi=zi_i) for b_i, a_i, x_i, zi_i in zip(b, a, x, zi)]
+    y_i = [sp.signal.lfilter(b_i, a_i, x_i, zi=zi_i) for b_i, a_i, x_i, zi_i in zip(b, a, x, zi)]
 
     if return_zf:
         y_i, zf = zip(*y_i)
-        return NP.sum(y_i, axis=0), zf
+        return np.sum(y_i, axis=0), zf
     else:
-        return NP.sum(y_i, axis=0)
+        return np.sum(y_i, axis=0)
 
 
 def difference_eq(b, a, x, prior=None):
@@ -213,21 +212,21 @@ def difference_eq(b, a, x, prior=None):
     0s are used).
     """
     N = max(len(b), len(a)) - 1
-    b = NP.concatenate((b, NP.zeros(N + 1 - len(b))))
-    a = NP.concatenate((a, NP.zeros(N + 1 - len(a))))
+    b = np.concatenate((b, np.zeros(N + 1 - len(b))))
+    a = np.concatenate((a, np.zeros(N + 1 - len(a))))
     if prior:
         xn, yn = prior
         assert len(xn) == len(yn) == N
     else:
-        xn = NP.zeros(N)
-        yn = NP.zeros(N)
+        xn = np.zeros(N)
+        yn = np.zeros(N)
     Nx = len(x)
-    x = NP.concatenate((xn, x))
-    y = NP.concatenate((yn, NP.empty(Nx)))
+    x = np.concatenate((xn, x))
+    y = np.concatenate((yn, np.empty(Nx)))
     a_rev = a[1:][::-1]
     b_rev = b[::-1]
     for i in range(N, N + Nx):
-        y[i] = -NP.dot(a_rev, y[i-N:i]) + NP.dot(b_rev, x[i-N:i+1])
+        y[i] = -np.dot(a_rev, y[i-N:i]) + np.dot(b_rev, x[i-N:i+1])
     return y[N:]
 
 
@@ -245,23 +244,23 @@ def directform2Tzi(b, a, x, y):
     In particular, if
 
     zi = directform2Tzi(b, a, xn, yn)
-    y_lfilter = SP.signal.lfilter(b, a, x, zi=zi)[0]
+    y_lfilter = sp.signal.lfilter(b, a, x, zi=zi)[0]
 
     then
 
     difference_eq(b, a, x, prior=(xn, yn)) == y_lfilter
     """
-    assert NP.allclose(a[0], 1)
+    assert np.allclose(a[0], 1)
     assert len(x) == len(y) == max(len(b), len(a)) - 1
     N = len(x)
     if N == 0:
         return []
-    z = NP.empty(N)
-    b = NP.concatenate((b, NP.zeros(N + 1 - len(b))))
-    a = NP.concatenate((a, NP.zeros(N + 1 - len(a))))
+    z = np.empty(N)
+    b = np.concatenate((b, np.zeros(N + 1 - len(b))))
+    a = np.concatenate((a, np.zeros(N + 1 - len(a))))
     x = x[::-1]
     y = y[::-1]
-    z[0] = NP.dot(b[1:], x) - NP.dot(a[1:], y)
+    z[0] = np.dot(b[1:], x) - np.dot(a[1:], y)
     for i in range(1, N):
-        z[i] = NP.dot(b[i+1:], x[:-i]) - NP.dot(a[i+1:], y[:-i])
+        z[i] = np.dot(b[i+1:], x[:-i]) - np.dot(a[i+1:], y[:-i])
     return z
