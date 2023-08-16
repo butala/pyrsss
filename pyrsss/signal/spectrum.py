@@ -1,7 +1,7 @@
 import math
 
 import numpy as np
-import scipy.signal
+import scipy as sp
 
 
 def rect(t, a):
@@ -39,14 +39,14 @@ def spectrum(x,
     assert oversample >= 1 and isinstance(oversample, int)
     N = nextpow2(len(x)) * 2**(oversample - 1)
     if only_positive:
-        X = np.fft.rfft(x, n=N) * T_s
-        f = np.fft.rfftfreq(N, d=T_s)
+        X = sp.fft.rfft(x, n=N) * T_s
+        f = sp.fft.rfftfreq(N, d=T_s)
     else:
-        X = np.fft.fft(x, n=N) * T_s
-        f = np.fft.fftfreq(N, d=T_s)
+        X = sp.fft.fft(x, n=N) * T_s
+        f = sp.fft.fftfreq(N, d=T_s)
 
-        X = np.fft.fftshift(X)
-        f = np.fft.fftshift(f)
+        X = sp.fft.fftshift(X)
+        f = sp.fft.fftshift(f)
     if n0 != 0:
         X *= np.exp(-1j * 2 * math.pi * np.arange(N) * n0 / N)
     return f, X
@@ -92,9 +92,9 @@ def blackman_tukey(x,
         assert len(y) == N
         autocorrelation = False
 
-    Rxy = scipy.signal.correlate(x, y) / N
+    Rxy = sp.signal.correlate(x, y) / N
     Rxy_window = Rxy[(N - 1) - M:(N - 1) + M + 1]
-    window = scipy.signal.get_window(window, 2*M + 1, fftbins=False)
+    window = sp.signal.get_window(window, 2*M + 1, fftbins=False)
     #k_range = np.arange(0, L)
     #shift = np.exp(2j * np.pi * k_range * M / L)
     #Sxy = np.fft.fft(window * Rxy_window, n=L) * shift
@@ -103,10 +103,10 @@ def blackman_tukey(x,
     # than multiplying by a complex exponential (as above) to achieve
     # the same result.
     zp = np.pad(window * Rxy_window, (0, L - (2*M+1)), constant_values=0)
-    Sxy = np.fft.fft(np.roll(zp, -M))
+    Sxy = sp.fft.fft(np.roll(zp, -M))
     if autocorrelation:
         Sxy = np.real(Sxy)
-    f = np.fft.fftfreq(L, d=d)
+    f = sp.fft.fftfreq(L, d=d)
     if full:
         return (Sxy, f, Rxy, window)
     else:
@@ -156,8 +156,8 @@ def etfe_welch(x,
     """
     """
     assert len(x) == len(y)
-    fxx, Pxx = scipy.signal.welch(x, fs=fs, **kwds)
-    fxy, Pxy = scipy.signal.csd(x, y, fs=fs, **kwds)
+    fxx, Pxx = sp.signal.welch(x, fs=fs, **kwds)
+    fxy, Pxy = sp.signal.csd(x, y, fs=fs, **kwds)
     return fxx, Pxy / Pxx
 
 
@@ -176,13 +176,13 @@ def bartlett(x, fs=1.0, window='boxcar', nfft=None):
         nfft = len(x)
     nseg = len(x) // nfft
     Pxx = np.zeros(nfft // 2 + 1)
-    window = scipy.signal.get_window(window, nfft)
+    window = sp.signal.get_window(window, nfft)
     while True:
         x_i, x = x[:nfft], x[nfft:]
         if len(x_i) < nfft:
             break
-        Pxx += np.abs(np.fft.rfft(x_i * window, n=nfft))**2 / nseg / nfft
-    return np.fft.rfftfreq(nfft, d=1/fs), Pxx
+        Pxx += np.abs(sp.fft.rfft(x_i * window, n=nfft))**2 / nseg / nfft
+    return sp.fft.rfftfreq(nfft, d=1/fs), Pxx
 
 
 def bartlett_csd(y, x, fs=1.0, window='boxcar', nfft=None):
@@ -207,14 +207,14 @@ def bartlett_csd(y, x, fs=1.0, window='boxcar', nfft=None):
         nfft = len(x)
     nseg = len(x) // nfft
     Pyx = np.zeros(nfft // 2 + 1, dtype=complex)
-    window = scipy.signal.get_window(window, nfft)
+    window = sp.signal.get_window(window, nfft)
     while True:
         y_i, y = y[:nfft], y[nfft:]
         x_i, x = x[:nfft], x[nfft:]
         if len(x_i) < nfft:
             break
-        Pyx += np.fft.rfft(y_i * window, n=nfft) * np.conj(np.fft.rfft(x_i * window, n=nfft)) / nseg / nfft
-    return np.fft.rfftfreq(nfft, d=1/fs), Pyx
+        Pyx += sp.fft.rfft(y_i * window, n=nfft) * np.conj(sp.fft.rfft(x_i * window, n=nfft)) / nseg / nfft
+    return sp.fft.rfftfreq(nfft, d=1/fs), Pyx
 
 
 def etfe_bartlett(x,
