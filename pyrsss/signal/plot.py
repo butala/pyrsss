@@ -1,7 +1,7 @@
-import numpy as NP
-import scipy as SP
-import scipy.signal
-import pylab as PL
+import numpy as np
+import scipy as sp
+from matplotlib.patches import Circle
+from matplotlib.markers import MarkerStyle
 
 
 def pzplot(b,
@@ -22,26 +22,39 @@ def pzplot(b,
     """
     if ax is None:
         ax = PL.subplot(111)
-    z, p, k = SP.signal.tf2zpk(b, a)
-    ax.add_patch(PL.Circle((0, 0), 1, fill=False, **guide_opts))
+    z, p, k = sp.signal.tf2zpk(b, a)
+    ax.add_patch(Circle((0, 0), 1, fill=False, **guide_opts))
     ax.axhline(0, **guide_opts)
     ax.axvline(0, **guide_opts)
-    ax.scatter(NP.real(z),
-               NP.imag(z),
-               marker=PL.matplotlib.markers.MarkerStyle('o', 'none'),
-               facecolors='none',
-               edgecolors=c)
-    ax.scatter(NP.real(p),
-               NP.imag(p),
+    ax.scatter(np.real(z),
+               np.imag(z),
+               marker=MarkerStyle('o', 'none'),
+               facecolors=c)
+    ax.scatter(np.real(p),
+               np.imag(p),
                marker='x',
                color=c)
-    xlim = PL.xlim()
-    PL.xlim(xmin=max(xlim[0], -1.1))
-    PL.xlim(xmax=max(xlim[1],  1.1))
-    ylim = PL.ylim()
-    PL.ylim(ymin=max(ylim[0], -1.1))
-    PL.ylim(ymax=max(ylim[1],  1.1))
+    xlim = ax.get_xlim()
+    ax.set_xlim(xmin=max(xlim[0], -1.1))
+    ax.set_xlim(xmax=max(xlim[1],  1.1))
+    ylim = ax.get_ylim()
+    ax.set_ylim(ymin=max(ylim[0], -1.1))
+    ax.set_ylim(ymax=max(ylim[1],  1.1))
     ax.set_aspect('equal')
-    PL.xlabel('Real axis')
-    PL.ylabel('Imaginary axis')
+    ax.set_xlabel('Real axis')
+    ax.set_ylabel('Imaginary axis')
     return (z, p, k), ax
+
+
+if __name__ == '__main__':
+    import matplotlib.pylab as plt
+
+    # Compare with Figure 3.5 in the 3rd edition of Discrete Time
+    # Signal Processing by Oppenheim and Schafer
+
+    b = [2, -1/6, 0]
+    a = [1, -1/6, -1/6]
+
+    fig, ax = plt.subplots(1, 1)
+    pzplot(b, a, ax=ax)
+    plt.show()
