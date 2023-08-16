@@ -37,7 +37,7 @@ class SepFilter(object):
         elif self.mode == 'circ':
             self.k = self.k_full
         else:
-            assert(False)
+            assert False
         self.H_list = list(map(lambda x: sp.fft.fft(x[1],
                                                     n=self.k_full[x[0]]),
                                enumerate(self.h_list)))
@@ -72,7 +72,7 @@ class SepFilter(object):
                     slice_list.append(slice(self.m[i]-1, -(self.m[i]-1), None))
             return y[*slice_list]
         else:
-            assert(False)
+            assert False
 
 
     def __mul__(self, x):
@@ -125,9 +125,9 @@ def random_validation(N,
         elif mode == 'valid':
             k = n - m + 1
         else:
-            assert(False)
+            assert False
 
-        assert((np.array(k) > 0).all())
+        assert (np.array(k) > 0).all()
 
         print('{} of {} (n={} k={} mode={})'.format(i, N, n, k, mode))
 
@@ -142,7 +142,7 @@ def random_validation(N,
         else:
             y_true = sp.signal.convolve(x, H.h, mode=mode)
         y_sep = H * x
-        assert(np.allclose(y_sep, y_true))
+        assert np.allclose(y_sep, y_true)
 
         if mode == 'circ':
             H_matrix_true = Convmtx(k, H.h, mode=mode)
@@ -154,7 +154,7 @@ def random_validation(N,
 
         y_matrix_true = H_matrix_true * x.flat
         y_matrix_sep = H_matrix_sep * x.flat
-        assert(np.allclose(y_matrix_sep, y_matrix_true))
+        assert np.allclose(y_matrix_sep, y_matrix_true)
 
     return True
 
