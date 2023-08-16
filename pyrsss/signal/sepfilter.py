@@ -1,7 +1,7 @@
 from functools import reduce
 
-import numpy as NP
-import scipy.sparse
+import numpy as np
+import scipy as sp
 
 from .util import zero_pad
 from .convmtx import Convmtx
@@ -25,11 +25,11 @@ class SepFilter(object):
         """
         self.n = n
         self.ndim = len(n)
-        self.h_list = [NP.copy(h_i) for h_i in h_list]
+        self.h_list = [np.copy(h_i) for h_i in h_list]
         self.m = tuple(map(lambda x: len(x), self.h_list))
         self.mode = mode
-        self.k_full = tuple(NP.array(self.n) + NP.array(self.m) - 1)
-        self.k_valid = tuple(NP.array(self.n) - NP.array(self.m) + 1)
+        self.k_full = tuple(np.array(self.n) + np.array(self.m) - 1)
+        self.k_valid = tuple(np.array(self.n) - np.array(self.m) + 1)
         if self.mode == 'full':
             self.k = self.k_full
         elif self.mode == 'valid':
@@ -38,14 +38,14 @@ class SepFilter(object):
             self.k = self.k_full
         else:
             assert(False)
-        self.H_list = list(map(lambda x: NP.fft.fft(x[1],
+        self.H_list = list(map(lambda x: sp.fft.fft(x[1],
                                                     n=self.k_full[x[0]]),
                                enumerate(self.h_list)))
 
         def reducer(x, y):
             i, y_i = y
             shape = [len(y_i)] + [1]*i
-            return NP.reshape(y_i, shape) * x
+            return np.reshape(y_i, shape) * x
 
         self.h = reduce(reducer, enumerate(reversed(self.h_list)), 1)
         self.H = reduce(reducer, enumerate(reversed(self.H_list)), 1)
@@ -55,11 +55,11 @@ class SepFilter(object):
         """
         Apply the separable filter to the signal vector *x*.
         """
-        X = NP.fft.fftn(x, s=self.k_full)
-        if NP.isrealobj(self.h) and NP.isrealobj(x):
-            y = NP.real(NP.fft.ifftn(self.H * X))
+        X = sp.fft.fftn(x, s=self.k_full)
+        if np.isrealobj(self.h) and np.isrealobj(x):
+            y = np.real(sp.fft.ifftn(self.H * X))
         else:
-            y = NP.fft.ifftn(self.H * X)
+            y = sp.fft.ifftn(self.H * X)
 
         if self.mode == 'full' or self.mode == 'circ':
             return y
@@ -70,7 +70,7 @@ class SepFilter(object):
                     slice_list.append(slice(None, None, None))
                 else:
                     slice_list.append(slice(self.m[i]-1, -(self.m[i]-1), None))
-            return y[slice_list]
+            return y[*slice_list]
         else:
             assert(False)
 
@@ -87,13 +87,13 @@ class SepFilter(object):
         """
         Return the sparse matrix representation of the separable filter.
         """
-        h_matrix = NP.array([1])
+        h_matrix = np.array([1])
         for i in range(self.ndim):
             if self.mode == 'circ':
                 h_i = Convmtx([self.k[i]], self.h_list[i], mode=self.mode)
             else:
                 h_i = Convmtx([self.n[i]], self.h_list[i], mode=self.mode)
-            h_matrix = scipy.sparse.kron(h_matrix, h_i)
+            h_matrix = sp.sparse.kron(h_matrix, h_i)
         return h_matrix
 
 
@@ -111,10 +111,10 @@ def random_validation(N,
     consider convolution types given in *modes*.
     """
     for i in range(1, N+1):
-        ndim = NP.random.random_integers(1, ndim_max)
-        n = NP.random.random_integers(1, n_max, ndim)
-        m = NP.random.random_integers(1, m_max, ndim)
-        mode = modes[NP.random.random_integers(0, 2)]
+        ndim = np.random.randint(1, ndim_max)
+        n = np.random.randint(1, n_max, ndim)
+        m = np.random.randint(1, m_max, ndim)
+        mode = modes[np.random.randint(0, 2)]
 
         for j, n_j in enumerate(n):
             if n_j - m[j] + 1 <= 0:
@@ -127,22 +127,22 @@ def random_validation(N,
         else:
             assert(False)
 
-        assert((NP.array(k) > 0).all())
+        assert((np.array(k) > 0).all())
 
         print('{} of {} (n={} k={} mode={})'.format(i, N, n, k, mode))
 
-        h_list = [NP.random.randn(m_i) for m_i in m]
+        h_list = [np.random.randn(m_i) for m_i in m]
 
-        x = NP.random.randn(*n)
+        x = np.random.randn(*n)
 
         H = SepFilter(n, h_list, mode=mode)
 
         if mode == 'circ':
-            y_true = scipy.signal.convolve(x, H.h, mode='full')
+            y_true = sp.signal.convolve(x, H.h, mode='full')
         else:
-            y_true = scipy.signal.convolve(x, H.h, mode=mode)
+            y_true = sp.signal.convolve(x, H.h, mode=mode)
         y_sep = H * x
-        assert(NP.allclose(y_sep, y_true))
+        assert(np.allclose(y_sep, y_true))
 
         if mode == 'circ':
             H_matrix_true = Convmtx(k, H.h, mode=mode)
@@ -154,7 +154,7 @@ def random_validation(N,
 
         y_matrix_true = H_matrix_true * x.flat
         y_matrix_sep = H_matrix_sep * x.flat
-        assert(NP.allclose(y_matrix_sep, y_matrix_true))
+        assert(np.allclose(y_matrix_sep, y_matrix_true))
 
     return True
 
