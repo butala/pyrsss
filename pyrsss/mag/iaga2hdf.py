@@ -4,9 +4,8 @@ import math
 import logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-import numpy as NP
-import pandas as PD
-from pyglow.pyglow import Point
+import numpy as np
+import pandas as pd
 from geomagio.StreamConverter import get_obs_from_geo, get_geo_from_obs
 from obspy.core.stream import Stream
 from obspy.core.utcdatetime import UTCDateTime
@@ -141,7 +140,7 @@ def df2stream(df,
         header_i['location'] = location
         vals = df[column].values
         if channel == 'D' and radians:
-            vals = NP.radians(vals)
+            vals = np.radians(vals)
         traces.append(Trace(data=vals,
                             header=header_i))
     return Stream(traces=traces)
@@ -152,7 +151,7 @@ def write_hdf(hdf_fname, df, key, header):
     Output the contents of *df* and *header* to the HDF file
     *hdf_fname* under identifier *key*.
     """
-    with PD.HDFStore(hdf_fname) as store:
+    with pd.HDFStore(hdf_fname) as store:
         store.put(key, df)
         store.get_storer(key).attrs.header = header
     return hdf_fname
@@ -165,7 +164,7 @@ def read_hdf(hdf_fname, key):
     """
     if not os.path.isfile(hdf_fname):
         raise ValueError('file {} does not exist'.format(hdf_fname))
-    with PD.HDFStore(hdf_fname) as store:
+    with pd.HDFStore(hdf_fname) as store:
         df = store.get(key)
         try:
             header = store.get_storer(key).attrs.header
@@ -185,7 +184,7 @@ def combine_iaga(iaga2002_fnames):
         df_i, header_i = iaga2df(iaga2002_fname)
         df_list.append(df_i)
         header_list.append(header_i)
-    return PD.concat(df_list), reduce_headers(header_list)
+    return pd.concat(df_list), reduce_headers(header_list)
 
 
 def xy2df(df, header):
@@ -215,7 +214,7 @@ def he2df(df, header):
         values = zip(df['B_X'].values,
                      df['B_Y'].values,
                      df['B_Z'].values)
-        df = df.assign(B_F=[NP.linalg.norm([x, y, z]) for x, y, z in values])
+        df = df.assign(B_F=[np.linalg.norm([x, y, z]) for x, y, z in values])
     geo = df2stream(df, header)
     obs = get_obs_from_geo(geo)
     return df.assign(B_H=obs.select(channel='H').traces[0].data,
