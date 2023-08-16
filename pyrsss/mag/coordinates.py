@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-import numpy as NP
+import numpy as np
 from apexpy import Apex
 
 
@@ -16,7 +16,7 @@ def mag_parallels(date, parallels=range(-75, 76, 15), height=350, N=1000):
     """
     apex = Apex(date=date)
     parallel_map = OrderedDict()
-    lons = NP.linspace(-180, 180, N)
+    lons = np.linspace(-180, 180, N)
     for parallel in parallels:
         glat, glon = apex.convert(parallel,
                                   lons,
