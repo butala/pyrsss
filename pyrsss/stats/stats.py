@@ -5,7 +5,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections.abc import Iterable
 
 import scipy.stats
-import numpy as NP
+import numpy as np
 
 logger = logging.getLogger('pyrsss.stats.stats')
 
@@ -15,8 +15,8 @@ def mad(l):
     Compute the median absolute deviation (a robust measure of spread)
     of the list of values *l*.
     """
-    median = NP.median(l)
-    return NP.median(NP.abs(l - median)), median
+    median = np.median(l)
+    return np.median(np.abs(l - median)), median
 
 
 def robust_std(l, alpha=1/scipy.stats.norm.ppf(0.75)):
@@ -37,7 +37,7 @@ def max_consectuive_true(df):
     cumsum = df.cumsum()
     c = cumsum.sub(cumsum.mask(df).ffill().fillna(0)).astype(int)
     mask = df.any()
-    return cumsum.iloc[-1].tolist(), NP.where(mask, c.max(), -1).tolist()
+    return cumsum.iloc[-1].tolist(), np.where(mask, c.max(), -1).tolist()
 
 
 def despike(df, window=31, l=6):
@@ -82,8 +82,8 @@ def weighted_avg_and_std(values, weights):
 
     Note: The method is biased (division by N and not (N-1)).
     """
-    average = NP.average(values, weights=weights)
-    variance = NP.average((values-average)**2, weights=weights)  # Fast and numerically precise
+    average = np.average(values, weights=weights)
+    variance = np.average((values-average)**2, weights=weights)  # Fast and numerically precise
     return (average, math.sqrt(variance))
 
 
