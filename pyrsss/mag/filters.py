@@ -43,7 +43,7 @@ def minute_interval_filter_firwin():
                             cutoff - width/2,
                             width=width,
                             pass_zero=False,
-                            nyq=fn)
+                            fs=fs)
 
 
 def minute_interval_filter(N_remez=201):
