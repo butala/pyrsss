@@ -6,12 +6,11 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime, timedelta
 from collections import defaultdict, OrderedDict
 
-import pandas as PD
+import pandas as pd
+import igrf
 
-from pyglow.pyglow import Point
-
-from sm2hdf import read_sm_csv
-from sm_stations import STATION_MAP
+from .sm2hdf import read_sm_csv
+from .sm_stations import STATION_MAP
 
 logger = logging.getLogger('pyrsss.mag.sm2iaga')
 
@@ -38,9 +37,8 @@ def ne2xy_converter(stn, dt, nan=True, elevation=None):
     station_info = STATION_MAP[stn.upper()]
     lat = station_info.glat
     lon = station_info.glon
-    point = Point(dt, lat, lon, elevation / 1e3 if elevation else 0)
-    point.run_igrf()
-    dec_deg = point.dec
+    mag = igrf.igrf(date, glat=lat, glon=lon, alt_km=elevation / 1e3 if elevation else 0)
+    dec_deg = float(mag.decl.data)
     logger.info('using declination angle {:f} (deg) for {}'.format(dec_deg, stn))
     dec_rad = math.radians(dec_deg)
     cos_dec = math.cos(dec_rad)
@@ -79,7 +77,7 @@ def fill_data(df,
         data_map[row.Date_UTC] = (N, E, Z, F)
     # fill missing records
     filled_data = []
-    dts = list(PD.date_range(start=start_date,
+    dts = list(pd.date_range(start=start_date,
                              end=end_date,
                              freq='min'))[:-1]
     if nan:
