@@ -4,8 +4,8 @@ import os
 from datetime import datetime
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-import numpy as NP
-import pandas as PD
+import numpy as np
+import pandas as pd
 
 logger = logging.getLogger('pyrsss.mag.fm2iaga')
 
@@ -51,8 +51,8 @@ def parse(fname):
                 flag.append(True)
             else:
                 raise ValueError('unknown flag value {} encountered in {}'.format(cols[4], fname))
-        f = NP.hypot(x, NP.hypot(y, z))
-        df = PD.DataFrame(data={'x': x, 'y': y, 'z': z, 'f': f, 'flag': flag},
+        f = np.hypot(x, np.hypot(y, z))
+        df = pd.DataFrame(data={'x': x, 'y': y, 'z': z, 'f': f, 'flag': flag},
                           index=dt)
         df.siteid = siteid
         df.lat = float(lat)
@@ -104,7 +104,7 @@ def fgm2iaga(path,
                 X = row.x
                 Y = row.y
                 Z = row.z
-                F = NP.linalg.norm([X, Y, Z])
+                F = np.linalg.norm([X, Y, Z])
             fid.write('{date:%Y-%m-%d %H:%M:%S.000} {date:%j}'
                       '    {X:>9.2f} {Y:>9.2f} {Z:>9.2f} {F:>9.2f}\n'.format(date=dt,
                                                                              X=X,

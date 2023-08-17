@@ -2,14 +2,14 @@ import sys
 import logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-import numpy as NP
-import pandas as PD
+import numpy as np
+import pandas as pd
 
-from calc_e import apply_transfer_function as tf_1D
-from calc_e_3d import apply_transfer_function as tf_3D
+from .calc_e import apply_transfer_function as tf_1D
+from .calc_e_3d import apply_transfer_function as tf_3D
 from ..mag.iaga2hdf import read_hdf, write_hdf
 from ..usarray_emtf.index import get_index
-from usgs_regions import get_region
+from .usgs_regions import get_region
 
 
 logger = logging.getLogger('pyrsss.emtf.e2hdf')
@@ -54,7 +54,7 @@ def apply_emtf(df_E,
     repository information :class:`Index` to process the 3-D EMTFs.
     """
     logger.info('applying transfer function {}'.format(emtf_key))
-    interval = NP.diff(df_B.index.values[:2])[0] / NP.timedelta64(1, 's')
+    interval = np.diff(df_B.index.values[:2])[0] / np.timedelta64(1, 's')
     Bx = df_B.B_X.values
     By = df_B.B_Y.values
     if emtf_key.startswith('USArray'):
@@ -107,7 +107,7 @@ def e2hdf(hdf_fname,
     # setup target DataFrame
     df, header = read_hdf(hdf_fname, source_key)
     def empty_record():
-        return PD.DataFrame(index=df.index)
+        return pd.DataFrame(index=df.index)
     if replace:
         logger.info('creating new E record')
         df_e = empty_record()
@@ -160,7 +160,7 @@ def e2hdf_3D(hdf_fname,
     # setup target DataFrame
     df, header = read_hdf(hdf_fname, source_key)
     def empty_record():
-        return PD.DataFrame(index=df.index)
+        return pd.DataFrame(index=df.index)
     if replace:
         logger.info('creating new E record')
         df_e = empty_record()

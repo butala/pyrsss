@@ -3,7 +3,7 @@ import logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime
 
-import pandas as PD
+import pandas as pd
 
 
 def read_sm_csv(csv_fname):
@@ -13,7 +13,7 @@ def read_sm_csv(csv_fname):
     :class:`DataFrame`. Return a mapping between the station
     identifier and data frame.
     """
-    df = PD.read_csv(csv_fname,
+    df = pd.read_csv(csv_fname,
                      header=0,
                      parse_dates=[0],
                      date_parser=lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'),

@@ -1,7 +1,7 @@
 import math
 from collections import OrderedDict
 
-import numpy as NP
+import numpy as np
 
 
 SNR_8 = OrderedDict([#( 5, 46.0),
@@ -27,18 +27,18 @@ SNR_8 = OrderedDict([#( 5, 46.0),
 def fit_power_law(x, y):
     """
     """
-    ln_x = NP.log(x)
-    ln_y = NP.log(y)
+    ln_x = np.log(x)
+    ln_y = np.log(y)
     # least squares solution
-    A = NP.empty((len(x), 2))
+    A = np.empty((len(x), 2))
     A[:, 0] = 1
     A[:, 1] = ln_x
-    #b_ls = NP.linalg.lstsq(A, ln_y)[0]
+    #b_ls = np.linalg.lstsq(A, ln_y)[0]
     # total least-squares solution
-    X = NP.empty((len(x), 3))
+    X = np.empty((len(x), 3))
     X[:, :2] = A
     X[:, 2] = ln_y
-    U, S, V = NP.linalg.svd(X, 1)
+    U, S, V = np.linalg.svd(X, 1)
     b_tls = (V[-1, :] / -V[-1, -1])[:2]
     alpha = math.exp(b_tls[0])
     beta = b_tls[1]
@@ -51,8 +51,8 @@ class RMSModel(OrderedDict):
         ???
         """
         super(RMSModel, self).__init__()
-        self.el = NP.array(model_spec.keys())
-        self.rms = NP.array(model_spec.values())
+        self.el = np.array(model_spec.keys())
+        self.rms = np.array(model_spec.values())
         self.alpha, self.beta = fit_power_law(self.el,
                                               self.rms)
 
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     print(rms_model(0))
     print(rms_model(22.2))
 
-    el = NP.linspace(5, 89.5, 129)
+    el = np.linspace(5, 89.5, 129)
 
     import pylab as PL
 

@@ -1,18 +1,18 @@
 import logging
 
-import pandas as PD
+import pandas as pd
 import matplotlib
 matplotlib.use('agg')
-import pylab as PL
+import matplotlib.pyplot as plt
 
-from preprocess import normalize_rinex
-from rinex import dump_rinex, get_receiver_position
-from phase_edit_new import phase_edit, apply_phase_adjustments, apply_rejections, label_phase_arcs, parse_discfix_log
-from level_new import level
-from rinex_new import RinexDump
+from .preprocess import normalize_rinex
+from .rinex import dump_rinex, get_receiver_position
+from .phase_edit_new import phase_edit, apply_phase_adjustments, apply_rejections, label_phase_arcs, parse_discfix_log
+from .level_new import level
+from .rinex_new import RinexDump
 from ..ionex.read_ionex import read_header
 
-from gps_test import calibrate
+from .gps_test import calibrate
 
 
 
@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
         rinex_dump.to_pickle(pkl_fname)
     else:
-        rinex_dump = PD.read_pickle(pkl_fname)
+        rinex_dump = pd.read_pickle(pkl_fname)
 
     leveled_arcs = level(rinex_dump)
 
@@ -126,12 +126,12 @@ if __name__ == '__main__':
 
     calibrated_arcs_code = calibrate(leveled_arcs, sat_biases_code, stn_biases_code)
 
-    fig = PL.figure(figsize=(11, 8.5))
+    fig = plt.figure(figsize=(11, 8.5))
     for arc in calibrated_arcs_code:
-        PL.plot_date(arc.gps_time.values,
-                     arc.sobs.values,
-                     marker='.',
-                     ls='-',
-                     c='r')
-    PL.savefig('/tmp/glonass_test.pdf',
-               bbox_inches='tight')
+        plt.plot_date(arc.gps_time.values,
+                      arc.sobs.values,
+                      marker='.',
+                      ls='-',
+                      c='r')
+    plt.savefig('/tmp/glonass_test.pdf',
+                bbox_inches='tight')

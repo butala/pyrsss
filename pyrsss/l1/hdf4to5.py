@@ -5,7 +5,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-import pandas as PD
+import pandas as pd
 
 from pyhdf.HDF import HDF, HDF4Error
 from pyhdf import VS
@@ -68,7 +68,7 @@ def parse_ace_data(hdf4_fname, N=1000):
                                                    minutes=minute,
                                                    seconds=sec))
     data = {k: v for k, v in data_map.iteritems() if k not in remove_set}
-    df = PD.DataFrame(index=dt,
+    df = pd.DataFrame(index=dt,
                       data=data)
     return df
 

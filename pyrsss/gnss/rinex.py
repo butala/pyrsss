@@ -8,13 +8,13 @@ from cStringIO import StringIO
 
 import sh
 
-from constants import GPS_EPOCH
-from path import GPSTK_BUILD_PATH
-from teqc import rinex_info
-from preprocess import normalize_rinex
-from observation import Observation, ObsTimeSeries, ObsMap
-from receiver_types import ReceiverTypes
-from p1c1 import P1C1Table
+from .constants import GPS_EPOCH
+from .path import GPSTK_BUILD_PATH
+from .teqc import rinex_info
+from .preprocess import normalize_rinex
+from .observation import Observation, ObsTimeSeries, ObsMap
+from .receiver_types import ReceiverTypes
+from .p1c1 import P1C1Table
 from ..util.path import SmartTempDir, replace_path, tail
 
 logger = logging.getLogger('pyrsss.gps.rinex')

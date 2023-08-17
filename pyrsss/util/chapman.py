@@ -1,12 +1,12 @@
 from datetime import datetime
 
-import numpy as NP
+import numpy as np
 import scipy.optimize
-import sympy as SYM
-import pylab as PL
+import sympy as sym
+import matplotlib.pyplot as plt
 
 
-def chapman(z, Nm, Hm, H_O, exp=NP.exp):
+def chapman(z, Nm, Hm, H_O, exp=np.exp):
     """
     Return Chapman function electron density at height *z*, maximum
     electron density at the F-peak *Nm*, height at the maximum *Hm*,
@@ -21,21 +21,21 @@ def chapman_sym(z, Nm, Hm, H_O):
     Return symbolic (i.e., :module:`sympy`) Chapman electron density
     profile function.
     """
-    return chapman(z, Nm, Hm, H_O, exp=SYM.exp)
+    return chapman(z, Nm, Hm, H_O, exp=sym.exp)
 
 
 def chapman_vec(z_vec, Nm_vec, Hm_vec, H_O_vec):
     """
     Vectorized implementation of the Chapman function evaluation
     routine :func:`chapman`. The input arguments must be sequences
-    with the same length and the output is an :class:`NP.ndarray` with
+    with the same length and the output is an :class:`np.ndarray` with
     that length.
     """
     try:
         chapman_vec._chapman_sym_f
     except AttributeError:
-        sym_vars = SYM.symbols('z Nm Hm H_O')
-        chapman_vec._chapman_sym_f = SYM.lambdify(sym_vars,
+        sym_vars = sym.symbols('z Nm Hm H_O')
+        chapman_vec._chapman_sym_f = sym.lambdify(sym_vars,
                                                   chapman_sym(*sym_vars),
                                                   modules='numexpr')
     return chapman_vec._chapman_sym_f(z_vec,
@@ -55,39 +55,39 @@ def chapman_fit(alt,
     """
     """
     # optimization setup
-    z, Nm, Hm, H_O = SYM.symbols('z Nm Hm H_O')
+    z, Nm, Hm, H_O = sym.symbols('z Nm Hm H_O')
     chapman = chapman_sym(z, Nm, Hm, H_O)
-    dNm = SYM.diff(chapman, Nm)
-    dHm = SYM.diff(chapman, Hm)
-    dH_O = SYM.diff(chapman, H_O)
-    chapman_f = SYM.lambdify((z, Nm, Hm, H_O),
+    dNm = sym.diff(chapman, Nm)
+    dHm = sym.diff(chapman, Hm)
+    dH_O = sym.diff(chapman, H_O)
+    chapman_f = sym.lambdify((z, Nm, Hm, H_O),
                              chapman,
                              modules='numexpr')
-    dNm_f = SYM.lambdify((z, Nm, Hm, H_O),
+    dNm_f = sym.lambdify((z, Nm, Hm, H_O),
                          dNm,
                          modules='numexpr')
-    dHm_f = SYM.lambdify((z, Nm, Hm, H_O),
+    dHm_f = sym.lambdify((z, Nm, Hm, H_O),
                          dHm,
                          modules='numexpr')
-    dH_O_f = SYM.lambdify((z, Nm, Hm, H_O),
+    dH_O_f = sym.lambdify((z, Nm, Hm, H_O),
                           dH_O,
                           modules='numexpr')
     # define cost function
-    y = NP.asarray(ne)
+    y = np.asarray(ne)
     def J(x):
         Nm, Hm, H_O = x
         if verbose:
             print('-' * 80)
             print(x)
-        y_hat = NP.array([chapman_f(z, Nm, Hm, H_O) for z in alt])
+        y_hat = np.array([chapman_f(z, Nm, Hm, H_O) for z in alt])
         diff = y - y_hat
-        J1 = NP.array([dNm_f(z, Nm, Hm, H_O) for z in alt])
-        J2 = NP.array([dHm_f(z, Nm, Hm, H_O) for z in alt])
-        J3 = NP.array([dH_O_f(z, Nm, Hm, H_O) for z in alt])
-        return (NP.dot(diff, diff),
-                NP.array([-2 * NP.sum(diff * J1),
-                          -2 * NP.sum(diff * J2),
-                          -2 * NP.sum(diff * J3)]))
+        J1 = np.array([dNm_f(z, Nm, Hm, H_O) for z in alt])
+        J2 = np.array([dHm_f(z, Nm, Hm, H_O) for z in alt])
+        J3 = np.array([dH_O_f(z, Nm, Hm, H_O) for z in alt])
+        return (np.dot(diff, diff),
+                np.array([-2 * np.sum(diff * J1),
+                          -2 * np.sum(diff * J2),
+                          -2 * np.sum(diff * J3)]))
     # minimize cost function
     x_star, f, d = scipy.optimize.fmin_l_bfgs_b(J,
                                                 x0,
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     from pyglow.pyglow import Point
 
     N = 200
-    alt = NP.linspace(100, 1500, N)
+    alt = np.linspace(100, 1500, N)
 
     dt = datetime(2000, 1, 1)
     lat = 0
@@ -117,19 +117,19 @@ if __name__ == '__main__':
 
     chapman_ne = [chapman(z, Nm_star, Hm_star, H_O_star) for z in alt]
 
-    fig = PL.figure(figsize=(6,10))
-    PL.plot(iri_ne,
+    fig = plt.figure(figsize=(6,10))
+    plt.plot(iri_ne,
             alt,
             color='b',
             label='IRI')
-    PL.plot(chapman_ne,
+    plt.plot(chapman_ne,
             alt,
             color='g',
             label='Chapman fit')
-    PL.legend()
-    PL.xlabel('Electron density [cm$^{-3}$]')
-    PL.ylabel('Height [km]')
-    PL.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-    PL.axis('tight')
+    plt.legend()
+    plt.xlabel('Electron density [cm$^{-3}$]')
+    plt.ylabel('Height [km]')
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    plt.axis('tight')
 
-    PL.show()
+    plt.show()

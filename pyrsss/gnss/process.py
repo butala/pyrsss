@@ -2,10 +2,10 @@ import logging
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-from phase_edit import phase_edit_process
-from level import level_process
-from bias import fetch_sideshow_ionex, bias_process
-from rinex import fname2date
+from .phase_edit import phase_edit_process
+from .level import level_process
+from .bias import fetch_sideshow_ionex, bias_process
+from .rinex import fname2date
 from ..util.path import SmartTempDir, replace_path
 
 logger = logging.getLogger('pyrsss.gps.process')

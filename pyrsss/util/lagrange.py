@@ -1,9 +1,9 @@
 import logging
 from itertools import product
 
-import numpy as NP
+import numpy as np
 from scipy.misc import comb
-import sympy as SYM
+import sympy as sym
 
 logger = logging.getLogger('pyrsss.util.lagrange')
 
@@ -32,7 +32,7 @@ def lagrange_interpolator(points, delta, delta_i_list):
         f += points[i][-1] * delta_i / delta
     # fix for corner case when polynomial reduces to a single float
     if isinstance(f, float):
-        return SYM.Float(f)
+        return sym.Float(f)
     return f
 
 
@@ -59,25 +59,25 @@ def multivariate_lagrange(points, n):
         raise ValueError('dimension mismatch')
 
     # setup symbols and build expression
-    z_vec = SYM.Matrix([points[i][-1] for i in range(p)])
-    coef = SYM.symbols(' '.join(['a{}'.format(i) for i in range(1, p + 1)]))
-    var = SYM.symbols(' '.join(['x{}'.format(i) for i in range(1, m + 1)]))
+    z_vec = sym.Matrix([points[i][-1] for i in range(p)])
+    coef = sym.symbols(' '.join(['a{}'.format(i) for i in range(1, p + 1)]))
+    var = sym.symbols(' '.join(['x{}'.format(i) for i in range(1, m + 1)]))
     # handle trivial case, n = 0
     if n == 0:
-        return SYM.Float(points[0][-1]), var, 1., [1.]
-    z_terms = [SYM.Poly.from_dict({x: 1}, var) for x in poly_power_seq(m, n)]
-    z = SYM.Poly.from_dict(dict(zip(poly_power_seq(m, n), coef)), var)
+        return sym.Float(points[0][-1]), var, 1., [1.]
+    z_terms = [sym.Poly.from_dict({x: 1}, var) for x in poly_power_seq(m, n)]
+    z = sym.Poly.from_dict(dict(zip(poly_power_seq(m, n), coef)), var)
     # build M matrix
     M_rows = []
     for point_i in points:
         z_i = z(*point_i[:-1])
         M_rows.append([float(z_i.coeff(x)) for x in coef])
-    M = NP.array(M_rows)
-    delta = NP.linalg.det(M)
+    M = np.array(M_rows)
+    delta = np.linalg.det(M)
     # compute delta_i
     delta_i_list = []
-    B = NP.ones(p - 1)
-    C = NP.array(z_terms[:-1])
+    B = np.ones(p - 1)
+    C = np.array(z_terms[:-1])
     D = M[-1, -1]
     for i in range(p):
         # using block matrix property of determinants which assumes
@@ -85,22 +85,22 @@ def multivariate_lagrange(points, n):
         # --- the code fails safe to calculating the symbolic
         # determinant when A is singular (which will be slow for large
         # problems)
-        A = NP.vstack((M[ :i,  :-1],
+        A = np.vstack((M[ :i,  :-1],
                        M[i+1:, :-1]))
         try:
-            b = NP.linalg.solve(A, B)
+            b = np.linalg.solve(A, B)
             # using row interchange property
-            delta_i_list.append((-1)**(p-1-i) * NP.linalg.det(A) * (D - NP.dot(C, b)))
-        except NP.linalg.linalg.LinAlgError:
+            delta_i_list.append((-1)**(p-1-i) * np.linalg.det(A) * (D - np.dot(C, b)))
+        except np.linalg.linalg.LinAlgError:
             logger.warning('singular matrix encountered (this will happen when, e.g., points contain many zeros) --- resorting to symbolic determinant calculation which will be slow for large problems')
-            row_i = SYM.Matrix([z_terms])
-            M_i = SYM.Matrix(M_rows)
+            row_i = sym.Matrix([z_terms])
+            M_i = sym.Matrix(M_rows)
             M_i.row_del(i)
             M_i = M_i.row_insert(p, row_i)
             # using row interchange property
             delta_i_list.append(M_i.det() * (-1)**(p-1-i))
     f = lagrange_interpolator(points, delta, delta_i_list)
-    return SYM.Poly(f.simplify()), var, delta, delta_i_list
+    return sym.Poly(f.simplify()), var, delta, delta_i_list
 
 
 if __name__ == '__main__':
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     p_large = 66
     n_large = 10
 
-    points_large = [NP.random.randn(3) for i in range(p_large)]
+    points_large = [np.random.randn(3) for i in range(p_large)]
 
     poly_large, _, _, _ = multivariate_lagrange(points_large, n_large)
     print(poly_large)

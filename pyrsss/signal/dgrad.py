@@ -1,4 +1,4 @@
-import numpy as NP
+import numpy as np
 import scipy.signal
 
 from .sepfilter import SepFilter
@@ -21,7 +21,7 @@ def differentiator(n, Hz=1):
                               [0, Hz / 2],
                               [1],
                               Hz=Hz,
-                              type='differentiator') * Hz * 2 * NP.pi
+                              type='differentiator') * Hz * 2 * np.pi
 
 
 class GradientFilter(SepFilter):
@@ -44,7 +44,7 @@ class GradientFilter(SepFilter):
             if i == axis:
                 h_list.append(self.d)
             else:
-                h_list.append(NP.array([1]))
+                h_list.append(np.array([1]))
 
         super(GradientFilter, self).__init__(n, h_list, mode=mode)
 
@@ -65,7 +65,7 @@ class Gradient2Filter(SepFilter):
             raise ValueError('0 <= axis (= {0}) < ndim = {1}'.format(axis, self.ndim))
 
         self.d = differentiator(int(order/2) + 1)
-        self.d2 = NP.convolve(self.d, self.d)
+        self.d2 = np.convolve(self.d, self.d)
 
         self.mode = mode
 
@@ -75,7 +75,7 @@ class Gradient2Filter(SepFilter):
             if i == axis:
                 h_list.append(self.d2)
             else:
-                h_list.append(NP.array([1]))
+                h_list.append(np.array([1]))
             m.append(len(h_list[-1]))
         self.m = m
 
@@ -93,8 +93,8 @@ def plot_diff_spectra(l=[2, 4, 10]):
     """
     from collections import OrderedDict
 
-    import numpy as NP
-    import pylab as PL
+    import numpy as np
+    import matplotlib.pyplot as plt
 
     from pyrsss.signal.spectrum import spectrum
 
@@ -107,26 +107,26 @@ def plot_diff_spectra(l=[2, 4, 10]):
     for l_i, h_i in h_map.items():
         H_map[l_i] = spectrum(h_i, oversample=oversample)
 
-    f_ideal = NP.linspace(0, 0.5, 129)
-    H_ideal = NP.abs(f_ideal) * 2 * NP.pi
+    f_ideal = np.linspace(0, 0.5, 129)
+    H_ideal = np.abs(f_ideal) * 2 * np.pi
 
-    PL.figure(figsize=(8, 4))
-    PL.plot(f_ideal,
-            H_ideal,
-            c='C0',
-            zorder=10,
-            label='l=$\infty$')
+    plt.figure(figsize=(8, 4))
+    plt.plot(f_ideal,
+             H_ideal,
+             c='C0',
+             zorder=10,
+             label='l=$\infty$')
     for i, (l_i, (f_i, H_i)) in enumerate(H_map.items(), 1):
-        PL.plot(f_i,
-                NP.abs(H_i),
-                c='C{}'.format(i),
-                label='l={}'.format(l_i))
-    PL.legend()
-    PL.xlabel('Frequency (Hz)')
-    PL.ylabel('Amplitude')
-    PL.title('Comparison of Differentiator Magnitude Responses')
+        plt.plot(f_i,
+                 np.abs(H_i),
+                 c='C{}'.format(i),
+                 label='l={}'.format(l_i))
+    plt.legend()
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Amplitude')
+    plt.title('Comparison of Differentiator Magnitude Responses')
 
-    PL.show()
+    plt.show()
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@ import struct
 from datetime import datetime, timedelta
 from collections import namedtuple
 
-import numpy as NP
+import numpy as np
 
 
 
@@ -35,8 +35,8 @@ class MetaData(namedtuple('Header',
             except KeyError:
                 raise ValueError('when time_step=0, the keyword argument t must be provided containing an array of times')
         self = super(MetaData, cls).__new__(cls, *args, **kwds)
-        self.lon = self.lon_0 + NP.arange(self.lon_points) * self.lon_step
-        self.lat = self.lat_0 + NP.arange(self.lat_points) * self.lat_step
+        self.lon = self.lon_0 + np.arange(self.lon_points) * self.lon_step
+        self.lat = self.lat_0 + np.arange(self.lat_points) * self.lat_step
         if self.time_step == 0:
             # read t as given by the file (providing support for
             # unevenly spaced time epochs)
@@ -45,7 +45,7 @@ class MetaData(namedtuple('Header',
                 self.t.append(read_uint(fid))
         else:
             # build t from time_0, time_step, and time_points here
-            self.t = self.time_0 + NP.arange(self.time_points) * self.time_step * 1e-3
+            self.t = self.time_0 + np.arange(self.time_points) * self.time_step * 1e-3
         self.dt = [EPOCH + timedelta(seconds=t_i) for t_i in self.t]
         return self
 
@@ -156,8 +156,8 @@ def read_b3d(b3d_fname):
                 for lon_k in metadata.lon:
                     Ex_i.append(read_float(fid))
                     Ey_i.append(read_float(fid))
-            Ex_i = NP.array(Ex_i)
-            Ey_i = NP.array(Ey_i)
+            Ex_i = np.array(Ex_i)
+            Ey_i = np.array(Ey_i)
             Ex_i.shape = lat_points, lon_points
             Ey_i.shape = lat_points, lon_points
             Ex.append(Ex_i)

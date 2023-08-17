@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from calendar import monthrange
 
-import pandas as PD
+import pandas as pd
 
 from ..util.fortran import descriptor2colspecs
 
@@ -243,7 +243,7 @@ def parse(omni_fname,
     the column identifiers *names*, and acceptable NaN column mapping
     *na_values*.
     """
-    df = PD.read_fwf(omni_fname,
+    df = pd.read_fwf(omni_fname,
                      colspecs=colspecs,
                      header=None,
                      names=names,
@@ -261,7 +261,7 @@ def get_record(omni_path,
                inclusive=True):
     """
     Gather an OMNI data record spanning *d1* to *d2* and return a
-    :class:`PD.DataFrame`. Use file OMNI data record file names
+    :class:`pd.DataFrame`. Use file OMNI data record file names
     specified by *template*. If *inclusive*, the range is *d1* to *d2*
     with equality on both bounds.
     """
@@ -280,7 +280,7 @@ def get_record(omni_path,
                 continue
             logger.info('parsing {}'.format(omni_fname))
             df_list.append(parse(omni_fname))
-    df = PD.concat(df_list)
+    df = pd.concat(df_list)
     if inclusive:
         return df[d1:d2]
     else:

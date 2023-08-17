@@ -1,9 +1,9 @@
 import logging
 
-import pandas as PD
+import pandas as pd
 import matplotlib
 matplotlib.use('agg')
-import pylab as PL
+import matplotlib.pyplot as plt
 
 from constants import NS_TO_TECU
 from preprocess import normalize_rinex
@@ -14,7 +14,7 @@ from level_new import level
 from ..ionex.read_ionex import read_header
 
 
-class CalibratedArc(PD.DataFrame):
+class CalibratedArc(pd.DataFrame):
     _metadata = ['xyz',
                  'llh',
                  'stn',
@@ -121,7 +121,7 @@ if __name__ == '__main__':
 
         rinex_dump.to_pickle(pkl_fname)
     else:
-        rinex_dump = PD.read_pickle(pkl_fname)
+        rinex_dump = pd.read_pickle(pkl_fname)
 
     leveled_arcs = level(rinex_dump)
 
@@ -139,18 +139,18 @@ if __name__ == '__main__':
     calibrated_arcs_jpl = calibrate(leveled_arcs, sat_biases_jpl, stn_biases_jpl)
     calibrated_arcs_code = calibrate(leveled_arcs, sat_biases_code, stn_biases_code)
 
-    fig = PL.figure(figsize=(11, 8.5))
+    fig = plt.figure(figsize=(11, 8.5))
     for arc in calibrated_arcs_jpl:
-        PL.plot_date(arc.gps_time.values,
-                     arc.sobs.values,
-                     marker='.',
-                     ls='-',
-                     c='b')
+        plt.plot_date(arc.gps_time.values,
+                      arc.sobs.values,
+                      marker='.',
+                      ls='-',
+                      c='b')
     for arc in calibrated_arcs_code:
-        PL.plot_date(arc.gps_time.values,
-                     arc.sobs.values,
-                     marker='.',
-                     ls='-',
-                     c='r')
-    PL.savefig('/tmp/gps_test.pdf',
-               bbox_inches='tight')
+        plt.plot_date(arc.gps_time.values,
+                      arc.sobs.values,
+                      marker='.',
+                      ls='-',
+                      c='r')
+    plt.savefig('/tmp/gps_test.pdf',
+                bbox_inches='tight')

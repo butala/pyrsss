@@ -1,7 +1,7 @@
 from collections import namedtuple
 
-import numpy as NP
-import scipy as SP
+import numpy as np
+import scipy as sp
 import scipy.signal
 
 from ..signal.lfilter import miso_lfilter
@@ -28,13 +28,13 @@ def arma_predictor_model(x, y, Na, Nb, Nk=1):
 
     A1r = -y[(N - A_M - Na):(N - A_M)][::-1]
     A1c = -y[(N - A_M - 1):-1]
-    A1 = SP.linalg.toeplitz(A1c, r=A1r)
+    A1 = sp.linalg.toeplitz(A1c, r=A1r)
 
     A2r = x[(N - A_M - Nk - Nb + 1):(N - A_M - Nk + 1)][::-1]
     A2c = x[(N - A_M - Nk):(N - Nk)]
-    A2 = SP.linalg.toeplitz(A2c, r=A2r)
+    A2 = sp.linalg.toeplitz(A2c, r=A2r)
 
-    A = NP.hstack((A1, A2))
+    A = np.hstack((A1, A2))
     b = y[(N - A_M):]
     return A, b
 
@@ -51,11 +51,11 @@ def arma_fit_linear(x, y, Na, Nb, Nk=1):
     """
     assert len(x) == len(y)
     A, b = arma_predictor_model(x, y, Na, Nb, Nk=Nk)
-    x_hat = NP.linalg.lstsq(A, b)[0]
+    x_hat = np.linalg.lstsq(A, b)[0]
     a_hat = x_hat[:Na]
     b_hat = x_hat[Na:]
-    a_hat = NP.insert(a_hat, 0, 1)
-    b_hat = NP.insert(x_hat[Na:], 0, NP.zeros(Nk))
+    a_hat = np.insert(a_hat, 0, 1)
+    b_hat = np.insert(x_hat[Na:], 0, np.zeros(Nk))
     return a_hat, b_hat
 
 
@@ -69,8 +69,8 @@ def arma_residual(x_hat, Na, Nb, Nk, x, y):
     assert len(x_hat) == Na + Nb
     a_hat = x_hat[:Na]
     b_hat = x_hat[Na:]
-    a_hat = NP.insert(a_hat, 0, 1)
-    b_hat = NP.insert(x_hat[Na:], 0, NP.zeros(Nk))
+    a_hat = np.insert(a_hat, 0, 1)
+    b_hat = np.insert(x_hat[Na:], 0, np.zeros(Nk))
     y_hat = scipy.signal.lfilter(b_hat, a_hat, x)
     return y_hat - y
 
@@ -88,12 +88,12 @@ def arma_fit_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None, **kwds):
     http://www.mathworks.com/help/ident/ref/oe.html).
     """
     if x_hat0 is None:
-        x_hat0 = NP.zeros(Na + Nb)
+        x_hat0 = np.zeros(Na + Nb)
     (x_hat,
      cov_x,
      info,
      mesg,
-     ier) = SP.optimize.leastsq(arma_residual,
+     ier) = sp.optimize.leastsq(arma_residual,
                                 x_hat0,
                                 args=(Na, Nb, Nk, x, y),
                                 full_output=True,
@@ -103,8 +103,8 @@ def arma_fit_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None, **kwds):
                                                                         mesg))
     a_hat = x_hat[:Na]
     b_hat = x_hat[Na:]
-    a_hat = NP.insert(a_hat, 0, 1)
-    b_hat = NP.insert(x_hat[Na:], 0, NP.zeros(Nk))
+    a_hat = np.insert(a_hat, 0, 1)
+    b_hat = np.insert(x_hat[Na:], 0, np.zeros(Nk))
     return a_hat, b_hat
 
 
@@ -122,7 +122,7 @@ def miso_pack(b, a):
             b_i /= a[0]
         x.extend(b_i)
         x.extend(a_i[1:])
-    return NP.array(x)
+    return np.array(x)
 
 
 def miso_unpack(x, Na, Nb, Nk):
@@ -139,10 +139,10 @@ def miso_unpack(x, Na, Nb, Nk):
     a = []
     for Na_i, Nb_i, Nk_i in zip(Na, Nb, Nk):
         b_i = x[i:i+Nb_i]
-        b.append(NP.insert(b_i, 0, NP.zeros(Nk_i)))
+        b.append(np.insert(b_i, 0, np.zeros(Nk_i)))
         i += Nb_i
         a_i = x[i:i+Na_i]
-        a.append(NP.insert(a_i, 0, 1))
+        a.append(np.insert(a_i, 0, 1))
         i += Na_i
     return b, a
 
@@ -186,7 +186,7 @@ def miso_arma_fit_nonlinear(x, y, Na, Nb, Nk=None, x_hat0=None, I=slice(None), *
     else:
         assert len(Nk) == len(x)
     if x_hat0 is None:
-        x_hat0 = NP.zeros(sum(Na) + sum(Nb))
+        x_hat0 = np.zeros(sum(Na) + sum(Nb))
     N_set = set(map(len, x))
     assert len(N_set) == 1
     assert N_set.pop() == len(y)
@@ -195,7 +195,7 @@ def miso_arma_fit_nonlinear(x, y, Na, Nb, Nk=None, x_hat0=None, I=slice(None), *
      cov_x,
      info,
      mesg,
-     ier) = SP.optimize.leastsq(J,
+     ier) = sp.optimize.leastsq(J,
                                 x_hat0,
                                 args=(Na, Nb, Nk, x, y),
                                 full_output=True,
@@ -231,16 +231,16 @@ def assessment(x, y, m, n, x_hat):
     y_hat = scipy.signal.lfilter(b_hat, a_hat, x[k:-1])
     N = len(y_hat)
     P = len(x_hat)
-    RSS = NP.sum((y[k+1:] - y_hat)**2)
-    RSE = NP.sqrt(RSS / (N - P - 1))
-    TSS = NP.sum((y - NP.mean(y))**2)
+    RSS = np.sum((y[k+1:] - y_hat)**2)
+    RSE = np.sqrt(RSS / (N - P - 1))
+    TSS = np.sum((y - np.mean(y))**2)
     R2 = 1 - RSS / TSS
     F_stat = (TSS - RSS) / P / (RSS / (N - P - 1))
     sigma_hat = RSE
     d = P
     Cp = (RSS + 2 * d * sigma_hat**2) / N
     AIC = (RSS + 2 * d * sigma_hat**2) / (N * sigma_hat**2)
-    BIC = (RSS + NP.log(N) * d * sigma_hat**2) / N
+    BIC = (RSS + np.log(N) * d * sigma_hat**2) / N
     adjusted_R2 = 1 - (RSS / (N - d - 1)) / (TSS / (N - 1))
     return Assessment(RSE,
                       R2,
@@ -254,7 +254,7 @@ def assessment(x, y, m, n, x_hat):
 if __name__ == '__main__':
     poles = [0.2, 0.6, 0.9]
 
-    a_true = NP.poly(poles)
+    a_true = np.poly(poles)
     b_true = [0, 0, 1, 0.5, 0, 0]
 
     m = len(a_true) - 1
@@ -262,9 +262,9 @@ if __name__ == '__main__':
     k = max(m, n)
 
     N = 10000
-    #x = NP.zeros(N)
+    #x = np.zeros(N)
     #x[10] = 1
-    x = NP.random.randn(N)
+    x = np.random.randn(N)
 
     y = scipy.signal.lfilter(b_true, a_true, x)
 
@@ -281,4 +281,4 @@ if __name__ == '__main__':
     print(f'linear b:    {b_hat}')
     print(f'nonlinear b: {b_hat_nl}')
 
-    # print(assessment(x, y, m, n, NP.concatenate((a_hat, b_hat))))
+    # print(assessment(x, y, m, n, np.concatenate((a_hat, b_hat))))

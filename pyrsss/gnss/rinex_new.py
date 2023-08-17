@@ -2,7 +2,7 @@ import logging
 from collections import OrderedDict, defaultdict
 from datetime import timedelta
 
-import pandas as PD
+import pandas as pd
 
 from constants import GPS_EPOCH
 from preprocess import normalize_rinex
@@ -17,7 +17,7 @@ def week_sec2dt(gps_week, seconds):
                                  seconds=seconds)
 
 
-class RinexDump(PD.DataFrame):
+class RinexDump(pd.DataFrame):
     _metadata = ['xyz',  # in [m]
                  'llh',  # in [ddm]
                  'stn',
@@ -107,7 +107,7 @@ def correct_p1c1(rinex_dump, replace_p1_with_c1=True):
         elif rinex_dump.recv_p1c1 == 2:
             rinex_dump.loc[rinex_dump.sat == sat, 'C1'] += b
     if replace_p1_with_c1:
-        I = PD.isnull(rinex_dump['P1'])
+        I = pd.isnull(rinex_dump['P1'])
         rinex_dump.loc[I, 'P1'] = rinex_dump.loc[I, 'C1']
     return rinex_dump
 

@@ -1,4 +1,4 @@
-import numpy as NP
+import numpy as np
 import pyproj
 
 from .angle import convert_lon
@@ -27,7 +27,7 @@ def distance(lat1, lon1, lat2, lon2, geod=WGS84, units='km'):
     lon2 = map(convert_lon, listify(lon2))
     assert len(lat1) == len(lon1) == len(lat2) == len(lon2)
     _, _, d = geod.inv(lon1, lat1, lon2, lat2)
-    d = NP.array(d)
+    d = np.array(d)
     if units == 'km':
         d /= 1e3
     elif units == 'm':

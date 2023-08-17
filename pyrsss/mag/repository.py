@@ -2,7 +2,7 @@ import os
 import json
 import logging
 
-import pandas as PD
+import pandas as pd
 from netCDF4 import Dataset
 
 from ..util.date import fromJ2000
@@ -79,7 +79,7 @@ def nc_to_dataframe(nc_fname,
     data = {}
     data.update({dim: root[dim][:] for dim in root.dimensions if dim != 'time'})
     index = data['time'] = map(fromJ2000, root['time'][:])
-    return (PD.DataFrame(data=data, index=index)[columns],
+    return (pd.DataFrame(data=data, index=index)[columns],
             {x: getattr(root, x) for x in root.ncattrs()})
 
 
@@ -123,7 +123,7 @@ def get_data_frame(root,
         frames.append(dataframe_i)
         info_map[year] = info_i
     try:
-        return (PD.concat(frames),
+        return (pd.concat(frames),
                 info_map)
     except ValueError:
         raise RuntimeError('could find no level={} data for {}'.format(level,

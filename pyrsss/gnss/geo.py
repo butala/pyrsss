@@ -1,7 +1,6 @@
 import math
 from collections import namedtuple, Iterable
 
-import numpy as NP
 import pyproj
 
 

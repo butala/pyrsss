@@ -5,10 +5,10 @@ from datetime import datetime, timedelta
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import namedtuple
 
-import numpy as NP
-import pylab as PL
+import numpy as np
+import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-import pandas as PD
+import pandas as pd
 
 from pyglow.pyglow import Point
 
@@ -16,15 +16,15 @@ from .date import dt_parser
 from ..stats.stats import Stats
 
 
-RED = NP.array([255, 204, 204]) / 255
-ORANGE = NP.array([255, 204, 154]) / 255
-YELLOW = NP.array([255, 255, 204]) / 255
-GREEN = NP.array([204, 255, 204]) / 255
-BLUE = NP.array([189, 227, 255]) / 255
+RED = np.array([255, 204, 204]) / 255
+ORANGE = np.array([255, 204, 154]) / 255
+YELLOW = np.array([255, 255, 204]) / 255
+GREEN = np.array([204, 255, 204]) / 255
+BLUE = np.array([189, 227, 255]) / 255
 
-GREEN2 = NP.array([52, 253, 47]) / 255
-YELLOW2 = NP.array([254, 219, 49]) / 255
-RED2 = NP.array([252, 38, 28]) / 255
+GREEN2 = np.array([52, 253, 47]) / 255
+YELLOW2 = np.array([254, 219, 49]) / 255
+RED2 = np.array([252, 38, 28]) / 255
 
 
 KP_COLORS_DISPLAY = {0: 'w',
@@ -91,31 +91,31 @@ def plot_indices(d1,
     # gather Kp
     kp = []
     kp_dt = []
-    for dt in PD.date_range(d1, d2, freq='3H'):
+    for dt in pd.date_range(d1, d2, freq='3H'):
         point = Point(dt, 0, 0, 0)
         kp.append(point.kp)
         kp_dt.append(dt)
     # gather Dst
     dst = []
     dst_dt = []
-    for dt in PD.date_range(d1, d2, freq='1H'):
+    for dt in pd.date_range(d1, d2, freq='1H'):
         point = Point(dt, 0, 0, 0)
         dst.append(point.dst)
         dst_dt.append(dt)
     # create plot
     N_days = (dst_dt[-1] - dst_dt[0]).total_seconds() / 60 / 60 / 24
     if fig is None:
-        fig = PL.figure(figsize=(11 * N_days / 6, 5))
+        fig = plt.figure(figsize=(11 * N_days / 6, 5))
     kp_colors, kp_hatch = STYLE_MAP[style]
     # Kp subplot
-    ax1 = PL.subplot(111)
-    left = NP.array(kp_dt) - timedelta(hours=1.5)
+    ax1 = plt.subplot(111)
+    left = np.array(kp_dt) - timedelta(hours=1.5)
     width = 3 / 24
     height = kp
     color = [kp_colors[int(math.floor(x))] for x in kp]
     hatch = [kp_hatch[int(math.floor(x))] if kp_hatch else None for x in kp]
     left = [x.to_pydatetime() for x in left]
-    bars = PL.bar(left,
+    bars = plt.bar(left,
                   height,
                   width=width,
                   color=color,
@@ -124,21 +124,21 @@ def plot_indices(d1,
     for bar, hatch_i in zip(bars, hatch):
         bar.set_hatch(hatch_i)
     ax1.xaxis_date()
-    PL.ylim(0, 9)
-    PL.xlabel('UT')
-    PL.ylabel('3-hour Kp index')
+    plt.ylim(0, 9)
+    plt.xlabel('UT')
+    plt.ylabel('3-hour Kp index')
     # Dst subplot
     ax2 = ax1.twinx()
-    PL.plot_date(dst_dt,
+    plt.plot_date(dst_dt,
                  dst,
                  lw=dst_lw,
                  marker=None,
                  ls='-')
-    PL.ylabel('Hourly DST [nT]')
+    plt.ylabel('Hourly DST [nT]')
     d1_str = datetime.strftime(dst_dt[0], title_dt_format)
     d2_str = datetime.strftime(dst_dt[-1], title_dt_format)
     title = 'GFZ $K_p$ and Dst Indices, {} to {}'.format(d1_str, d2_str)
-    PL.title(title)
+    plt.title(title)
     if stats:
         index_stats = IndexStats(Stats(*kp),
                                  Stats(*dst))
@@ -174,7 +174,7 @@ def main(argv=None):
                  args.d2,
                  style=args.style)
 
-    PL.savefig(args.pdf_fname,
+    plt.savefig(args.pdf_fname,
                bbox_inches='tight')
 
 

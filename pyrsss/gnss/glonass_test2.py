@@ -1,13 +1,13 @@
 import scipy.constants as const
 import matplotlib
 matplotlib.use('agg')
-import pylab as PL
+import matplotlib.pyplot as plt
 
 #from constants import M_TO_TECU, NS_TO_TECU
-from rinex_new import RinexDump
+from .rinex_new import RinexDump
 from ..ionex.read_ionex import read_header
-from constants import K, F_GLO_1, F_GLO_2, F_GLO_1_DELTA, F_GLO_2_DELTA
-from glonass import GLONASS_Status
+from .constants import K, F_GLO_1, F_GLO_2, F_GLO_1_DELTA, F_GLO_2_DELTA
+from .glonass import GLONASS_Status
 
 
 if __name__ == '__main__':
@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     glonass_status = GLONASS_Status()
 
-    fig = PL.figure(figsize=(11, 8.5))
+    fig = plt.figure(figsize=(11, 8.5))
 
     for sat in sorted(set(rinex_dump.sat.values)):
         info = glonass_status(int(sat[1:]), rinex_dump.gps_time[0])
@@ -58,9 +58,9 @@ if __name__ == '__main__':
         # P_I_m = (dump_i.P2.values - dump_i.P1.values) + sat_bias_m + stn_bias_m
 
         # fig.clf()
-        # PL.plot_date(dt, P_I, marker='x', color='r')
-        PL.plot_date(dt, P_I, marker='.', color='r', ms=1)
-        # PL.plot_date(dt, P_I_m, marker='.', color='r', ms=1)
+        # plt.plot_date(dt, P_I, marker='x', color='r')
+        plt.plot_date(dt, P_I, marker='.', color='r', ms=1)
+        # plt.plot_date(dt, P_I_m, marker='.', color='r', ms=1)
 
-    # PL.ylim(-5, 100)
-    PL.savefig('/tmp/glonass_test2.pdf'.format(sat), bbox_inches='tight')
+    # plt.ylim(-5, 100)
+    plt.savefig('/tmp/glonass_test2.pdf'.format(sat), bbox_inches='tight')

@@ -1,5 +1,5 @@
-import numpy as NP
-import pylab as PL
+import numpy as np
+import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import cartopy
 import cartopy.crs as ccrs
@@ -11,7 +11,7 @@ def centers2edges(x):
     *x*, return the array of cell edge coordinates.
     """
     delta = x[1] - x[0]
-    return NP.linspace(x[0] - delta / 2,
+    return np.linspace(x[0] - delta / 2,
                        x[-1] + delta / 2,
                        len(x) + 1)
 
@@ -30,8 +30,8 @@ def add_colorbar(ax, im, side='right', size='5%', pad=0.1, **kwds):
     """
     divider = make_axes_locatable(ax)
     cax = divider.append_axes(side, size=size, pad=pad)
-    cb = PL.colorbar(im, cax=cax, **kwds)
-    PL.axes(ax)
+    cb = plt.colorbar(im, cax=cax, **kwds)
+    plt.axes(ax)
     return cb
 
 
@@ -41,7 +41,7 @@ def plot_map(ax=None, alpha=0.3, zorder=0):
     with transparency level *alpha* and *zorder*. Return *ax*.
     """
     if ax is None:
-        ax = PL.axes(projection=ccrs.PlateCarree())
+        ax = plt.axes(projection=ccrs.PlateCarree())
     # national boundaries
     boundaries_50m = cartopy.feature.NaturalEarthFeature(category='cultural',
                                                          name='admin_0_boundary_lines_land',

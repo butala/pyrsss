@@ -1,12 +1,12 @@
 apexpy
 Cython
 igrf
-intervals
 matplotlib
 more-itertools
 netCDF4
 numpy
 pandas
+portion
 pyfftw
 pyglow
 pyproj

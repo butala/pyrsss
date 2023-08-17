@@ -5,12 +5,12 @@ import logging
 import os
 import math
 
-import numpy as NP
+import numpy as np
 from netCDF4 import Dataset, date2num
 
-from repository import get_root, TEMPLATE_MAP, PATH_MAP
-from iaga2002 import parse
-from util import mag_dec
+from .repository import get_root, TEMPLATE_MAP, PATH_MAP
+from .iaga2002 import parse
+from .util import mag_dec
 
 
 logger = logging.getLogger('intermagnet_level0')

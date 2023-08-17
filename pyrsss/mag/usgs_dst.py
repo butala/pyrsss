@@ -2,9 +2,9 @@ import os
 from itertools import izip
 from datetime import datetime, timedelta
 
-import pandas as PD
+import pandas as pd
 
-from repository import get_root
+from .repository import get_root
 
 
 def date_parser(*cols):
@@ -20,7 +20,7 @@ def date_parser(*cols):
 def read_dst(fname=os.path.join(get_root(),
                                 'USGS_dst',
                                 'Dst_definitive_fix_minute.out')):
-    df = PD.read_csv(fname,
+    df = pd.read_csv(fname,
                      header=None,
                      names=['month', 'day', 'year', 'minute', 'doy', 'dst'],
                      delim_whitespace=True,
@@ -29,5 +29,5 @@ def read_dst(fname=os.path.join(get_root(),
                      usecols=['month', 'day', 'year', 'minute', 'dst'],
                      date_parser=date_parser)
     df.columns = ['dt', 'dst']
-    return PD.Series(data=df['dst'].values,
+    return pd.Series(data=df['dst'].values,
                      index=df['dt'].values)

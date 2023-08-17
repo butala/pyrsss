@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from collections import OrderedDict, namedtuple, defaultdict
 from abc import ABC, abstractmethod, abstractproperty
 
-import pandas as PD
+import pandas as pd
 
 logger = logging.getLogger('pyrsss.mag.iaga2002')
 
@@ -334,7 +334,7 @@ def iaga2df(iaga2002_fname, D_to_radians=True):
                 if key_i == 'B_D' and D_to_radians:
                     data_i = math.radians(data_i)
                 data_map[key_i].append(data_i)
-    df = PD.DataFrame(index=index, data=data_map)
+    df = pd.DataFrame(index=index, data=data_map)
     return df, header
 
 

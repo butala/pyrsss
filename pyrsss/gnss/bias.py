@@ -6,7 +6,7 @@ from collections import namedtuple, defaultdict, OrderedDict
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime, timedelta
 
-import numpy as NP
+import numpy as np
 from scipy.interpolate import RectBivariateSpline
 from tables import open_file, IsDescription, Time64Col, Float64Col
 
@@ -286,14 +286,14 @@ def estimate_receiver_bias(arc_map,
             el.extend(arc.el)
             model_sobs.extend(model_stec_map[sat][i])
     # flag outliers
-    srgim = NP.ma.masked_invalid(NP.array(model_sobs) -
-                                 NP.array(stec_minus_sat_bias))
-    mean = NP.mean(srgim)
-    sigma = NP.std(srgim)
-    I = NP.nonzero(NP.abs(srgim[~srgim.mask]) > abs(mean) + n_std * sigma)
-    srgim[I] = NP.ma.masked
-    bias = -NP.sum(srgim * el) / NP.sum(el)
-    sigma = NP.std(srgim)
+    srgim = np.ma.masked_invalid(np.array(model_sobs) -
+                                 np.array(stec_minus_sat_bias))
+    mean = np.mean(srgim)
+    sigma = np.std(srgim)
+    I = np.nonzero(np.abs(srgim[~srgim.mask]) > abs(mean) + n_std * sigma)
+    srgim[I] = np.ma.masked
+    bias = -np.sum(srgim * el) / np.sum(el)
+    sigma = np.std(srgim)
     return bias, sigma
 
 

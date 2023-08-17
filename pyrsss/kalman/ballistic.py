@@ -2,8 +2,8 @@ import math
 from itertools import repeat
 from dataclasses import astuple
 
-import numpy as NP
-import pylab as PL
+import numpy as np
+import matplotlib.pyplot as plt
 
 from .kalman_filter import kalman_filter
 
@@ -29,52 +29,52 @@ if __name__ == '__main__':
 
     # number of time steps
     N_STEPS = 144
-    n = NP.arange(N_STEPS)
+    n = np.arange(N_STEPS)
 
     # calculate projection positions and velocities
     px_true = px0_true + vx0_true * delta * n
     py_true = py0_true + vy0_true * delta * n - 1/2*g_true*(delta * n)**2
 
-    vx_true = vx0_true * NP.ones(N_STEPS)
+    vx_true = vx0_true * np.ones(N_STEPS)
     vy_true = vy0_true - g_true * delta * n
 
 
     # compute true state (position x, velocity x, position y, velocity y)
-    x = [NP.array([px, vx, py, vy]) for px, vx, py, vy in zip(px_true,
+    x = [np.array([px, vx, py, vy]) for px, vx, py, vy in zip(px_true,
                                                               vx_true,
                                                               py_true,
                                                               vy_true)]
 
     # measurement operator (position x and y)
-    H_i = NP.array([[1., 0, 0,  0],
+    H_i = np.array([[1., 0, 0,  0],
                     [0,  0, 1., 0]])
 
     H = repeat(H_i)
 
     # measurement noise covariance
     var_v = 20
-    R_i = var_v * NP.eye(2)
+    R_i = var_v * np.eye(2)
     R = repeat(R_i)
 
     # measurements without noise
-    y_true = [NP.dot(H_i, x_i) for x_i in x]
+    y_true = [np.dot(H_i, x_i) for x_i in x]
 
     # measurements with noise
-    y = [y_true_i + NP.matmul(R_i, NP.random.randn(2)) for y_true_i in y_true]
+    y = [y_true_i + np.matmul(R_i, np.random.randn(2)) for y_true_i in y_true]
 
     # time update operator (based on ballistic motion)
-    F_i = NP.array([[1, delta, 0,      0],
+    F_i = np.array([[1, delta, 0,      0],
                     [0,     1, 0,      0],
                     [0,     0, 1,  delta],
                     [0,     0, 0,      1]])
     F = repeat(F_i)
 
     # time update covariance (no uncertainty)
-    Q_i = NP.zeros((4, 4))
+    Q_i = np.zeros((4, 4))
     Q = repeat(Q_i)
 
     # time update systematics (gravitation)
-    z_i = NP.array([0,
+    z_i = np.array([0,
                     0,
                     -1/2*g_true*delta**2,
                     -g_true*delta])
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     px0 = 0
     py0 = 500
 
-    mu = NP.array([px0, vx0, py0, vy0])
+    mu = np.array([px0, vx0, py0, vy0])
 
     # initial state variance parameters
     var_px0 = 10.
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     var_vy0 = 1.
 
     # initial state covariance
-    PI = NP.array([[var_px0,       0,       0,       0],
+    PI = np.array([[var_px0,       0,       0,       0],
                    [      0, var_vx0,       0,       0],
                    [      0,       0, var_py0,       0],
                    [      0,       0,       0, var_vy0]])
@@ -115,28 +115,28 @@ if __name__ == '__main__':
     px_hat = [x_hat_i[0] for x_hat_i in x_hat]
     py_hat = [x_hat_i[2] for x_hat_i in x_hat]
 
-    fig = PL.figure(figsize=(11, 4))
+    fig = plt.figure(figsize=(11, 4))
     ax = fig.add_subplot(111)
-    PL.plot([x_i[0] for x_i in x],
-            [x_i[2] for x_i in x],
-            label='Truth')
-    PL.plot(px_hat,
-            py_hat,
-            color='r',
-            ls='-',
-            mec='None',
-            label='Posterior estimate')
-    PL.scatter([y_i[0] for y_i in y],
-               [y_i[1] for y_i in y],
-               color='g',
-               edgecolors='None',
-               label='Measurement')
-    PL.xlim(0, px_true[-1])
-    PL.ylim(0, max(py_true) + 10)
+    plt.plot([x_i[0] for x_i in x],
+             [x_i[2] for x_i in x],
+             label='Truth')
+    plt.plot(px_hat,
+             py_hat,
+             color='r',
+             ls='-',
+             mec='None',
+             label='Posterior estimate')
+    plt.scatter([y_i[0] for y_i in y],
+                [y_i[1] for y_i in y],
+                color='g',
+                edgecolors='None',
+                label='Measurement')
+    plt.xlim(0, px_true[-1])
+    plt.ylim(0, max(py_true) + 10)
     ax.set_aspect('equal')
-    PL.title('Ballistic Tracking Example')
-    PL.xlabel('Horizontal distance from cannon [m]')
-    PL.ylabel('Vertical distance from cannon [m]')
-    PL.legend()
+    plt.title('Ballistic Tracking Example')
+    plt.xlabel('Horizontal distance from cannon [m]')
+    plt.ylabel('Vertical distance from cannon [m]')
+    plt.legend()
 
-    PL.show()
+    plt.show()

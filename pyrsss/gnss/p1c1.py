@@ -3,10 +3,10 @@ import os
 from datetime import datetime, timedelta
 from collections import OrderedDict
 
-import numpy as NP
+import numpy as np
 
 from ..util.path import replace_path
-from sideshow import update_sideshow_file
+from .sideshow import update_sideshow_file
 
 
 P1C1_FNAME = os.path.join(os.path.dirname(__file__),
@@ -58,8 +58,8 @@ class P1C1Table(OrderedDict):
         Return the table entry closest to *date*. Check that the closest
         table entry is no greater than *delta* away.
         """
-        diff = NP.array([abs((x - date).total_seconds()) for x in self.iterkeys()])
-        I = NP.argmin(diff)
+        diff = np.array([abs((x - date).total_seconds()) for x in self.iterkeys()])
+        I = np.argmin(diff)
         closest_date = self.keys()[I]
         # make sure date argument is no further than 1 month away from
         # a table entry

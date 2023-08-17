@@ -1,4 +1,4 @@
-import pandas as PD
+import pandas as pd
 
 
 INFO_LINK = 'http://ds.iris.edu/files/earthscope/usarray/_US-MT-StationList.txt'
@@ -15,7 +15,7 @@ def get_info_map(info_link=INFO_LINK):
     *info_link*, a link to a tab delineated text file containing
     information for each USArray MT site.
     """
-    df = PD.read_csv(info_link,
+    df = pd.read_csv(info_link,
                      sep='\t',
                      skiprows=1,
                      names=['vnet',

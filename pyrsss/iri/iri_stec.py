@@ -1,6 +1,6 @@
 import logging
 
-import numpy as NP
+import numpy as np
 from pyglow.pyglow import Point
 
 from ..gpstk import PyPosition
@@ -30,8 +30,8 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
     dt = datetime(2010, 1, 1)
-    stn_xyz = NP.array([4696.986004,    723.992717,   4239.681595]) * 1e3
-    sat_xyz = NP.array([10741.320824,  12456.414622,  21019.082339]) * 1e3
+    stn_xyz = np.array([4696.986004,    723.992717,   4239.681595]) * 1e3
+    sat_xyz = np.array([10741.320824,  12456.414622,  21019.082339]) * 1e3
 
     stec = iri_stec(dt,
                     PyPosition(*stn_xyz),

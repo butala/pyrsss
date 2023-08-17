@@ -7,15 +7,15 @@ from collections import namedtuple, OrderedDict, Iterator
 from datetime import timedelta
 from itertools import groupby
 
-import numpy as NP
+import numpy as np
 from tables import open_file, IsDescription, Time64Col, Float64Col
 from more_itertools import peekable
 
 from ..stats.stats import weighted_avg_and_std
 from ..util.date import UNIX_EPOCH
-from constants import TECU_TO_M, M_TO_TECU
-from rms_model import RMSModel
-from observation import ObsMap, ObsTimeSeries
+from .constants import TECU_TO_M, M_TO_TECU
+from .rms_model import RMSModel
+from .observation import ObsMap, ObsTimeSeries
 
 logger = logging.getLogger('pyrsss.gps.level')
 
@@ -302,7 +302,7 @@ def level_phase_to_code(obs_map,
             # remove observations below minimum elevation limit
             el_filter = lambda x: x[1].el >= config.minimum_elevation
             # remove observations for which P1, P2, L1, or L2 are nan
-            valid_filter = lambda x: not any(NP.isnan([getattr(x[1], attr) for attr in ['P1', 'P2', 'L1', 'L2']]))
+            valid_filter = lambda x: not any(np.isnan([getattr(x[1], attr) for attr in ['P1', 'P2', 'L1', 'L2']]))
             # remove measurements with |p1 - p2| < threshold
             p1p2_filter = lambda x: abs(x[1].P1 - x[1].P2) > config.p1p2_threshold
             filter_map = OrderedDict(el_filter=el_filter,
@@ -321,15 +321,15 @@ def level_phase_to_code(obs_map,
 
             dts, obs = zip(*dts_obs)
 
-            P_I = NP.array([x.P_I for x in obs])
-            L_Im = NP.array([x.L_Im for x in obs])
+            P_I = np.array([x.P_I for x in obs])
+            L_Im = np.array([x.L_Im for x in obs])
             diff = P_I - L_Im
-            modeled_var = (NP.array(map(rms_model,
+            modeled_var = (np.array(map(rms_model,
                                         [x.el for x in obs])) * TECU_TO_M)**2
             # compute level, level scatter, and modeled scatter
             N = len(diff)
             L, L_scatter = weighted_avg_and_std(diff, 1/modeled_var)
-            sigma_scatter = NP.sqrt(NP.sum(modeled_var) / N)
+            sigma_scatter = np.sqrt(np.sum(modeled_var) / N)
             # check for excessive leveling uncertainty
             if L_scatter > config.scatter_factor * sigma_scatter:
                 logger.info('rejecting sat={} arc={} --- L scatter={:.6f} '

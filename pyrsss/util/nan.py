@@ -1,6 +1,6 @@
 import logging
 
-import numpy as NP
+import numpy as np
 
 logger = logging.getLogger('pyrsss.util.nan')
 
@@ -18,10 +18,10 @@ def nan_helper(y):
     Example:
         >>> # linear interpolation of NaNs
         >>> nans, x= nan_helper(y)
-        >>> y[nans]= NP.interp(x(nans), x(~nans), y[~nans])
+        >>> y[nans]= np.interp(x(nans), x(~nans), y[~nans])
     """
     # Source: http://stackoverflow.com/questions/6518811/interpolate-nan-values-in-a-numpy-array
-    return NP.isnan(y), lambda z: z.nonzero()[0]
+    return np.isnan(y), lambda z: z.nonzero()[0]
 
 
 def nan_interp(y, silent=False):
@@ -31,8 +31,8 @@ def nan_interp(y, silent=False):
     """
     # Source: http://stackoverflow.com/questions/6518811/interpolate-nan-values-in-a-numpy-array
     nans, x = nan_helper(y)
-    z = NP.array(y)
+    z = np.array(y)
     if not silent and sum(nans) > 0:
         logger.warning('linear interpolation over {} NaN values'.format(sum(nans)))
-    z[nans]= NP.interp(x(nans), x(~nans), z[~nans])
+    z[nans]= np.interp(x(nans), x(~nans), z[~nans])
     return z

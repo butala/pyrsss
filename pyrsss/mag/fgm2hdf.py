@@ -2,14 +2,14 @@ import sys
 import logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-import numpy as NP
-import pandas as PD
+import numpy as np
+import pandas as pd
 from obspy.core.stream import Stream
 from obspy.core.utcdatetime import UTCDateTime
 from obspy.core.trace import Trace
 
-from fgm2iaga import parse
-from iaga2hdf import get_dec_tenths_arcminute, write_hdf
+from .fgm2iaga import parse
+from .iaga2hdf import get_dec_tenths_arcminute, write_hdf
 
 logger = logging.getLogger('pyrsss.mat.fgm2hdf')
 
@@ -37,8 +37,8 @@ def build_header(data_list,
         header[key] = value
     if 'station' in header:
         header['station'] = header['station'][:3]
-    d1 = PD.to_datetime(data_list[0].index.values[0]).to_pydatetime()
-    d2 = PD.to_datetime(data_list[-1].index.values[-1]).to_pydatetime()
+    d1 = pd.to_datetime(data_list[0].index.values[0]).to_pydatetime()
+    d2 = pd.to_datetime(data_list[-1].index.values[-1]).to_pydatetime()
     d1_obj = UTCDateTime('{:%Y-%m-%d %H:%H:%S}'.format(d1))
     d2_obj = UTCDateTime('{:%Y-%m-%d %H:%H:%S}'.format(d2))
     header['starttime'] = d1_obj
@@ -48,7 +48,7 @@ def build_header(data_list,
         header['elevation'] = 0
     else:
         header['elevation'] = elevation
-    delta = NP.diff(data_list[0].index.values[:2])[0] / NP.timedelta64(1, 's')
+    delta = np.diff(data_list[0].index.values[:2])[0] / np.timedelta64(1, 's')
     fs = 1 / delta
     header['sampling_rate'] = fs
     if baseline_declination is None:
@@ -80,8 +80,8 @@ def fgm2hdf(hdf_fname,
         data_list.append(parse(fgm_fname))
     header = build_header(data_list,
                           elevation=elevation)
-    df = PD.concat(data_list)
-    df.loc[df.flag, ['x', 'y', 'z', 'f']] = NP.nan
+    df = pd.concat(data_list)
+    df.loc[df.flag, ['x', 'y', 'z', 'f']] = np.nan
     df.drop(columns='flag', inplace=True)
     df.rename(columns={'x': 'B_X',
                        'y': 'B_Y',

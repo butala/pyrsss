@@ -9,10 +9,10 @@ import sh
 from intervals import DateTimeInterval
 
 from ..util.path import SmartTempDir, replace_path
-from path import GPSTK_BUILD_PATH
-from rinex import read_rindump, Observation, dump_rinex
-from observation import ObsMap
-from preprocess import normalize_rinex
+from .path import GPSTK_BUILD_PATH
+from .rinex import read_rindump, Observation, dump_rinex
+from .observation import ObsMap
+from .preprocess import normalize_rinex
 
 logger = logging.getLogger('pyrsss.gps.phase_edit')
 

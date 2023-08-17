@@ -3,9 +3,9 @@ import os
 from datetime import datetime, date
 from collections import namedtuple
 
-from intervals import DateInterval
+import portion as P
 
-from sideshow import update_sideshow_file
+from .sideshow import update_sideshow_file
 
 
 PRN_GPS_FNAME = os.path.join(os.path.dirname(__file__),
@@ -85,8 +85,7 @@ class Table(list):
         ???
         """
         for candidate in filter(lambda x: x.svn == svn, self):
-            if date in DateInterval([candidate.launch,
-                                     candidate.deactivation]):
+            if date in P.closed(candidate.launch, candidate.deactivation):
                 return candidate.prn
         raise RuntimeError('could not find PRN associated with SVN={} on '
                            '{:%Y-%m-%d}'.format(svn,
@@ -98,8 +97,7 @@ class Table(list):
         ???
         """
         for candidate in filter(lambda x: x.prn == prn, self):
-            if date in DateInterval([candidate.launch,
-                                     candidate.deactivation]):
+            if date in P.closed(candidate.launch, candidate.deactivation]):
                 return candidate.svn
         raise RuntimeError('could not find SVN associated with PRN={} on '
                            '{:%Y-%m-%d}'.format(prn,

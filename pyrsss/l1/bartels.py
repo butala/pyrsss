@@ -5,7 +5,7 @@ from contextlib import closing
 from collections import OrderedDict, namedtuple
 from datetime import datetime, timedelta
 
-from intervals import DateTimeInterval
+import portion as PD
 
 logger = logging.getLogger('pyrsss.l1.bartels')
 
@@ -126,7 +126,7 @@ class Bartels(dict):
         for b_id, (t1, t2) in zip(obj,
                                   zip(times_1,
                                       times_2)):
-            interval = DateTimeInterval.closed_open(t1, t2)
+            interval = P.closed_open(t1, t2)
             obj._interval_map[interval] = b_id
         return obj
 

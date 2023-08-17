@@ -1,7 +1,7 @@
 import logging
 
-import numpy as NP
-import pandas as PD
+import numpy as np
+import pandas as pd
 
 from ..stats.stats import weighted_avg_and_std
 from constants import LAMBDA_1, LAMBDA_2, TECU_TO_M, M_TO_TECU, glonass_lambda
@@ -11,7 +11,7 @@ from rms_model import RMSModel
 logger = logging.getLogger('pyrsss.gps.level_new')
 
 
-class LeveledArc(PD.DataFrame):
+class LeveledArc(pd.DataFrame):
     _metadata = ['xyz',
                  'llh',
                  'stn',
@@ -95,14 +95,14 @@ def level(rinex_dump,
         # L2m = df_arc.L2 * LAMBDA_2
         L_Im = L1m - L2m
         diff = P_I - L_Im
-        modeled_var = (NP.array(map(rms_model,
+        modeled_var = (np.array(map(rms_model,
                                     df_arc.el.values)) * TECU_TO_M)**2
         # compute level, level scatter, and modeled scatter
         N = len(diff)
         if N == 0:
             continue
         L, L_scatter = weighted_avg_and_std(diff, 1 / modeled_var)
-        sigma_scatter = NP.sqrt(NP.sum(modeled_var) / N)
+        sigma_scatter = np.sqrt(np.sum(modeled_var) / N)
         # check for excessive leveling uncertainty
         if L_scatter > config.scatter_factor * sigma_scatter:
             logger.info('rejecting arc={} --- L scatter={:.6f} '
@@ -143,7 +143,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
     pkl_fname = '/tmp/jplm0010.14o.pkl'
-    rinex_dump = PD.read_pickle(pkl_fname)
+    rinex_dump = pd.read_pickle(pkl_fname)
 
     leveled_arcs = level(rinex_dump)
 

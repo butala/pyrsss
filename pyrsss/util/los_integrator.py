@@ -1,7 +1,7 @@
 from collections import Iterable
 
-import sympy as SYM
-import numpy as NP
+import sympy as sym
+import numpy as np
 from scipy.integrate import quad
 from scipy.optimize import minimize_scalar
 
@@ -34,14 +34,14 @@ class SlantIntegrator(object):
         integration bounds on h defined in __init__). The remaining
         *kwds* are passed to the quadrature routine (:py:func:`quad`).
         """
-        diff = NP.array(sat_pos.xyz) - NP.array(self.stn_pos.xyz)
-        S_los = NP.linalg.norm(diff) / 1e3
+        diff = np.array(sat_pos.xyz) - np.array(self.stn_pos.xyz)
+        S_los = np.linalg.norm(diff) / 1e3
         def pos(s):
             """
             Return the ECEF vector a distance *s* along the line-of-site (in
             [km]).
             """
-            return PyPosition(*(NP.array(self.stn_pos.xyz) + (s / S_los) * diff))
+            return PyPosition(*(np.array(self.stn_pos.xyz) + (s / S_los) * diff))
         # determine integration bounds
         # distance along of line of site at which the geodetic height
         # is self.height1
@@ -72,9 +72,9 @@ class ChapmanSI(SlantIntegrator):
         """
         Setup Chapman electron density profile slant integrator.
         """
-        z, Nm, Hm, H_O = SYM.symbols('z Nm Hm H_O')
+        z, Nm, Hm, H_O = sym.symbols('z Nm Hm H_O')
         f_sym = chapman_sym_scaled(z, Nm, Hm, H_O)
-        f = SYM.lambdify((z, Nm, Hm, H_O),
+        f = sym.lambdify((z, Nm, Hm, H_O),
                          f_sym,
                          modules='numexpr')
         wrapper = lambda pos, *args: f(pos.height / 1e3, *args)
@@ -95,10 +95,10 @@ class DNmChapmanSI(SlantIntegrator):
         Setup Chapman electron density profile F2 peak density derivative
         slant integrator.
         """
-        z, Nm, Hm, H_O = SYM.symbols('z Nm Hm H_O')
+        z, Nm, Hm, H_O = sym.symbols('z Nm Hm H_O')
         f_sym = chapman_sym_scaled(z, Nm, Hm, H_O)
-        DNm_sym = SYM.diff(f_sym, Nm)
-        f = SYM.lambdify((z, Hm, H_O),
+        DNm_sym = sym.diff(f_sym, Nm)
+        f = sym.lambdify((z, Hm, H_O),
                          DNm_sym,
                          modules='numexpr')
         wrapper = lambda pos, *args: f(pos.height / 1e3, *args)
@@ -120,10 +120,10 @@ class DHmChapmanSI(SlantIntegrator):
         Setup Chapman electron density profile F2 peak height derivative
         slant integrator.
         """
-        z, Nm, Hm, H_O = SYM.symbols('z Nm Hm H_O')
+        z, Nm, Hm, H_O = sym.symbols('z Nm Hm H_O')
         f_sym = chapman_sym_scaled(z, Nm, Hm, H_O)
-        DHm_sym = SYM.diff(f_sym, Hm)
-        f = SYM.lambdify((z, Nm, Hm, H_O),
+        DHm_sym = sym.diff(f_sym, Hm)
+        f = sym.lambdify((z, Nm, Hm, H_O),
                          DHm_sym,
                          modules='numexpr')
         wrapper = lambda pos, *args: f(pos.height / 1e3, *args)
@@ -145,10 +145,10 @@ class DH_OChapmanSI(SlantIntegrator):
         Setup Chapman electron density profile plasma scale height
         derivative slant integrator.
         """
-        z, Nm, Hm, H_O = SYM.symbols('z Nm Hm H_O')
+        z, Nm, Hm, H_O = sym.symbols('z Nm Hm H_O')
         f_sym = chapman_sym_scaled(z, Nm, Hm, H_O)
-        DH_O_sym = SYM.diff(f_sym, H_O)
-        f = SYM.lambdify((z, Nm, Hm, H_O),
+        DH_O_sym = sym.diff(f_sym, H_O)
+        f = sym.lambdify((z, Nm, Hm, H_O),
                          DH_O_sym,
                          modules='numexpr')
         wrapper = lambda pos, *args: f(pos.height / 1e3, *args)
