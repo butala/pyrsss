@@ -75,12 +75,13 @@ class SepFilter(object):
             assert False
 
 
-    def __mul__(self, x):
+    def __matmul__(self, x):
         """
-        Apply the separable filter (via the multiplication operator) to
-        the signal vector *x*.
+        Apply the separable filter (via the matrix multiplication
+        operator) to the signal vector *x*.
         """
-        return self.operate(x)
+        y = self.operate(x)
+        return y.reshape(np.prod(y.shape))
 
 
     def asmatrix(self):
