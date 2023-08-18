@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.optimize
 
-from ..gpstk import PyPosition, point
+from ..gnsstk import PyPosition, point
 
 
 def ipp_from_azel(stn_pos, az, el, ht=450, tol=1e-5):

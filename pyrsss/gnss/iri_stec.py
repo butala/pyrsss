@@ -7,7 +7,7 @@ from collections import OrderedDict, namedtuple
 
 from tables import open_file, IsDescription, Time64Col, Float64Col
 
-from ..gpstk import PyPosition
+from ..gnsstk import PyPosition
 from ..util.path import SmartTempDir, replace_path
 from ..util.date import UNIX_EPOCH
 from ..iri.iri_stec import iri_stec

@@ -1,9 +1,9 @@
 import logging
 
 import numpy as np
-from pyglow.pyglow import Point
+from iri2016.base import IRI
 
-from ..gpstk import PyPosition
+from ..gnsstk import PyPosition
 from ..util.los_integrator import SlantIntegrator
 
 logger = logging.getLogger('pyrsss.iri.iri_stec')
@@ -11,14 +11,16 @@ logger = logging.getLogger('pyrsss.iri.iri_stec')
 
 def iri_stec(dt, stn_pos, sat_pos, alt1=100, alt2=2000, epsabs=1e-1, epsrel=1e-1):
     def fun(pos):
-        llh = pos.llh
-        point = Point(dt, llh[0], llh[1], llh[2] / 1e3)
-        point.run_iri()
-        if point.ne < 0:
+        lat, lon, h_m = pos.llh
+        h_km = h_m / 1e3
+        altrange = [h_km, h_km, 1]
+        iri_out = IRI(dt, altrange, lat, lon)
+        ne = iri_out.ne
+        if ne < 0:
             logger.warning('negative IRI Ne detected (h={:.1f} [km])'.format(llh[2] / 1e3))
             return 0
         else:
-            return point.ne / 1e7
+            return ne / 1e7
     integrator = SlantIntegrator(fun, stn_pos, height1=alt1, height2=alt2)
     return integrator(sat_pos, epsabs=epsabs, epsrel=epsrel)
 

@@ -9,7 +9,7 @@ from cStringIO import StringIO
 import sh
 
 from .constants import GPS_EPOCH
-from .path import GPSTK_BUILD_PATH
+from .path import GNSSTK_BUILD_PATH
 from .teqc import rinex_info
 from .preprocess import normalize_rinex
 from .observation import Observation, ObsTimeSeries, ObsMap
@@ -33,7 +33,7 @@ Global scope table of CODE derived P1-C1 DCBs.
 """
 
 
-RIN_DUMP = os.path.join(GPSTK_BUILD_PATH,
+RIN_DUMP = os.path.join(GNSSTK_BUILD_PATH,
                         'core',
                         'apps',
                         'Rinextools',
@@ -201,17 +201,17 @@ To incorporate RinDump we need:
 - RINEX obs file
 - RINEX nav file
 - site location (ideally from a more robust source than RINEX header)
-- desired observables (hook into GPSTk code that queries RINEX for, e.g., L1 and returns GL1C as appropriate)
+- desired observables (hook into GNSSTk code that queries RINEX for, e.g., L1 and returns GL1C as appropriate)
 """
 
 
 """
-Can use GPSTk to get robust RINEX information (e.g., interval, receiver type, data type mapping):
+Can use GNSSpTk to get robust RINEX information (e.g., interval, receiver type, data type mapping):
 """
 
 
 """
-Can use GPSTk to find station position, e.g.:
+Can use GNSSTk to find station position, e.g.:
 
 ./build-shaolin-v2.8/core/apps/positioning/PRSolve --obs ~/src/absolute_tec/jplm0010.14o --nav ~/src/absolute_tec/jplm0010.14n --sol GPS:12:W
 
@@ -219,14 +219,14 @@ Note that teqc also does this!
 """
 
 """
-Note the GPSTk can compute ionospheric pierce points (see
+Note the GNSSTk can compute ionospheric pierce points (see
 core/lib/GNSSCore/Position.cpp). It would not be hard to convert this
 t pure python (its just trig and coordinate transformations).
 """
 
 
 """
-Ideally we would have a cython interface to the GPSTk RINEX reader
+Ideally we would have a cython interface to the GNSSTk RINEX reader
 routines.
 """
 

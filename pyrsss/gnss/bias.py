@@ -16,7 +16,7 @@ from util import shell_mapping
 from ipp import ipp_from_azel
 from teqc import rinex_info
 from sideshow import update_sideshow_file
-from ..gpstk import PyPosition
+from ..gnsstk import PyPosition
 from ..ionex.read_ionex import interpolate2D_temporal
 from ..util.search import find_le
 from ..util.path import SmartTempDir

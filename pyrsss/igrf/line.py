@@ -5,7 +5,7 @@ from scipy.integrate import ode
 
 from igrf12py import igrf12syn as igrf12
 
-from ..gpstk import PyPosition
+from ..gnsstk import PyPosition
 
 
 def differential(t, s):

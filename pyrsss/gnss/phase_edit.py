@@ -9,7 +9,7 @@ import sh
 from intervals import DateTimeInterval
 
 from ..util.path import SmartTempDir, replace_path
-from .path import GPSTK_BUILD_PATH
+from .path import GNSSTK_BUILD_PATH
 from .rinex import read_rindump, Observation, dump_rinex
 from .observation import ObsMap
 from .preprocess import normalize_rinex
@@ -23,7 +23,7 @@ Called/used by process.py.
 Implement cycle-slip detection and repair.
 """
 
-DISC_FIX = os.path.join(GPSTK_BUILD_PATH,
+DISC_FIX = os.path.join(GNSSTK_BUILD_PATH,
                         'ext',
                         'apps',
                         'geomatics',
@@ -77,7 +77,7 @@ def phase_edit(rinex_fname,
     """
     ???
     """
-    logger.info('applying GPSTk DiscFix to {}'.format(rinex_fname))
+    logger.info('applying GNSSTk DiscFix to {}'.format(rinex_fname))
     command = sh.Command(disc_fix)
     with SmartTempDir(work_path) as work_path:
         basename = os.path.basename(rinex_fname)
@@ -365,7 +365,7 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    parser = ArgumentParser('Preprocess and apply the GPSTk phase editor '
+    parser = ArgumentParser('Preprocess and apply the GNSSTk phase editor '
                             '(DiscFix) to an input RINEX record and produce '
                             'a dump record suitable for subsequent processing '
                             '(phase leveling).',

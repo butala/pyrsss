@@ -2,6 +2,6 @@ import os
 
 
 try:
-    GPSTK_BUILD_PATH = os.environ['GPSTK_BUILD']
+    GNSSTK_BUILD_PATH = os.environ['GNSSTK_BUILD']
 except KeyError:
-    raise RuntimeError('environment variable GPSTK_BUILD not set')
+    raise RuntimeError('environment variable GNSSTK_BUILD not set')

@@ -1,4 +1,4 @@
-from collections import Iterable
+from collections.abc import Iterable
 
 import sympy as sym
 import numpy as np
@@ -6,7 +6,7 @@ from scipy.integrate import quad
 from scipy.optimize import minimize_scalar
 
 from ..util.chapman import chapman_sym
-from ..gpstk import PyPosition
+from ..gnsstk import PyPosition
 
 
 class SlantIntegrator(object):

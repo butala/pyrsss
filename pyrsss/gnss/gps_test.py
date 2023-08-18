@@ -103,7 +103,7 @@ if __name__ == '__main__':
                    nav_fname,
                    receiver_position=receiver_position)
 
-        # apply GPSTk phase editor
+        # apply GNSSTk phase editor
         (time_reject_map,
          phase_adjust_map) = phase_edit(normalized_rinex_fname,
                                         work_path='/tmp/work')

@@ -117,7 +117,7 @@ def main(argv=None):
                         '-d',
                         type=add_dashes,
                         default=[],
-                        help='options to pass to the GPSTk discontinuity fixer (see help message for pyrsss.gps.phase_edit) --- do not include the dashes')
+                        help='options to pass to the GNSSTk discontinuity fixer (see help message for pyrsss.gps.phase_edit) --- do not include the dashes')
     parser.add_argument('--leveling-config-overrides',
                         '-l',
                         metavar='leveling_config_override',
