@@ -4,8 +4,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 import numpy as np
 import pandas as pd
-
-from pyglow import Point
+import igrf
 
 from .info import get_info_map
 
@@ -42,15 +41,12 @@ def get_declination(station_id):
     """
     info_map = get_info_map()
     station_info = info_map.loc[station_id]
-    point = Point(station_info.start.to_pydatetime(),
-                  station_info.lat,
-                  station_info.lon,
-                  station_info.elev / 1e3)
-    point.run_igrf()
-    dec = point.dec
+    mag = igrf.igrf(station_info.start.to_pydatetime(),
+                    glat=stataion_info.lat,
+                    glon=station_info.lon,
+                    alt_km=station_info.elev / 1e3)
     logger.info('IGRF declination angle at site {} on {:%Y-%m-%d} is {:.2f} [deg]'.format(station_id,
-                                                                                          station_info.start,
-                                                                                          dec))
+                                                                                          station_info.start, dec))
     return dec
 
 
