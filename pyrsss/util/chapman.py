@@ -98,20 +98,18 @@ def chapman_fit(alt,
 
 
 if __name__ == '__main__':
-    from pyglow.pyglow import Point
-
-    N = 200
-    alt = np.linspace(100, 1500, N)
+    from iri2016.base import IRI
 
     dt = datetime(2000, 1, 1)
     lat = 0
     lon = 0
 
-    iri_ne = []
-    for alt_i in alt:
-        point = Point(dt, lat, lon, alt_i)
-        point.run_iri()
-        iri_ne.append(point.ne)
+    altrange = [100, 1500, 200]
+
+    iri_out = IRI(dt, altrange, lat, lon)
+
+    alt = iri_out.alt_km
+    iri_ne = iri_out.ne
 
     Nm_star, Hm_star, H_O_star = chapman_fit(alt, iri_ne, verbose=True)
 
@@ -127,7 +125,7 @@ if __name__ == '__main__':
             color='g',
             label='Chapman fit')
     plt.legend()
-    plt.xlabel('Electron density [cm$^{-3}$]')
+    plt.xlabel('Electron density [m$^{-3}$]')
     plt.ylabel('Height [km]')
     plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
     plt.axis('tight')
