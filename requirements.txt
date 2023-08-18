@@ -15,6 +15,7 @@ python-dateutil
 numexpr
 scipy
 sh
+spaceweather
 sympy
 tables
 tqdm
