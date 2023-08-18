@@ -1,11 +1,6 @@
 import math
 from datetime import datetime
 
-from pyglow.pyglow import Point
-# using back-port for python2 (enum34 package) --- this is in the
-# python3 standard library (>=3.4)
-from enum import Enum
-
 
 class OplusType(Enum):
     ne = 1
