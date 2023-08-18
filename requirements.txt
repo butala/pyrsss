@@ -1,6 +1,7 @@
 apexpy
 Cython
 igrf
+iri2016
 matplotlib
 more-itertools
 netCDF4
@@ -11,6 +12,7 @@ pyfftw
 pyglow
 pyproj
 python-dateutil
+numexpr
 scipy
 sh
 sympy
