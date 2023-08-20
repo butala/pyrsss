@@ -9,7 +9,6 @@ numpy
 pandas
 portion
 pyfftw
-pyglow
 pyproj
 python-dateutil
 numexpr
