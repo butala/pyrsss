@@ -1,7 +1,7 @@
 import sys
 import logging
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date, time
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import namedtuple
 
@@ -9,10 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import pandas as pd
+import spaceweather as sw
 
-from pyglow.pyglow import Point
-
-from .date import dt_parser
 from ..stats.stats import Stats
 
 
@@ -77,8 +75,8 @@ class IndexStats(namedtuple('IndiciesStats', 'kp dst')):
     pass
 
 
-def plot_indices(d1,
-                 d2,
+def plot_indices(date1,
+                 date2,
                  fig=None,
                  style='display',
                  bar_lw=0.2,
@@ -89,21 +87,26 @@ def plot_indices(d1,
     """
     """
     # gather Kp
+    d1_kp = datetime.combine(date1, time(1, 30))
+    d2_kp = datetime.combine(date2, time(0))
+
     kp = []
     kp_dt = []
-    for dt in pd.date_range(d1, d2, freq='3H'):
-        point = Point(dt, 0, 0, 0)
-        kp.append(point.kp)
+    sw.update_data()
+    df_3h = sw.ap_kp_3h()
+    for dt in pd.date_range(d1_kp, d2_kp, freq='3H', inclusive='left'):
+        kp.append(df_3h.loc[dt.strftime('%Y-%m-%d %H:%M:%S')].Kp)
         kp_dt.append(dt)
-    # gather Dst
-    dst = []
-    dst_dt = []
-    for dt in pd.date_range(d1, d2, freq='1H'):
-        point = Point(dt, 0, 0, 0)
-        dst.append(point.dst)
-        dst_dt.append(dt)
+    d1_dst = datetime.combine(date1, time(0))
+    d2_dst = datetime.combine(date2, time(0))
+    years = range(d1_dst.year, d2_dst.year + 1)
+    df = pd.concat([sw.omnie_hourly(x, cache=True) for x in years])
+    I = (df.index >= d1_dst) & (df.index <= d2_dst)
+    dst_I = df[I].Dst
+    dst = dst_I.values
+    dst_dt = dst_I.index
     # create plot
-    N_days = (dst_dt[-1] - dst_dt[0]).total_seconds() / 60 / 60 / 24
+    N_days = (d2_dst - d1_dst).total_seconds() / 60 / 60 / 24
     if fig is None:
         fig = plt.figure(figsize=(11 * N_days / 6, 5))
     kp_colors, kp_hatch = STYLE_MAP[style]
@@ -116,11 +119,11 @@ def plot_indices(d1,
     hatch = [kp_hatch[int(math.floor(x))] if kp_hatch else None for x in kp]
     left = [x.to_pydatetime() for x in left]
     bars = plt.bar(left,
-                  height,
-                  width=width,
-                  color=color,
-                  linewidth=bar_lw,
-                  edgecolor=[edgecolor] * len(left))
+                   height,
+                   width=width,
+                   color=color,
+                   linewidth=bar_lw,
+                   edgecolor=[edgecolor] * len(left))
     for bar, hatch_i in zip(bars, hatch):
         bar.set_hatch(hatch_i)
     ax1.xaxis_date()
@@ -129,11 +132,11 @@ def plot_indices(d1,
     plt.ylabel('3-hour Kp index')
     # Dst subplot
     ax2 = ax1.twinx()
-    plt.plot_date(dst_dt,
-                 dst,
-                 lw=dst_lw,
-                 marker=None,
-                 ls='-')
+    plt.plot(dst_dt,
+             dst,
+             lw=dst_lw,
+             marker='None',
+             ls='-')
     plt.ylabel('Hourly DST [nT]')
     d1_str = datetime.strftime(dst_dt[0], title_dt_format)
     d2_str = datetime.strftime(dst_dt[-1], title_dt_format)
@@ -156,12 +159,12 @@ def main(argv=None):
     parser.add_argument('pdf_fname',
                         type=str,
                         help='file to store plot')
-    parser.add_argument('d1',
-                        type=dt_parser,
-                        help='start date/time')
-    parser.add_argument('d2',
-                        type=dt_parser,
-                        help='end date/time')
+    parser.add_argument('date1',
+                        type=date.fromisoformat,
+                        help='start date')
+    parser.add_argument('date2',
+                        type=date.fromisoformat,
+                        help='end date')
     parser.add_argument('--style',
                         '-s',
                         type=str,
@@ -170,8 +173,8 @@ def main(argv=None):
                         help='plot style (display is more colorful and meant for screen display whereas document is high contrast and uses hatches for both color and black-white interpretation and meant for use in publication)')
     args = parser.parse_args(argv[1:])
 
-    plot_indices(args.d1,
-                 args.d2,
+    plot_indices(args.date1,
+                 args.date2,
                  style=args.style)
 
     plt.savefig(args.pdf_fname,
