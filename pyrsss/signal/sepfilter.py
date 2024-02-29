@@ -7,7 +7,7 @@ from .util import zero_pad
 from .convmtx import Convmtx
 
 
-class SepFilter(object):
+class SepFilter():
     def __init__(self, n, h_list, mode='full'):
         """
         Construct a separable filter, i.e., the filter that operates on a
