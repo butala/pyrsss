@@ -40,6 +40,7 @@ def setup_random_sim(N, M, I):
         sim['R_sqrt'].append(R_i_sqrt)
         # time update
         sim['F'].append(np.random.randn(N, N))
+        sim['F'][-1] /= np.linalg.norm(sim['F'][-1])
         Q_i, Q_i_sqrt = randn_pd(N)
         sim['Q'].append(Q_i)
         sim['Q_sqrt'].append(Q_i_sqrt)
