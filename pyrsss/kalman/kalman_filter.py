@@ -320,6 +320,7 @@ if __name__ == '__main__':
         y.append(H[-1] @ x[-1] + v)
         # dynamics
         F.append(np.random.randn(N, N))
+        F[-1] /= np.linalg.norm(F[-1])
         Q_sqrt.append(sigma_Q * np.random.randn(N, N))
         Q.append(Q_sqrt[-1] @ Q_sqrt[-1].T)
         u = Q_sqrt[-1] @ np.random.randn(N)
