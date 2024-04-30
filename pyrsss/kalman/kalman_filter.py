@@ -102,7 +102,7 @@ def extended_kalman_filter(y, H_fun, H_jac, R, F_fun, F_jac, Q, mu, PI, z=None):
 
 
 """
-Class to store square root  Kalman filter results.
+Class to store square root Kalman filter results.
 """
 try:
     @dataclass
@@ -301,8 +301,13 @@ if __name__ == '__main__':
     F = []
     Q_sqrt = []
 
+    R = []
+    Q = []
+
     mu = np.zeros(N)
     PI_sqrt = np.random.rand(N, N)
+
+    PI = PI_sqrt @ PI_sqrt.T
 
     x = [np.random.randn(N)]
 
@@ -310,16 +315,20 @@ if __name__ == '__main__':
         # measurements
         H.append(np.random.randn(M, N))
         R_sqrt.append(sigma_R * np.random.randn(M, M))
+        R.append(R_sqrt[-1] @ R_sqrt[-1].T)
         v = R_sqrt[-1] @ np.random.randn(M)
         y.append(H[-1] @ x[-1] + v)
         # dynamics
         F.append(np.random.randn(N, N))
         Q_sqrt.append(sigma_Q * np.random.randn(N, N))
+        Q.append(Q_sqrt[-1] @ Q_sqrt[-1].T)
         u = Q_sqrt[-1] @ np.random.randn(N)
         x.append(F[-1] @ x[-1] + u)
 
+
+    kf_result = kalman_filter(y, H, R, F, Q, mu, PI)
     sqrt_kf_result = sqrt_kalman_filter(y, H, R_sqrt, F, Q_sqrt, mu, PI_sqrt)
 
-    for i, (x_hat, P_sqrt) in enumerate(sqrt_kalman_filter2(y, H, R_sqrt, F, Q_sqrt, mu, PI_sqrt)):
-        assert np.allclose(x_hat, sqrt_kf_result.x_hat[i])
-        assert np.allclose(P_sqrt, sqrt_kf_result.P_sqrt[i])
+    for i in range(I):
+        assert np.allclose(kf_result.x_hat[i], sqrt_kf_result.x_hat[i])
+        assert np.allclose(kf_result.P[i], sqrt_kf_result.P_sqrt[i] @ sqrt_kf_result.P_sqrt[i].T)
