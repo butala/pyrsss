@@ -1,5 +1,6 @@
 from itertools import repeat
 from dataclasses import dataclass
+import math
 
 import numpy as np
 import numpy.typing as npt
@@ -285,8 +286,6 @@ def sqrt_kalman_filter(y,
     return SqrtFilterResult(x_hat, P_sqrt)
 
 
-
-
 if __name__ == '__main__':
     I = 10
     N = 4
@@ -333,3 +332,25 @@ if __name__ == '__main__':
     for i in range(I):
         assert np.allclose(kf_result.x_hat[i], sqrt_kf_result.x_hat[i])
         assert np.allclose(kf_result.P[i], sqrt_kf_result.P_sqrt[i] @ sqrt_kf_result.P_sqrt[i].T)
+
+    from ..util.h5pymat import savemat
+
+    m = {'I': I,
+         'N': N,
+         'D': math.ceil(math.log(I + 1)),
+         'mu': mu,
+         'PI': PI,
+         'PI_sqrt': PI_sqrt}
+    suffix_template = f"_{{:0{m['D']}d}}"
+    for i in range(I):
+        suffix = suffix_template.format(i)
+        m[f'M{suffix}'] = len(y[i])
+        m[f'y{suffix}'] = y[i]
+        m[f'H{suffix}'] = H[i]
+        m[f'R{suffix}'] = R[i]
+        m[f'R_sqrt{suffix}'] = R_sqrt[i]
+        m[f'F{suffix}'] = F[i]
+        m[f'Q{suffix}'] = Q[i]
+        m[f'Q_sqrt{suffix}'] = Q_sqrt[i]
+
+    savemat('/tmp/test.mat', m)
