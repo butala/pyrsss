@@ -4,6 +4,7 @@ import math
 
 import numpy as np
 import numpy.typing as npt
+import scipy as sp
 from scipy.linalg import solve_triangular, cho_factor, cho_solve
 
 
@@ -333,8 +334,6 @@ if __name__ == '__main__':
         assert np.allclose(kf_result.x_hat[i], sqrt_kf_result.x_hat[i])
         assert np.allclose(kf_result.P[i], sqrt_kf_result.P_sqrt[i] @ sqrt_kf_result.P_sqrt[i].T)
 
-    from ..util.h5pymat import savemat
-
     m = {'I': I,
          'N': N,
          'D': math.ceil(math.log(I + 1)),
@@ -353,4 +352,4 @@ if __name__ == '__main__':
         m[f'Q{suffix}'] = Q[i]
         m[f'Q_sqrt{suffix}'] = Q_sqrt[i]
 
-    savemat('/tmp/test.mat', m)
+    sp.io.savemat('/tmp/test.mat', m)
