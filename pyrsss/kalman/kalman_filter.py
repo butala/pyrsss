@@ -1,6 +1,7 @@
 from itertools import repeat
 from dataclasses import dataclass
 import math
+import struct
 
 import numpy as np
 import numpy.typing as npt
@@ -288,9 +289,9 @@ def sqrt_kalman_filter(y,
 
 
 if __name__ == '__main__':
-    I = 10
-    N = 4
-    M = 3
+    I = 532
+    N = 142
+    M = 6
 
     sigma_R = 1e-2
     sigma_Q = 1e-2
@@ -334,6 +335,8 @@ if __name__ == '__main__':
         assert np.allclose(kf_result.x_hat[i], sqrt_kf_result.x_hat[i])
         assert np.allclose(kf_result.P[i], sqrt_kf_result.P_sqrt[i] @ sqrt_kf_result.P_sqrt[i].T)
 
+    print(kf_result.x_hat[-1])
+
     m = {'I': I,
          'N': N,
          'D': math.ceil(math.log(I + 1)),
@@ -353,3 +356,16 @@ if __name__ == '__main__':
         m[f'Q_sqrt{suffix}'] = Q_sqrt[i]
 
     sp.io.savemat('/tmp/test.mat', m)
+
+    with open('/tmp/test.bin', 'bw') as fid:
+        fid.write(struct.pack('N', N))
+        fid.write(struct.pack('N', I))
+        np.array([len(y_i) for y_i in y], dtype=np.uintp).tofile(fid)
+        mu.tofile(fid)
+        PI.T.tofile(fid)
+        for i in range(I):
+            y[i].tofile(fid)
+            H[i].T.tofile(fid)
+            R[i].T.tofile(fid)
+            F[i].T.tofile(fid)
+            Q[i].T.tofile(fid)
