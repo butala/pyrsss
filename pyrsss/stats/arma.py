@@ -85,8 +85,8 @@ def arma_residual(x_hat, Na, Nb, Nk, x, y):
 
 
 def arma_sensitivity(b, a, x, Nk):
-    r"""
-    Return the matrix \partial y(n_i, theta) / \partial theta_j)
+    """
+    Return the matrix \\partial y(n_i, theta) / \\partial theta_j)
     where theta = [a, b] and
 
     y(n_i, theta) = lfilter(b, a, x[:n_i]).
