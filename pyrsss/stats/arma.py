@@ -101,7 +101,7 @@ def arma_sensitivity(b, a, x, Nk):
 
     # SWITCH TO SOS FILTER!
     w = sp.signal.lfilter(1, a, x)
-    z = -sp.signal.lfilter(1, a, w)
+    z = sp.signal.lfilter(-1, a, w)
     v = sp.signal.lfilter(b, 1, z)
 
     Da_r = np.zeros(len(a) - 1)
