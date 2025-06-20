@@ -39,6 +39,21 @@ def arma_predictor_model(x, y, Na, Nb, Nk=1):
     return A, b
 
 
+def get_a_b(theta, Na, Nb, Nk=1):
+    """
+    Convert the vector of ARMA model parameters *theta* =
+    [theta_a, theta_b] to the tuple (theta_a, theta_b) of polynomial
+    transfer function parameters (a, b) where a = (1, theta_a) are the
+    denominator and b = (zeros(Nk), theta_b) are the numerator
+    coefficients, respectively.
+    """
+    a = theta[:Na]
+    b = theta[Na:]
+    a = np.insert(a, 0, 1)
+    b = np.insert(b, 0, np.zeros(Nk))
+    return a, b
+
+
 def arma_fit_linear(x, y, Na, Nb, Nk=1):
     """
     Return the (*Na*, *Nb*) ARMA predictor trained on the input
@@ -52,10 +67,7 @@ def arma_fit_linear(x, y, Na, Nb, Nk=1):
     assert len(x) == len(y)
     A, b = arma_predictor_model(x, y, Na, Nb, Nk=Nk)
     x_hat = np.linalg.lstsq(A, b)[0]
-    a_hat = x_hat[:Na]
-    b_hat = x_hat[Na:]
-    a_hat = np.insert(a_hat, 0, 1)
-    b_hat = np.insert(x_hat[Na:], 0, np.zeros(Nk))
+    a_hat, b_hat = get_a_b(x_hat, Na, Nb, Nk=Nk)
     return a_hat, b_hat
 
 
@@ -67,12 +79,68 @@ def arma_residual(x_hat, Na, Nb, Nk, x, y):
     """
     assert(len(x) == len(y))
     assert len(x_hat) == Na + Nb
-    a_hat = x_hat[:Na]
-    b_hat = x_hat[Na:]
-    a_hat = np.insert(a_hat, 0, 1)
-    b_hat = np.insert(x_hat[Na:], 0, np.zeros(Nk))
+    a_hat, b_hat = get_a_b(x_hat, Na, Nb, Nk=Nk)
     y_hat = scipy.signal.lfilter(b_hat, a_hat, x)
     return y_hat - y
+
+
+def arma_sensitivity(b, a, x, Nk):
+    r"""
+    Return the matrix \partial y(n_i, theta) / \partial theta_j)
+    where theta = [a, b] and
+
+    y(n_i, theta) = lfilter(b, a, x[:n_i]).
+
+    where n_i < x.shape[0] (number of ARMA inputs/outputs) and theta_j
+    < len(a) + len(b) (the number of ARMA filter parameters).
+    """
+    assert np.isclose(a[0], 1)
+    assert Nk < len(b)
+    if Nk > 0:
+        assert np.isclose(b[:Nk], 0).all()
+
+    # SWITCH TO SOS FILTER!
+    w = sp.signal.lfilter(1, a, x)
+    z = -sp.signal.lfilter(1, a, w)
+    v = sp.signal.lfilter(b, 1, z)
+
+    Da_r = np.zeros(len(a) - 1)
+    Da_c = np.pad(v[:-1], (1, 0))
+    Da = sp.linalg.toeplitz(Da_c, r=Da_r)
+
+    Db_r = np.zeros(len(b) - Nk)
+    Db_c = np.pad(w[:(len(w) - Nk)], (Nk, 0))
+    if Nk == 0:
+        Db_r[0] = Db_c[0]
+    Db = sp.linalg.toeplitz(Db_c, r=Db_r)
+
+    return np.hstack([Da, Db])
+
+
+def arma_l2_norm_sensitivity(b, a, x, y_target, Nk):
+    """
+    Return the gradient of the L2 norm term function
+
+    || lfilter(b, a, x) - y_target ||_2^2
+
+    as a len(a)-1 + len(b)-Nk vector. Note that a[0] = 1 and b[:Nk] = 0.
+    """
+    y = sp.signal.lfilter(b, a, x)
+    return 2 * arma_sensitivity(b, a, x) @ (y - y_target)
+
+
+def arma_jacobian(x_hat, Na, Nb, Nk, x, y):
+    """
+    Return the Jacobian of the function
+
+    lfilter(b, a, x) - y_target
+
+    as a len(a)-1 + len(b)-Nk vector = len(x_hat). See :func:`get_a_b`
+    for the mapping from *x_hat* to the polynomial transfer function
+    parameters and b. Note that a[0] = 1 and b[:Nk] = 0.
+    """
+    a_hat, b_hat = get_a_b(x_hat, Na, Nb, Nk=Nk)
+    return arma_sensitivity(b_hat, a_hat, x, Nk)
 
 
 def arma_fit_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None, **kwds):
@@ -89,23 +157,17 @@ def arma_fit_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None, **kwds):
     """
     if x_hat0 is None:
         x_hat0 = np.zeros(Na + Nb)
-    (x_hat,
-     cov_x,
-     info,
-     mesg,
-     ier) = sp.optimize.leastsq(arma_residual,
-                                x_hat0,
-                                args=(Na, Nb, Nk, x, y),
-                                full_output=True,
-                                **kwds)
-    if ier not in [1, 2, 3, 4]:
-        raise RuntimeError('optimization failed (ier={}) --- {}'.format(ier,
-                                                                        mesg))
-    a_hat = x_hat[:Na]
-    b_hat = x_hat[Na:]
-    a_hat = np.insert(a_hat, 0, 1)
-    b_hat = np.insert(x_hat[Na:], 0, np.zeros(Nk))
-    return a_hat, b_hat
+
+    result = sp.optimize.least_squares(arma_residual,
+                                       x_hat0,
+                                       jac=arma_jacobian,
+                                       args=(Na, Nb, Nk, x, y),
+                                       **kwds)
+
+    if not result.success:
+        raise RuntimeError(result.message)
+    x_hat = result.x
+    return get_a_b(x_hat, Na, Nb, Nk=Nk)
 
 
 def miso_pack(b, a):
