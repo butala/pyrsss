@@ -117,25 +117,6 @@ def arma_sensitivity(b, a, x, Nk):
     return np.hstack([Da, Db])
 
 
-def arma_zi_sensitivity(Nb, a, N):
-    """
-    Return the matrix \\partial y(n_i, theta) / \\partial v_j
-    where theta = [a, b], 1 \leq i \leq N, and v[j] for 1 \\leq j
-    \\leq min(Nb, len(a)-1) are the initial filter states zi for a
-    type 2 transposed ARMA filter as is implemented by, e.g.,
-    `:func:scipy.signal.lfilter`.
-    """
-    assert N >= 1
-    # SWITCH TO SOS FILTER!
-    # OR SHOULD IT BE Nb - 1, SINCE b0 DOES NOT INFLUENCE?
-    v_unit = np.zeros(min(Nb, len(a)-1))
-    v_unit[0] = 1
-    r = sp.signal.lfilter(1, a, np.pad([1], (0, N-1)), zi=v_unit)[0]
-    c = np.zeros(min(Nb, len(a)-1))
-    c[0] = r[0]
-    return sp.linalg.toeplitz(c, r=r)
-
-
 def arma_l2_norm_sensitivity(b, a, x, y_target, Nk):
     """
     Return the gradient of the L2 norm term function
