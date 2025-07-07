@@ -84,12 +84,12 @@ def arma_residual(x_hat, Na, Nb, Nk, x, y):
     return y_hat - y
 
 
-def arma_sensitivity(b, a, x, Nk):
+def arma_sensitivity(b, a, x, Nk, zi=None):
     """
     Return the matrix \\partial y(n_i, theta) / \\partial theta_j
     where theta = [a, b] and
 
-    y(n_i, theta) = lfilter(b, a, x[:n_i]).
+    y(n_i, theta) = lfilter(b, a, x[:n_i], zi=zi).
 
     where n_i < x.shape[0] (number of ARMA inputs/outputs) and theta_j
     < len(a) + len(b) (the number of ARMA filter parameters).
@@ -103,6 +103,10 @@ def arma_sensitivity(b, a, x, Nk):
     w = sp.signal.lfilter(1, a, x)
     z = sp.signal.lfilter(-1, a, w)
     v = sp.signal.lfilter(b, 1, z)
+
+    if zi is not None:
+        w2 = sp.signal.lfilter(1, a, np.pad(zi, (0, len(x)-len(zi))))
+        v += sp.signal.lfilter(-1, a, w2)
 
     Da_r = np.zeros(len(a) - 1)
     Da_c = np.pad(v[:-1], (1, 0))
