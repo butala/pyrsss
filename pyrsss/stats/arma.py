@@ -121,7 +121,7 @@ def arma_sensitivity(b, a, x, Nk, zi=None):
     return np.hstack([Da, Db])
 
 
-def arma_zi_sensitivity(Nb, a, N):
+def arma_zi_sensitivity(Nb, a, N, Nk=0):
     """
     Return the matrix \\partial y(n_i, theta) / \\partial v_j
     where theta = [a, b], 1 \\leq i \\leq N, and v[j] for 1 \\leq j
@@ -132,8 +132,7 @@ def arma_zi_sensitivity(Nb, a, N):
     assert N >= 1
     # SWITCH TO SOS FILTER!
     c = sp.signal.lfilter(1, a, np.pad([1], (0, N-1)))
-    r = np.zeros(max(Nb, len(a))-1)
-    r[0] = c[0]
+    r = np.zeros(max(Nb+Nk, len(a))-1)
     return sp.linalg.toeplitz(c, r=r)
 
 
