@@ -249,7 +249,7 @@ def parse(omni_fname,
                      names=names,
                      na_values=na_values,
                      parse_dates={'date': [0, 1, 2, 3]},
-                     date_parser=lambda x: datetime.strptime(x, '%Y %j %H %M'))
+                     date_format='%Y %j %H %M')
     df.set_index('date', inplace=True)
     return df
 
