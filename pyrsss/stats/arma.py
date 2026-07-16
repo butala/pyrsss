@@ -179,8 +179,8 @@ def arma_fit_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None, **kwds):
 
     result = sp.optimize.least_squares(arma_residual,
                                        x_hat0,
-                                       jac=arma_jacobian,
-                                       args=(Na, Nb, Nk, x),
+                                       jac=lambda *args: arma_jacobian(*args[:-1]),
+                                       args=(Na, Nb, Nk, x, y),
                                        **kwds)
 
     if not result.success:
