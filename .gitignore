@@ -4,3 +4,4 @@ dist/
 *.pyc
 /pyrsss/gnsstk.cpython-*.so
 /pyrsss/gnsstk.cpp
+.DS_Store
