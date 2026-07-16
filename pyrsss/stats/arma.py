@@ -148,7 +148,7 @@ def arma_l2_norm_sensitivity(b, a, x, y_target, Nk):
     return 2 * arma_sensitivity(b, a, x) @ (y - y_target)
 
 
-def arma_jacobian(x_hat, Na, Nb, Nk, x, y):
+def arma_jacobian(x_hat, Na, Nb, Nk, x):
     """
     Return the Jacobian of the function
 
@@ -180,7 +180,7 @@ def arma_fit_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None, **kwds):
     result = sp.optimize.least_squares(arma_residual,
                                        x_hat0,
                                        jac=arma_jacobian,
-                                       args=(Na, Nb, Nk, x, y),
+                                       args=(Na, Nb, Nk, x),
                                        **kwds)
 
     if not result.success:
