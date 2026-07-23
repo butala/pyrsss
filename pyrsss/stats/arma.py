@@ -327,7 +327,10 @@ if __name__ == '__main__':
     n = len(b_true) - 1
     k = max(m, n)
 
-    N = 10000
+    # N = 10  # minimum for nonlinear exact fit
+    # N = 13  # minimum for linear exact fit
+    N = 20
+
     #x = np.zeros(N)
     #x[10] = 1
     x = np.random.randn(N)
