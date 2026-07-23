@@ -81,7 +81,7 @@ def arma_residual(x_hat, Na, Nb, Nk, x, y):
     assert len(x_hat) == Na + Nb
     a_hat, b_hat = get_a_b(x_hat, Na, Nb, Nk=Nk)
     y_hat = scipy.signal.lfilter(b_hat, a_hat, x)
-    return y_hat - y
+    return y - y_hat
 
 
 def arma_sensitivity(b, a, x, Nk, zi=None):
@@ -89,7 +89,7 @@ def arma_sensitivity(b, a, x, Nk, zi=None):
     Return the matrix \\partial y(n_i, theta) / \\partial theta_j
     where theta = [a, b] and
 
-    y(n_i, theta) = lfilter(b, a, x[:n_i], zi=zi).
+    y(n_i, theta) = lfilter(b, a, x[:n_i], zi=zi)
 
     where n_i < x.shape[0] (number of ARMA inputs/outputs) and theta_j
     < len(a) + len(b) (the number of ARMA filter parameters).
@@ -118,22 +118,7 @@ def arma_sensitivity(b, a, x, Nk, zi=None):
         Db_r[0] = Db_c[0]
     Db = sp.linalg.toeplitz(Db_c, r=Db_r)
 
-    return np.hstack([Da, Db])
-
-
-def arma_zi_sensitivity(Nb, a, N, Nk=0):
-    """
-    Return the matrix \\partial y(n_i, theta) / \\partial v_j
-    where theta = [a, b], 1 \\leq i \\leq N, and v[j] for 1 \\leq j
-    \\leq min(Nb, len(a)-1) are the initial filter states zi for a
-    type 2 transposed ARMA filter as is implemented by, e.g.,
-    `:func:scipy.signal.lfilter`.
-    """
-    assert N >= 1
-    # SWITCH TO SOS FILTER!
-    c = sp.signal.lfilter(1, a, np.pad([1], (0, N-1)))
-    r = np.zeros(max(Nb+Nk, len(a))-1)
-    return sp.linalg.toeplitz(c, r=r)
+    return -np.c_[Da, Db]
 
 
 def arma_l2_norm_sensitivity(b, a, x, y_target, Nk):
