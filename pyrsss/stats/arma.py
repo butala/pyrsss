@@ -125,12 +125,12 @@ def arma_l2_norm_sensitivity(b, a, x, y_target, Nk):
     """
     Return the gradient of the L2 norm term function
 
-    || lfilter(b, a, x) - y_target ||_2^2
+    || y_target - lfilter(b, a, x) ||_2^2
 
     as a len(a)-1 + len(b)-Nk vector. Note that a[0] = 1 and b[:Nk] = 0.
     """
     y = sp.signal.lfilter(b, a, x)
-    return 2 * arma_sensitivity(b, a, x) @ (y - y_target)
+    return 2 * arma_sensitivity(b, a, x) @ (y_target - y)
 
 
 def arma_jacobian(x_hat, Na, Nb, Nk, x):
