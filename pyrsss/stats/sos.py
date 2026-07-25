@@ -43,12 +43,12 @@ class SOS:
 
     @property
     def Nb(self):
-        # items() returns native Python type
+        # item() returns native Python type
         return np.sum(self.mask[:, :3]).item()
 
     @property
     def Na(self):
-        # items() returns native Python type
+        # item() returns native Python type
         return np.sum(self.mask[:, 4:]).item()
 
     @property
@@ -80,10 +80,9 @@ class SOS:
         columns = []
         for i in range(self.mask.shape[0]):
             if self.mask.shape[0] == 1:
-                # Single element cascade, H1 is the identity system
+                # Single element cascade => H1(z) = 1, i.e., the identity system
                 a2 = self.sos[0, 3:]
                 Sy_b = sp.signal.lfilter(1, a2, u)
-                #Sy_a = sp.signal.lfilter(1, a2, -y)
             else:
                 sos1 = np.r_[self.sos[:i, :], self.sos[i+1:, :]]
                 sos2 = self.sos[i, :]
@@ -94,7 +93,7 @@ class SOS:
             for j in np.nonzero(self.mask[i, :])[0]:
                 match j:
                     case 0 | 1 | 2:
-                        # numerator polynomial coefficent
+                        # numerator polynomial coefficient
                         columns.append(np.pad(Sy_b[:(M-j)], (j, 0)))
                     case 4 | 5:
                         # denominator polynomial coefficient
