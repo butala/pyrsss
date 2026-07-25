@@ -106,3 +106,18 @@ class SOS:
                     case _:
                         raise RuntimeError('Impossible')
         return -np.c_[*columns]
+
+
+def fit_nonlinear(x, y, Na, Nb, theta0=None, **kwds):
+    """
+    """
+    if theta0 is None:
+        theta0 = SOS.I(Nb, Na).theta
+    result = sp.optimize.least_squares(lambda theta: SOS.from_theta(theta, Nb, Na).residual(x, y),
+                                       theta0,
+                                       jac=lambda theta: SOS.from_theta(theta, Nb, Na).jacobian(x),
+                                       **kwds)
+
+    if not result.success:
+        raise RuntimeError(result.message)
+    return SOS.from_theta(result.x, Nb, Na)
