@@ -47,7 +47,7 @@ def ar_sensitivity(a, x, zi):
     Dzi_r = np.zeros(len(zi))
     Dzi = sp.linalg.toeplitz(Dzi_c, r=Dzi_r)
 
-    return -np.c_[Da, Dzi]
+    return np.c_[Da, Dzi]
 
 
 def ar_fit_nonlinear(x, y, Na, x_hat0=None, **kwds):
@@ -62,7 +62,7 @@ def ar_fit_nonlinear(x, y, Na, x_hat0=None, **kwds):
 
     def jac_wrapper(x_hat, Na, x, y, *args, **kwds):
         a, zi = get_a_and_zi(x_hat, Na)
-        return ar_sensitivity(a, x, zi)
+        return -ar_sensitivity(a, x, zi)
 
     result = sp.optimize.least_squares(ar_residual,
                                        x_hat0,
