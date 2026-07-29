@@ -118,7 +118,7 @@ def arma_sensitivity(b, a, x, Nk, zi=None):
         Db_r[0] = Db_c[0]
     Db = sp.linalg.toeplitz(Db_c, r=Db_r)
 
-    return -np.c_[Da, Db]
+    return np.c_[Da, Db]
 
 
 def arma_l2_norm_sensitivity(b, a, x, y_target, Nk):
