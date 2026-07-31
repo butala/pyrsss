@@ -131,6 +131,8 @@ def arma_jacobian(x_hat, Na, Nb, Nk, x):
     for the mapping from *x_hat* to the polynomial transfer function
     parameters and b. Note that a[0] = 1 and b[:Nk] = 0.
     """
+    # For Nb == 0 see pyrsss.arma.ar
+    assert Nb > 0
     a_hat, b_hat = get_a_b(x_hat, Na, Nb, Nk=Nk)
     return arma_sensitivity(b_hat, a_hat, x, Nk)
 
