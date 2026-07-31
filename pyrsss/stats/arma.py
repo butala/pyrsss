@@ -164,6 +164,95 @@ def arma_fit_nonlinear(x, y, Na, Nb, Nk=1, x_hat0=None, **kwds):
     return get_a_b(x_hat, Na, Nb, Nk=Nk)
 
 
+# NEED TO ADD Zi AND Nk
+class ARMA:
+    def __init__(self, b, a, mask=None):
+        self.b = b
+        self.a = a
+        if mask is None:
+            self.mask = np.ones(self.N, dtype=bool)
+        else:
+            self.mask = mask
+
+    def __call__(self, x, axis=-1):
+        return sp.signal.lfilter(self.b, self.a, x, axis=axis)
+
+    @property
+    def Na(self):
+        return len(self.a) - 1
+
+    @property
+    def Nb(self):
+        return len(self.b)
+
+    @property
+    def N(self):
+        return self.Na + self.Nb
+
+    @property
+    def theta(self):
+        return np.r_[self.b, self.a[1:]]
+
+    @classmethod
+    def from_theta(cls, theta, Nb, Na=None, mask=None):
+        if Na is not None:
+            assert len(theta) == Nb + Na
+        return cls(theta[:Nb], np.insert(theta[Nb:], 0, 1), mask=mask)
+
+    @property
+    def iscomplex(self):
+        return np.iscomplexobj(self.a) or np.iscomplexobj(self.b)
+
+    def residual(self, x, y, axis=-1):
+        return y - self(x, axis=axis)
+
+    def J_theta(self, x):
+        columns = []
+        M = len(x)
+        w = sp.signal.lfilter(1, self.a, x)
+        z = sp.signal.lfilter(-1, self.a, w)
+        v = sp.signal.lfilter(self.b, 1, z)
+        # could instead use scipy.linalg.toeplitz if there is no mask
+        for j in range(self.N):
+            if not self.mask[j]:
+                continue
+            if j < self.Nb:
+                # partial with respect to jth b coefficient
+                column = np.pad(w[:(M-j)], (j, 0))
+            else:
+                k = j - self.Nb
+                # partial with respect to kth a coefficient
+                column = np.pad(v[:(M-(k+1))], (k+1, 0))
+            columns.append(column)
+        return np.c_[*columns]
+
+    def J_x(self, M):
+        impulse_response = self(np.pad([1.], (0, M-1)))
+        return sp.linalg.toeplitz(impulse_response, r=np.zeros(M))
+
+    @classmethod
+    def _theta0(cls, Nb, Na, complex=False):
+        theta0 = np.zeros(Nb + Na)
+        if complex:
+            theta0 = theta0.astype(complex)
+        return theta0
+
+    @classmethod
+    def fit_nonlinear(cls, x, y, Nb, Na, theta0=None, **kwds):
+        if theta0 is None:
+            theta0 = cls._theta0(Nb, Na)
+        if np.iscomplexobj(x) or np.iscomplexobj(y) or np.iscomplexobj(theta0):
+            raise RuntimeWarning('Complex least_squares not yet implemeneted (see the end of https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html#scipy.optimize.least_squares)')
+        result = sp.optimize.least_squares(lambda theta: cls.from_theta(theta, Nb, Na).residual(x, y),
+                                           theta0,
+                                           jac=lambda theta: -cls.from_theta(theta, Nb, Na).J_theta(x),
+                                           **kwds)
+
+        if not result.success:
+            raise RuntimeError(result.message)
+        return cls.from_theta(result.x, Nb, Na)
+
+
 def miso_pack(b, a):
     """
     Pack MISO transfer function components (numerator coefficients *b*
