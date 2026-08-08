@@ -153,7 +153,24 @@ def etfe_welch(x,
                y,
                fs=1,
                **kwds):
-    """
+    """NOTE: Two bias sources exist in scipy.signal.welch and scipy.signal.csd. To observe flat PSD
+    of white noise use options detrend=False and return_onesided=False. The default for detrend is
+    to remove the constant (the mean) which kills DC. The bias introduced by using the one-sided FFT
+    is more subtle.
+
+    This is covered in, e.g., Bendat and Peirsol, Random Data: Analysis and Measurement Procedures.
+    Consider the discussion surrounding (11.102) on scaling the one-sided autospectral density
+    function and the fact that, theoretically, the 0 and Nyquist frequency components (k=0 and k=N/2
+    if N is even) should be multiplied by one while the other interior frequencies are scaled by 2.
+    They immediately jump to the fact that k=0 corresponds to the mean which is usually removed by
+    detrending in spectral analysis (would not want delta at 0 in spectrum leaking into lowest
+    frequency bins) and some small numerical residual will remain. Also, the k=0 bin as where
+    numerical artifacts will accumulate. The Nyquist bin is also generally ignored as it will reside
+    well above the anti-aliasing filer cutoff. Using the two-sided transform avoids this subtlety at
+    the cost memory and computation. However, as argued by Bendet at Peirsol, these issues can be
+    safely ignored in practice.
+
+    To remove the window, pass the option window='boxcar'.
     """
     assert len(x) == len(y)
     fxx, Pxx = sp.signal.welch(x, fs=fs, **kwds)
