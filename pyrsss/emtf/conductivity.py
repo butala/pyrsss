@@ -82,7 +82,7 @@ if __name__ == '__main__':
     plt.loglog(resistivites_pt1,
               np.array(depths) / 1e3)
     plt.gca().invert_yaxis()
-    plt.xlabel('Resistivity [$\Omega$ / m]')
+    plt.xlabel(r'Resistivity [$\Omega$ / m]')
     plt.ylabel('Depth [km]')
     plt.title('1-D Resistivity Model for Piedmont (SE Appalachians) Model PT-1')
 
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     plt.loglog(resistivites_ip4,
               np.array(depths) / 1e3)
     plt.gca().invert_yaxis()
-    plt.xlabel('Resistivity [$\Omega$ / m]')
+    plt.xlabel(r'Resistivity [$\Omega$ / m]')
     plt.ylabel('Depth [km]')
     plt.title('1-D Resistivity Model for Interior Plains (Great Plains) Model IP-4')
 
@@ -111,7 +111,7 @@ if __name__ == '__main__':
                 c='g')
     plt.grid(which='both')
     plt.xlabel('Frequency [Hz]')
-    plt.ylabel('$|Z(\omega)|$ [Ohm]')
+    plt.ylabel(r'$|Z(\omega)|$ [Ohm]')
     plt.legend(loc='upper left')
     plt.title('Frequency response of two layered Earth conductivity models')
 

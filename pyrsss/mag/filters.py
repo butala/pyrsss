@@ -80,7 +80,7 @@ def minute_interval_filter(N_remez=201):
 
 
 def second_interval_filter(N_remez=4001):
-    """
+    r"""
     Synthesize and return impulse response of second interval filter
     for analysis of magnetometer data. Design a length *N_remez*
     min-max optimal filter. The filter is designed to stop from 0 to

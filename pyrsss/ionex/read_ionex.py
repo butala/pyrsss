@@ -79,7 +79,6 @@ def read_lon_slice(ionex_file, n_lons):
                     val = np.nan
                 data.append(val)
             except Exception as e:
-                print e
                 raise
             pos = pos + 5
 
@@ -104,7 +103,6 @@ def read_lonlat_block(ionex_file, n_lons, n_lats):
                 dlon = float(content[20:26])
                 h    = float(content[26:32])
             except Exception as e:
-                print e
                 raise
 
             # READ IN THIS PARTICULAR LON SLICE #
@@ -150,7 +148,6 @@ def read_block_header(ionex_file, exponent):
             try:
                 new_exponent = int(content[0:6])
             except Exception as e:
-                print e
                 raise
         elif 'EPOCH OF CURRENT MAP':
             try:
@@ -165,7 +162,6 @@ def read_block_header(ionex_file, exponent):
                                                 hour, minute, sec)
 
             except Exception as e:
-                print e
                 raise
 
 def read_map(ionex_file, n_lons, n_lats, n_heights, exponent):
@@ -240,7 +236,6 @@ def read_header(ionex_file):
                 header_info['start_epoch'] = datetime.datetime(year, month, day, \
                                                 hour, minute, sec)
             except Exception as e:
-                print e
                 raise
         elif 'EPOCH OF LAST MAP' in label:
             try:
@@ -254,13 +249,11 @@ def read_header(ionex_file):
                 header_info['stop_epoch'] = datetime.datetime(year, month, day, \
                                                 hour, minute, sec)
             except Exception as e:
-                print e
                 raise
         elif '# OF MAPS IN FILE' in label:
             try:
                 header_info['map_count'] = int(content[0:6])
             except Exception as e:
-                print e
                 raise
         elif 'MAP DIMENSION' in label:
             try:
@@ -272,7 +265,6 @@ def read_header(ionex_file):
                 header_info['map_dimension'] = map_dimension
 
             except Exception as e:
-                print e
                 raise
 
         elif 'HGT1 / HGT2 / DHGT' in label:
@@ -285,7 +277,6 @@ def read_header(ionex_file):
                 header_info['height2'] = height2
                 header_info['dh']      = dh
             except Exception as e:
-                print e
                 raise
         elif 'LAT1 / LAT2 / DLAT' in label:
             try:
@@ -297,7 +288,6 @@ def read_header(ionex_file):
                 header_info['lat2'] = lat2
                 header_info['dlat'] = dlat
             except Exception as e:
-                print e
                 raise
         elif 'LON1 / LON2 / DLON' in label:
             try:
@@ -309,14 +299,12 @@ def read_header(ionex_file):
                 header_info['lon2'] = lon2
                 header_info['dlon'] = dlon
             except Exception as e:
-                print e
                 raise
         elif 'EXPONENT' in label:
             try:
                 exponent = int(content[0:6])
                 header_info['exponent'] = exponent
             except Exception as e:
-                print e
                 raise
         elif 'PRN / BIAS / RMS' in label:
             # DETERMINE IF THE BIAS IS FOR GPS OR GLONASS
@@ -329,19 +317,16 @@ def read_header(ionex_file):
             try:
                 PRN  = int(content[4:6])
             except Exception as e:
-                print e
                 raise
 
             try:
                 bias = float(content[6:16])
             except Exception as e:
-                print e
                 raise
 
             try:
                 rms = float(content[16:26])
             except Exception as e:
-                print e
                 raise
 
             satellite_biases[gnss_system][PRN] = (bias, rms)
@@ -362,13 +347,11 @@ def read_header(ionex_file):
             try:
                 bias = float(content[26:36])
             except Exception as e:
-                print e
                 raise
 
             try:
                 rms  = float(content[36:46])
             except Exception as e:
-                print e
                 raise
 
             station_biases[gnss_system][station] = (bias, rms, domes)
@@ -481,7 +464,6 @@ def parser(path_to_file):
                 try:
                     map_id = int(split[0])
                 except Exception as e:
-                    print e
                     raise
                 epoch, data_block = read_map(ionex_file, n_lons, n_lats, n_heights, exponent)
                 tec_maps[map_id] = (epoch, data_block) 
@@ -490,7 +472,6 @@ def parser(path_to_file):
                 try:
                     map_id = int(split[0])
                 except Exception as e:
-                    print e
                     raise
                 epoch, data_block = read_map(ionex_file, n_lons, n_lats, n_heights, exponent)
                 rms_maps[map_id] = (epoch, data_block)
@@ -499,7 +480,6 @@ def parser(path_to_file):
                 try:
                     map_id = int(split[0])
                 except Exception as e:
-                    print e
                     raise
                 epoch, data_block = read_map(ionex_file, n_lons, n_lats, n_heights, exponent)
                 height_maps[map_id] = (epoch, data_block)

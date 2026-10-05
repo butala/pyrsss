@@ -58,7 +58,7 @@ def linregress_assessment(y, X, beta_hat):
 
 
 def linregress(df, y_column):
-    """
+    r"""
     Compute the linear regression given the model
 
     .. math::

@@ -59,7 +59,7 @@ def plot_3D_reponse(xml_fname,
                np.abs(Zxx_xml) * 1e3,
                **kwds)
     plt.xlabel('Frequency (mHz)')
-    plt.ylabel('Impedance (m$\Omega$)')
+    plt.ylabel(r'Impedance (m$\Omega$)')
     plt.xlim(fmin_mHz, fmax_mHz)
     plt.legend(loc='lower right')
     plt.subplot(222)
@@ -71,7 +71,7 @@ def plot_3D_reponse(xml_fname,
                np.abs(Zxy_xml) * 1e3,
                **kwds)
     plt.xlabel('Frequency (mHz)')
-    plt.ylabel('Impedance (m$\Omega$)')
+    plt.ylabel(r'Impedance (m$\Omega$)')
     plt.xlim(fmin_mHz, fmax_mHz)
     plt.legend(loc='lower right')
     plt.subplot(223)
@@ -83,7 +83,7 @@ def plot_3D_reponse(xml_fname,
                np.abs(Zyx_xml) * 1e3,
                **kwds)
     plt.xlabel('Frequency (mHz)')
-    plt.ylabel('Impedance (m$\Omega$)')
+    plt.ylabel(r'Impedance (m$\Omega$)')
     plt.xlim(fmin_mHz, fmax_mHz)
     plt.legend(loc='lower right')
     plt.subplot(224)
@@ -95,7 +95,7 @@ def plot_3D_reponse(xml_fname,
                np.abs(Zyy_xml) * 1e3,
                **kwds)
     plt.xlabel('Frequency (mHz)')
-    plt.ylabel('Impedance (m$\Omega$)')
+    plt.ylabel(r'Impedance (m$\Omega$)')
     plt.xlim(fmin_mHz, fmax_mHz)
     plt.legend(loc='lower right')
     plt.suptitle('Magnitude Reponse')

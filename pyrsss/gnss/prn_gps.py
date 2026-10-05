@@ -97,7 +97,7 @@ class Table(list):
         ???
         """
         for candidate in filter(lambda x: x.prn == prn, self):
-            if date in P.closed(candidate.launch, candidate.deactivation]):
+            if date in P.closed(candidate.launch, candidate.deactivation):
                 return candidate.svn
         raise RuntimeError('could not find SVN associated with PRN={} on '
                            '{:%Y-%m-%d}'.format(prn,

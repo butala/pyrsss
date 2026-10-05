@@ -1,5 +1,6 @@
 import math
 from datetime import datetime
+from enum import Enum
 
 
 class OplusType(Enum):
@@ -7,7 +8,7 @@ class OplusType(Enum):
     charge_neutrality = 2
 
 
-"""
+r"""
 The following (alpha1 through BETA_1D) are from Table 2.2 from
 Makela's dissertation. They are in turn from:
 
