@@ -78,7 +78,7 @@ def blackman_tukey(x,
     # For an explanation of the circular shift below:
     # https://dsp.stackexchange.com/questions/34642/practical-cross-spectrum-estimation-using-blackman-tukey-approach
     #
-    # Also, consider adding support for a lab parameter. A
+    # Also, consider adding support for a lag parameter. A
     # cross-correlation does not necessarily peak at k=0 and a lag,
     # k_0 in Stoica and Moses section 2.8.4, can be used to avoid
     # having the window attenuate the cross-correlation where it is
