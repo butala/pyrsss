@@ -5,7 +5,7 @@ from .sepfilter import SepFilter
 
 
 def differentiator(n, Hz=1):
-    """
+    r"""
     Return linear phase impulse response for a length *n* filter that
     approximates the differential operator. The sampling frequency is
     *Hz*.
@@ -17,10 +17,11 @@ def differentiator(n, Hz=1):
     """
     if n % 2 == 1:
         raise ValueError('the filter length n must be even')
+    # `Hz=` was renamed to `fs=` in SciPy 1.13; same meaning (sample rate).
     return scipy.signal.remez(n,
                               [0, Hz / 2],
                               [1],
-                              Hz=Hz,
+                              fs=Hz,
                               type='differentiator') * Hz * 2 * np.pi
 
 
@@ -115,7 +116,7 @@ def plot_diff_spectra(l=[2, 4, 10]):
              H_ideal,
              c='C0',
              zorder=10,
-             label='l=$\infty$')
+             label=r'l=$\infty$')
     for i, (l_i, (f_i, H_i)) in enumerate(H_map.items(), 1):
         plt.plot(f_i,
                  np.abs(H_i),
