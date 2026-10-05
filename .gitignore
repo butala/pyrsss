@@ -2,7 +2,5 @@ build/
 pyrsss.egg-info/
 dist/
 *.pyc
-/pyrsss/gnsstk.cpython-*.so
-/pyrsss/gnsstk.cpp
 .DS_Store
 __pycache__/

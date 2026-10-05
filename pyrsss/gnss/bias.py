@@ -18,6 +18,7 @@ from scipy.interpolate import RectBivariateSpline
 from ..ionex.read_ionex import interpolate2D_temporal
 from ..util.angle import convert_lon
 from ..util.path import SmartTempDir
+from ..util.position import Position
 from ..util.search import find_le
 from .constants import SHELL_HEIGHT, TECU_TO_NS, NS_TO_TECU
 from .level import LeveledArc
@@ -53,16 +54,14 @@ def augment_arc(arc, stn_pos=None, shell_height=SHELL_HEIGHT):
     """
     Return a copy of the :class:`LeveledArc` *arc* with the mapped shell
     height (*el_map*) and ionospheric pierce point (*ipp_lat*,
-    *ipp_lon* [deg]) columns added. *stn_pos* is a :class:`PyPosition`
+    *ipp_lon* [deg]) columns added. *stn_pos* is a :class:`Position`
     built from *arc.llh* when not given.
     """
-    # the gnsstk extension is only required for IPP computation
-    from ..gnsstk import PyPosition
     from .ipp import ipp_from_azel
 
     if stn_pos is None:
-        stn_pos = PyPosition(*arc.llh,
-                             s=PyPosition.CoordinateSystem['geodetic'])
+        stn_pos = Position(*arc.llh,
+                           s=Position.CoordinateSystem['geodetic'])
     ipp_pos = [ipp_from_azel(stn_pos, az_i, el_i)
                for az_i, el_i in zip(arc.az, arc.el)]
     aug = arc.copy()

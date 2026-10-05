@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from iri2016.base import IRI
 
-from ..gnsstk import PyPosition
+from ..util.position import Position
 from ..util.los_integrator import SlantIntegrator
 
 logger = logging.getLogger('pyrsss.iri.iri_stec')
@@ -36,6 +36,6 @@ if __name__ == '__main__':
     sat_xyz = np.array([10741.320824,  12456.414622,  21019.082339]) * 1e3
 
     stec = iri_stec(dt,
-                    PyPosition(*stn_xyz),
-                    PyPosition(*sat_xyz))
+                    Position(*stn_xyz),
+                    Position(*sat_xyz))
     print(stec)

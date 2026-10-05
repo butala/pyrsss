@@ -7,7 +7,7 @@ from collections import namedtuple
 
 from tables import open_file, IsDescription, Time64Col, Float64Col
 
-from ..gnsstk import PyPosition
+from ..util.position import Position
 from ..util.path import SmartTempDir, replace_path
 from ..util.date import UNIX_EPOCH
 from ..iri.iri_stec import iri_stec
@@ -28,8 +28,8 @@ class STecMap(dict):
 def iri_stec_wrap(x):
     """ ??? """
     stn_xyz, (dt, sat, obs) = x
-    stn_pos = PyPosition(*stn_xyz)
-    sat_pos = PyPosition(obs.satx,
+    stn_pos = Position(*stn_xyz)
+    sat_pos = Position(obs.satx,
                          obs.saty,
                          obs.satz)
     return (sat,

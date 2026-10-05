@@ -6,7 +6,7 @@ from scipy.integrate import quad
 from scipy.optimize import minimize_scalar
 
 from ..util.chapman import chapman_sym
-from ..gnsstk import PyPosition
+from ..util.position import Position
 
 
 class SlantIntegrator(object):
@@ -41,7 +41,7 @@ class SlantIntegrator(object):
             Return the ECEF vector a distance *s* along the line-of-site (in
             [km]).
             """
-            return PyPosition(*(np.array(self.stn_pos.xyz) + (s / S_los) * diff))
+            return Position(*(np.array(self.stn_pos.xyz) + (s / S_los) * diff))
         # determine integration bounds
         # distance along of line of site at which the geodetic height
         # is self.height1

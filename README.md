@@ -18,18 +18,17 @@ Domain-specific extras (see `pyproject.toml` for what each pulls in):
 pip install '.[full]'
 ```
 
-### Optional `pyrsss.gnsstk` extension
+### External tools (RINEX front end)
 
-A few modules (`pyrsss.gnss.bias`, `pyrsss.gnss.ipp`, `pyrsss.igrf.line`,
-`pyrsss.iri.iri_stec`, `pyrsss.gnss.iri_stec`, `pyrsss.util.los_integrator`)
-need the Cython `gnsstk` extension built against a local GNSSTk/GPSTk tree.
-Build with the environment variables set:
+The RINEX front end (`pyrsss-gnss-preprocess`, `pyrsss-gnss-phase-edit`,
+`pyrsss-gnss-rinex`, `pyrsss-gnss-process`) shells out to external
+executables:
 
-```bash
-export GNSSTK_SRC=/path/to/gnsstk/src   # source tree
-export GNSSTK_BUILD=/path/to/gnsstk/build  # built libgnsstk
-pip install .
-```
+- [teqc](https://www.unavco.org/software/data-processing/teqc) (RINEX
+  normalization and summaries)
+- GNSSTk/GPSTk `DiscFix` (cycle-slip detection) and `RinDump`
+  (observable dump) --- set the `GNSSTK_BUILD` environment variable to
+  the GNSSTk build directory containing these tools
 
-Without these variables a pure-Python build is performed and the modules
-above are unavailable.
+Everything else (leveling, bias estimation and calibration, IONEX
+handling, ...) is pure Python and needs no external tools.

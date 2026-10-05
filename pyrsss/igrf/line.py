@@ -5,7 +5,7 @@ from scipy.integrate import ode
 
 from igrf12py import igrf12syn as igrf12
 
-from ..gnsstk import PyPosition
+from ..util.position import Position
 
 
 def differential(t, s):
@@ -37,17 +37,17 @@ def line(date_dt, pos0, dt=1e2):
     y0, t0 = [r_km0, theta0, phi0], 0
     tracer = ode(differential).set_integrator('dopri5')
     tracer.set_initial_value(y0, t0)
-    pos_path = [PyPosition(math.degrees(theta0),
+    pos_path = [Position(math.degrees(theta0),
                            math.degrees(phi0),
                            r_km0 * 1e3,
-                           PyPosition.CoordinateSystem['geocentric'])]
+                           Position.CoordinateSystem['geocentric'])]
     while True:
         assert tracer.successful()
         r_km_i, theta_i, phi_i = tracer.integrate(tracer.t + dt)
-        pos = PyPosition(math.degrees(theta_i),
+        pos = Position(math.degrees(theta_i),
                          math.degrees(phi_i),
                          r_km_i * 1e3,
-                         PyPosition.CoordinateSystem['geocentric'])
+                         Position.CoordinateSystem['geocentric'])
         #print(pos.height)
         if pos.height < 0:
             break
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     lat = -60
     lon = 180
     alt = 0
-    pos0 = PyPosition(lat, lon, alt,
-                      PyPosition.CoordinateSystem['geodetic'])
+    pos0 = Position(lat, lon, alt,
+                      Position.CoordinateSystem['geodetic'])
     pos_path = line(date_dt, pos0)
     print(len(pos_path))
