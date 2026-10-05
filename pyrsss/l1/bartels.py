@@ -2,10 +2,10 @@ import os
 import logging
 from urllib.request import urlopen
 from contextlib import closing
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 from datetime import datetime, timedelta
 
-import portion as PD
+from ..util.interval import closed_open
 
 logger = logging.getLogger('pyrsss.l1.bartels')
 
@@ -88,7 +88,7 @@ def parse(local_fname=BARTELS_FNAME,
     the data.
     """
     if data_map is None:
-        data_map = OrderedDict()
+        data_map = dict()
     with open(local_fname) as fid:
         for line in fid:
             if line.startswith('----'):
@@ -120,14 +120,14 @@ class Bartels(dict):
         """
         obj = super(Bartels, cls).__new__(cls)
         parse(local_fname=local_fname, data_map=obj)
-        obj._interval_map = OrderedDict()
+        obj._interval_map = dict()
         values = list(obj.values())
         times_1 = [x.dt for x in values[:-1]]
         times_2 = [x.dt for x in values[1:]]
         for b_id, (t1, t2) in zip(obj,
                                   zip(times_1,
                                       times_2)):
-            interval = P.closed_open(t1, t2)
+            interval = closed_open(t1, t2)
             obj._interval_map[interval] = b_id
         return obj
 

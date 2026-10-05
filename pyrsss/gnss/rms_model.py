@@ -4,7 +4,7 @@ from collections import OrderedDict
 import numpy as np
 
 
-SNR_8 = OrderedDict([#( 5, 46.0),
+SNR_8 = dict([#( 5, 46.0),
                      (10, 35.5),
                      (15, 26.5),
                      (20, 19.0),

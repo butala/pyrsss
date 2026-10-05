@@ -16,9 +16,11 @@ def date_parser(*cols):
                                                         minute) in zip(*cols)]
 
 
-def read_dst(fname=os.path.join(get_root(),
-                                'USGS_dst',
-                                'Dst_definitive_fix_minute.out')):
+def read_dst(fname=None):
+    if fname is None:
+        fname = os.path.join(get_root(),
+                             'USGS_dst',
+                             'Dst_definitive_fix_minute.out')
     df = pd.read_csv(fname,
                      header=None,
                      names=['month', 'day', 'year', 'minute', 'doy', 'dst'],

@@ -28,8 +28,7 @@ dependencies = [
     "numpy",
     "pandas",
     "portion",
-    "intervals",
-    "pyfftw",
+        "pyfftw",
     "pyproj",
     "python-dateutil",
     "scipy",
@@ -49,6 +48,36 @@ usarray = ["obspy"]                             # pyrsss.usarray.iris
 hdf = ["pyhdf"]
 dev = ["pytest"]                                 # pyrsss.l1.hdf4to5
 full = ["apexpy", "igrf", "spaceweather", "iri2016", "geomagio", "cartopy", "obspy", "pyhdf"]
+
+[project.scripts]
+pyrsss-emtf-calc-e = "pyrsss.emtf.calc_e:main"
+pyrsss-emtf-calc-e-3d = "pyrsss.emtf.calc_e_3d:main"
+pyrsss-emtf-e2hdf = "pyrsss.emtf.e2hdf:main"
+pyrsss-emtf-e3d2hdf = "pyrsss.emtf.e3d2hdf:main"
+pyrsss-gnss-bias = "pyrsss.gnss.bias:main"
+pyrsss-gnss-iri-stec = "pyrsss.gnss.iri_stec:main"
+pyrsss-gnss-level = "pyrsss.gnss.level:main"
+pyrsss-gnss-phase-edit = "pyrsss.gnss.phase_edit:main"
+pyrsss-gnss-preprocess = "pyrsss.gnss.preprocess:main"
+pyrsss-gnss-process = "pyrsss.gnss.process:main"
+pyrsss-gnss-rinex = "pyrsss.gnss.rinex:main"
+pyrsss-kalman-validate = "pyrsss.kalman.validate:main"
+pyrsss-l1-hdf4to5 = "pyrsss.l1.hdf4to5:main"
+pyrsss-mag-fgm2hdf = "pyrsss.mag.fgm2hdf:main"
+pyrsss-mag-fgm2iaga = "pyrsss.mag.fgm2iaga:main"
+pyrsss-mag-iaga2002 = "pyrsss.mag.iaga2002:main"
+pyrsss-mag-iaga2hdf = "pyrsss.mag.iaga2hdf:main"
+pyrsss-mag-intermagnet-level0 = "pyrsss.mag.intermagnet_level0:main"
+pyrsss-mag-process-hdf = "pyrsss.mag.process_hdf:main"
+pyrsss-mag-sm2hdf = "pyrsss.mag.sm2hdf:main"
+pyrsss-mag-sm2iaga = "pyrsss.mag.sm2iaga:main"
+pyrsss-stats-stats = "pyrsss.stats.stats:main"
+pyrsss-usarray-emtf-mirror = "pyrsss.usarray_emtf.mirror:main"
+pyrsss-usarray-iris = "pyrsss.usarray.iris:main"
+pyrsss-usarray-mag2geo = "pyrsss.usarray.mag2geo:main"
+pyrsss-usarray-mirror-mt = "pyrsss.usarray.mirror_mt:main"
+pyrsss-usarray-preprocess = "pyrsss.usarray.preprocess:main"
+pyrsss-util-plot-indices = "pyrsss.util.plot_indices:main"
 
 [project.urls]
 Repository = "https://github.com/butala/pyrsss"

@@ -2,7 +2,7 @@ import os
 import sys
 import logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from collections import OrderedDict
+
 
 from iris import fetch
 from info import info_map
@@ -19,7 +19,7 @@ def mirror(path):
     """
     touch_path(path)
     info = info_map()
-    file_map = OrderedDict()
+    file_map = dict()
     for row in info.itertuples():
         stn = row.Index
         start = row.start.to_pydatetime()

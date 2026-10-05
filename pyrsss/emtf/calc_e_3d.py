@@ -4,7 +4,7 @@ import os
 import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import xml.etree.ElementTree as ET
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 
 import numpy as np
 from scipy.constants import mu_0
@@ -135,7 +135,7 @@ def parse_xml(xml_fname):
     assert len(data_list) == 1
     data = data_list[0]
 
-    Z_map = OrderedDict()
+    Z_map = dict()
     for period in data.findall('Period'):
         Z_list = period.findall('Z')
         assert len(Z_list) == 1

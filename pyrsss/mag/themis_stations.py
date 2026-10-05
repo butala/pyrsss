@@ -1,7 +1,7 @@
 from urllib.request import urlopen
 from io import TextIOWrapper
 from contextlib import closing
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 
 
 INFO_URL = 'http://themis.ssl.berkeley.edu/gmag/gmag_groups.php'
@@ -25,7 +25,7 @@ def get_station_info(info_url=INFO_URL, parse_map=PARSE_MAP):
     THEMIS project. Returns a mapping between station IDs and
     :class:`Info` regarding the site.
     """
-    station_info = OrderedDict()
+    station_info = dict()
     with closing(TextIOWrapper(urlopen(info_url),
                            encoding="utf-8",
                            errors="replace")) as fid:

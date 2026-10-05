@@ -3,7 +3,7 @@ import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from itertools import repeat
 from multiprocessing import Pool, cpu_count
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 
 from tables import open_file, IsDescription, Time64Col, Float64Col
 
@@ -21,7 +21,7 @@ class STecInfo(namedtuple('StecInfo',
 
 class STecMap(dict):
     def __missing__(self, key):
-        self[key] = OrderedDict()
+        self[key] = dict()
         return self[key]
 
 

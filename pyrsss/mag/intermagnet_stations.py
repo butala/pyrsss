@@ -1,7 +1,7 @@
 from urllib.request import urlopen
 from io import TextIOWrapper
 from contextlib import closing
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 
 
 INFO_URL = 'http://www.intermagnet.org/imos/imotblobs-eng.php'
@@ -25,7 +25,7 @@ def get_stations(info_url=INFO_URL):
     Parse INTERMAGET station information and return a mapping between
     IDs and :class:`Info`.
     """
-    station_info = OrderedDict()
+    station_info = dict()
     with closing(TextIOWrapper(urlopen(info_url),
                            encoding="utf-8",
                            errors="replace")) as fid:

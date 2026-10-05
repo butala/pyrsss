@@ -5,7 +5,7 @@ from urllib.request import urlopen
 from collections import OrderedDict
 from enum import Enum
 
-from intervals import DateTimeInterval
+from ..util.interval import closed_open
 
 logger = logging.getLogger('pyrsss.usarray.resp')
 
@@ -197,8 +197,8 @@ def parse_station_resp(fid):
         stn = check(block_header, 'Station', stn)
         location = check(block_header, 'Location', location)
         # store block information
-        interval = DateTimeInterval.closed_open(block_header['Start_date'],
-                                                block_header['End_date'])
+        interval = closed_open(block_header['Start_date'],
+                                block_header['End_date'])
         resp_map.setdefault(interval, {})[block_header['Channel']] = block
         if eof:
             break

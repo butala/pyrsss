@@ -1,4 +1,4 @@
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 
 
 """
@@ -46,7 +46,7 @@ def get_station_info(station_info=STATION_INFO):
     Parse CARISMA station information record and return a mapping
     between site IDs and :class:`Info`.
     """
-    info_map = OrderedDict()
+    info_map = dict()
     for line in station_info.splitlines():
         toks = line.split('\t')
         key = toks[0]

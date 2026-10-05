@@ -37,7 +37,7 @@ def read_block(grd_file, n_lats):
 		# the line hats lats in it
 		lats.extend(np.array(line).astype('float'))
 
-		if len(lats) == 17:
+		if len(lats) == n_lats:
 			go = False
 			return np.array(lats)
 
@@ -51,7 +51,7 @@ def grd_read(grd_filename):
 				the electric field at (lon, lat) for time t
 				is accessed via DATA[lon, lat, t].
 	"""
-	with open(grd_filename, 'rb') as grd_file:
+	with open(grd_filename, 'r') as grd_file:
 
 		# read the header line
 		fline, status = next_line(grd_file)
@@ -163,7 +163,7 @@ def grd_write(grd_filename, lon_grid, lat_grid, time_grid, DATA):
 	# .. .. ..
 	"""
 
-	with open(grd_filename, 'wb') as grd_file:
+	with open(grd_filename, 'w') as grd_file:
 
 		# convert the lon grid to -180 to 180 if necessary
 		lon_grid = np.array(lon_grid)

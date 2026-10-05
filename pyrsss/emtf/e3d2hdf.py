@@ -1,7 +1,7 @@
 import sys
 import logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from collections import OrderedDict
+
 
 import numpy as np
 import pandas as pd
@@ -41,7 +41,7 @@ def get_xml_map(repository_path, station_names):
     tuple containing related information and XML file name.
     """
     index = get_index(repository_path)
-    xml_map = OrderedDict()
+    xml_map = dict()
     for station_name in station_names:
         candidates = [x for x in index.keys() if station_name in x]
         if len(candidates) == 1:

@@ -1,7 +1,7 @@
 import logging
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from collections import OrderedDict
+
 
 import pandas as pd
 
@@ -62,7 +62,7 @@ def preprocess(hdf_fname,
     # apply bandpass filter
     logger.info('apply bandpass filter')
     h = BANDPASS_MAP[bandpass_filter][delta.seconds]()
-    data = OrderedDict()
+    data = dict()
     dt = df_col.index
     for i, column in enumerate(columns):
         if i == 0:

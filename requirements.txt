@@ -12,7 +12,6 @@ netCDF4
 numpy
 pandas
 portion
-intervals
 pyfftw
 pyproj
 python-dateutil

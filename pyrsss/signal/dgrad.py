@@ -92,19 +92,19 @@ def plot_diff_spectra(l=[2, 4, 10]):
     include the response of the ideal differentiator. Each length in
     *l* must be even.
     """
-    from collections import OrderedDict
+    
 
     import numpy as np
     import matplotlib.pyplot as plt
 
     from pyrsss.signal.spectrum import spectrum
 
-    h_map = OrderedDict()
+    h_map = dict()
     for l_i in l:
         h_map[l_i] = differentiator(l_i)
 
     oversample = 8
-    H_map = OrderedDict()
+    H_map = dict()
     for l_i, h_i in h_map.items():
         H_map[l_i] = spectrum(h_i, oversample=oversample)
 

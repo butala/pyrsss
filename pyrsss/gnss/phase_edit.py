@@ -2,13 +2,13 @@ import logging
 import sys
 import os
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from collections import defaultdict, namedtuple, OrderedDict
+from collections import defaultdict, namedtuple
 from datetime import datetime
 
 import sh
 
 import pandas as pd
-from intervals import DateTimeInterval
+from ..util.interval import closed
 
 from ..util.path import SmartTempDir, replace_path
 from .path import get_gnsstk_build_path
@@ -267,12 +267,11 @@ def parse_edit_commands(df_fname):
                 if sv_start != sv_end:
                     raise RuntimeError('time range start is for {} but end is '
                                        'for {}'.format(sv_start, sv_end))
-                time_reject_map[sv_start].append(DateTimeInterval([dt_start,
-                                                                   dt_end]))
+                time_reject_map[sv_start].append(closed(dt_start, dt_end))
                 start_command = None
             elif line.startswith('-DS'):
                 _, sv, dt = parse_delete_command(line)
-                time_reject_map[sv].append(DateTimeInterval([dt, dt]))
+                time_reject_map[sv].append(closed(dt, dt))
             elif line.startswith('-BD+'):
                 _, sv, obs_type, dt, offset = parse_bias_command(line)
                 phase_adjust_map[sv].append((dt, obs_type, offset))
@@ -459,7 +458,7 @@ def main(argv=None):
                                   glonass=args.glonass,
                                   preprocess=not args.no_preprocess)
     pd.to_pickle(rinex_dump, args.output_fname)
-    return args.output_fname
+    return
 
 
 if __name__ == '__main__':

@@ -309,7 +309,7 @@ def main(argv=None):
         leveled_arcs = pd.read_pickle(args.leveled_arcs_fname)
         calibrated_arcs = bias_process(leveled_arcs, ionex_fname)
         pd.to_pickle(calibrated_arcs, args.output_fname)
-    return args.output_fname
+    return
 
 
 if __name__ == '__main__':

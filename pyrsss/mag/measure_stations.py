@@ -1,4 +1,4 @@
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 
 """
 Information found at http://vmo.igpp.ucla.edu, looking for MEASURE
@@ -11,7 +11,7 @@ class Info(namedtuple('Info', 'lat lon')):
     pass
 
 
-MEASURE_INFO = OrderedDict([('APL', Info(39.170, -76.880)),
+MEASURE_INFO = dict([('APL', Info(39.170, -76.880)),
                             ('FIT', Info(28.070, -80.950)),
                             ('CLK', Info(44.700, -75.000)),
                             ('DSO', Info(36.250, -81.400)),

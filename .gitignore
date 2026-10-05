@@ -5,3 +5,4 @@ dist/
 /pyrsss/gnsstk.cpython-*.so
 /pyrsss/gnsstk.cpp
 .DS_Store
+__pycache__/

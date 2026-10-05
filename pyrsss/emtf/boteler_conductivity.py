@@ -1,6 +1,6 @@
-from collections import OrderedDict
 
-from intervals import FloatInterval
+
+from ..util.interval import closed_open
 
 """
 Conductivity models given in D. H. Boteler and R. J. Pirjola, "The
@@ -49,11 +49,11 @@ def parse_resistivity(model):
     [m] / resistivity [Ohm/m] tuples), return a conductivity map
     suitable for func:`conductivity.surface_impedance_1D`.
     """
-    conductivity_model = OrderedDict()
+    conductivity_model = dict()
     last_depth = 0
     for depth_i, r in model:
-        bound = FloatInterval.closed_open(last_depth,
-                                          last_depth + depth_i)
+        bound = closed_open(last_depth,
+                            last_depth + depth_i)
         conductivity_model[bound] = 1 / r
         last_depth += depth_i
     return conductivity_model

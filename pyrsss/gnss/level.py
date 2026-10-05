@@ -248,7 +248,7 @@ def main(argv=None):
     rinex_dump = pd.read_pickle(args.rinex_dump_fname)
     leveled_arcs = level(rinex_dump, config=config)
     pd.to_pickle(leveled_arcs, args.output_fname)
-    return args.output_fname
+    return
 
 
 if __name__ == '__main__':

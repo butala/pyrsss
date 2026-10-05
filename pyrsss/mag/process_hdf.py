@@ -4,7 +4,7 @@ import warnings
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import timedelta
 from itertools import groupby
-from collections import OrderedDict
+
 
 import numpy as np
 import pandas as pd
@@ -197,7 +197,7 @@ def process_df(df,
         h = minute_interval_filter()
     else:
         raise ValueError('1 to 100 mHz filter not yet synthesized for {} s interval data'.format(interval))
-    data = OrderedDict()
+    data = dict()
     dt = df.index.to_pydatetime()
     for i, col in enumerate(df.columns):
         logger.info('Band-pass filter {}'.format(col))

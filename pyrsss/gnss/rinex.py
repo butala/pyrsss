@@ -8,7 +8,7 @@ from io import StringIO
 
 import sh
 
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 
 import pandas as pd
 
@@ -352,7 +352,7 @@ class RinexDump(pd.DataFrame):
             if columns is None:
                 raise ValueError('# Data line not found in {}'.format(rindump_fname))
             data_map = defaultdict(list)
-            p1c1_table = OrderedDict()
+            p1c1_table = dict()
             # parse remaining lines
             for line in fid:
                 if line.startswith('# Refpos'):

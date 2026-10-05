@@ -1,7 +1,7 @@
 import logging
 import math
 from itertools import repeat
-from collections import OrderedDict
+
 
 import numpy as np
 import scipy as sp
@@ -127,8 +127,8 @@ def fir_response(h, bands, desired, Hz=1, names=None, verbose=True):
     H = sp.fft.rfft(h, n=L)
     f = sp.fft.rfftfreq(L, 1/Hz)
     # gather stats per band
-    band_stats = OrderedDict()
-    medians = OrderedDict()
+    band_stats = dict()
+    medians = dict()
     band_tuples = list(zip(bands[::2], bands[1::2]))
     for index, ((b1, b2), d) in enumerate(zip(band_tuples, desired)):
         I = [i for  i, f_i in enumerate(f) if b1 <= f_i < b2]

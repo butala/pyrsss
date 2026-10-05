@@ -1,8 +1,8 @@
 import os
-from collections import namedtuple, OrderedDict
+from collections import namedtuple
 from datetime import datetime
 
-from intervals import DateTimeInterval
+from ..util.interval import closed_open
 
 from .sideshow import update_sideshow_file
 
@@ -57,9 +57,9 @@ class GLONASS_Status(dict):
                 start_dt = parse_dt(toks[2], toks[3])
                 end_dt = parse_dt(toks[4], toks[5])
                 slot, freq, plane, GLONASS, cosmos = map(int, toks[6:])
-                interval = DateTimeInterval.closed_open(start_dt, end_dt)
+                interval = closed_open(start_dt, end_dt)
                 info = StatusInfo(launch_dt, slot, freq, plane, GLONASS, cosmos)
-                self.setdefault(slot, OrderedDict())[interval] = info
+                self.setdefault(slot, dict())[interval] = info
 
     def __call__(self, slot, dt):
         """

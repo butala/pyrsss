@@ -4,7 +4,7 @@ import logging
 import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime, timedelta
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 
 import pandas as pd
 import igrf

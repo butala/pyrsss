@@ -4,7 +4,7 @@ import os
 import math
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime, timedelta
-from collections import OrderedDict, namedtuple, defaultdict
+from collections import namedtuple, defaultdict
 from abc import ABC, abstractmethod, abstractproperty
 
 import pandas as pd
@@ -230,7 +230,7 @@ def parse(fname, strict=True):
         if len(fields) != 7:
             raise RuntimeError('malformed data header record in {} ({})'.format(fname,
                                                                                 line))
-        data_map = OrderedDict()
+        data_map = dict()
         # parse data records
         for line in fid:
             try:
@@ -289,7 +289,7 @@ def parse_header(fid):
     `[H, D, Z, F]`). Return the with the header and data column
     information.
     """
-    header = OrderedDict()
+    header = dict()
     for line in fid:
         if line[69] != '|':
             logger.warning('skipping malformed header line: {}'.format(line))

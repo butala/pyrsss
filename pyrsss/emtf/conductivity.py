@@ -1,8 +1,8 @@
-from collections import OrderedDict
+
 
 import numpy as np
 import scipy.constants
-from intervals import FloatInterval
+from ..util.interval import closed_open, length
 
 
 def parse_conductivity(fid):
@@ -22,9 +22,9 @@ def parse_conductivity(fid):
     last_depth = 0
     bounds = []
     for depth in thicknesses:
-        bounds.append(FloatInterval.closed_open(last_depth, last_depth + depth))
+        bounds.append(closed_open(last_depth, last_depth + depth))
         last_depth += depth
-    return OrderedDict(zip(bounds,
+    return dict(zip(bounds,
                            1 / np.array(resistivites)))
 
 
@@ -34,7 +34,7 @@ def surface_impedance_1D(conductivity_map, omega):
     model *conductivity_map* at angular frequencies *omega* [rad].
     """
     # check that bottom layer is an open half space
-    assert list(conductivity_map.keys())[-1].length == float('inf')
+    assert length(list(conductivity_map.keys())[-1]) == float('inf')
     # start at bottom layer
     sigma = list(conductivity_map.values())[-1]
     # (5) in NERC, Application Guide: Computing
@@ -51,7 +51,7 @@ def surface_impedance_1D(conductivity_map, omega):
         A = k * Z / (1j * omega * scipy.constants.mu_0)
         r = (1 - A) / (1 + A)
         # (8)
-        d = interval_i.length
+        d = length(interval_i)
         B = r * np.exp(-2 * k * d)
         Z = 1j * omega * scipy.constants.mu_0 * (1 - B) / (k * (1 + B))
     return Z
