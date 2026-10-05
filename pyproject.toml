@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -22,13 +22,11 @@ classifiers = [
 ]
 dependencies = [
     "matplotlib",
-    "more-itertools",
     "netCDF4",
-    "numexpr",
     "numpy",
     "pandas",
     "portion",
-        "pyfftw",
+    "pyfftw",
     "pyproj",
     "python-dateutil",
     "scipy",
@@ -45,8 +43,8 @@ mag = ["apexpy", "igrf", "spaceweather"]        # pyrsss.mag, pyrsss.usarray.mag
 iri = ["iri2016"]                               # pyrsss.iri
 emtf = ["geomagio", "cartopy"]                  # pyrsss.emtf, pyrsss.util.plot
 usarray = ["obspy"]                             # pyrsss.usarray.iris
-hdf = ["pyhdf"]
-dev = ["pytest"]                                 # pyrsss.l1.hdf4to5
+hdf = ["pyhdf"]                                # pyrsss.l1.hdf4to5
+dev = ["pytest"]
 full = ["apexpy", "igrf", "spaceweather", "iri2016", "geomagio", "cartopy", "obspy", "pyhdf"]
 
 [project.scripts]
@@ -84,3 +82,6 @@ Repository = "https://github.com/butala/pyrsss"
 
 [tool.setuptools.packages.find]
 include = ["pyrsss*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
