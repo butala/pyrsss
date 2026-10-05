@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import timedelta
-from cStringIO import StringIO
+from io import StringIO
 
 import sh
 

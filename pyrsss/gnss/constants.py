@@ -71,9 +71,25 @@ F_GLO_2_DELTA = 0.4375e6
 """GLONASS carrier 1 frequency [Hz]."""
 
 
-def glonass_lambda(slot, dt, glonass_status=GLONASS_Status()):
+_glonass_status = None
+
+
+def get_glonass_status():
+    """
+    Return the shared :class:`GLONASS_Status` table (built on first use
+    so that import does not trigger a network fetch).
+    """
+    global _glonass_status
+    if _glonass_status is None:
+        _glonass_status = GLONASS_Status()
+    return _glonass_status
+
+
+def glonass_lambda(slot, dt, glonass_status=None):
     """
     """
+    if glonass_status is None:
+        glonass_status = get_glonass_status()
     info = glonass_status(slot, dt)
     k = info.freq
     return (const.c / (F_GLO_1 + k * F_GLO_1_DELTA),

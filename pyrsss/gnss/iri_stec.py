@@ -1,7 +1,7 @@
 import logging
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from itertools import repeat, izip
+from itertools import repeat
 from multiprocessing import Pool, cpu_count
 from collections import OrderedDict, namedtuple
 
@@ -60,7 +60,7 @@ def rinex_iri_stec(obs_fname,
         obs_map_iter = ObsMapFlatIterator(obs_map)
 
         pool = Pool(processes)
-        stec_output = pool.map(iri_stec_wrap, izip(repeat(obs_map.xyz), obs_map_iter))
+        stec_output = pool.map(iri_stec_wrap, zip(repeat(obs_map.xyz), obs_map_iter))
         pool.close()
         pool.join()
 

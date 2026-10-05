@@ -1,5 +1,4 @@
 import os
-from itertools import izip
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -14,7 +13,7 @@ def date_parser(*cols):
             timedelta(minutes=get_int(minute) - 1) for (month,
                                                         day,
                                                         year,
-                                                        minute) in izip(*cols)]
+                                                        minute) in zip(*cols)]
 
 
 def read_dst(fname=os.path.join(get_root(),
