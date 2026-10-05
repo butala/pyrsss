@@ -1,13 +1,23 @@
 #!/usr/bin/env python
+"""
+Build script for the optional pyrsss.gnsstk extension. All package
+metadata lives in pyproject.toml; this file only carries the Cython
+extension machinery, which needs environment-specific paths:
 
+    GNSSTK_SRC    path to the GNSSTk/GPSTk source tree
+    GNSSTK_BUILD  path to the built gnsstk library
+
+If these are not set a pure-Python build is performed.
+"""
 import os
-from setuptools import setup, Extension, find_packages
 
-from Cython.Build import cythonize
+from setuptools import setup, Extension
 
 
 if 'GNSSTK_SRC' in os.environ:
     assert 'GNSSTK_BUILD' in os.environ
+    from Cython.Build import cythonize
+
     core_lib_path = os.path.join(os.environ['GNSSTK_SRC'],
                                  'core',
                                  'lib')
@@ -47,10 +57,4 @@ else:
     ext_modules = []
 
 
-setup(name='pyrsss',
-      version='0.2',
-      description='Remote sensing and space science python tools.',
-      author='Mark D. Butala, Matthew A. Grawe, et al.',
-      author_email='butala@illinois.edu',
-      packages=find_packages(),
-      ext_modules=ext_modules)
+setup(ext_modules=ext_modules)

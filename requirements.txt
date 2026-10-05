@@ -1,5 +1,9 @@
+# Core dependencies. The authoritative list lives in pyproject.toml;
+# this file is kept for convenience:
+#     pip install -r requirements.txt
 apexpy
 Cython
+geomagio
 igrf
 iri2016
 matplotlib
@@ -8,6 +12,7 @@ netCDF4
 numpy
 pandas
 portion
+intervals
 pyfftw
 pyproj
 python-dateutil

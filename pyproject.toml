@@ -1,2 +1,56 @@
 [build-system]
-requires = ["setuptools", "wheel", "Cython"]
+requires = ["setuptools>=64", "wheel", "Cython"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyrsss"
+version = "0.3"
+description = "Remote sensing and space science python tools."
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Mark D. Butala, Matthew A. Grawe, et al.", email = "butala@illinois.edu"},
+]
+requires-python = ">=3.10"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "matplotlib",
+    "more-itertools",
+    "netCDF4",
+    "numexpr",
+    "numpy",
+    "pandas",
+    "portion",
+    "intervals",
+    "pyfftw",
+    "pyproj",
+    "python-dateutil",
+    "scipy",
+    "sh",
+    "sympy",
+    "tables",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+# Domain-specific and specialized dependencies that are only needed by
+# parts of the package (and are not always trivial to install):
+mag = ["apexpy", "igrf", "spaceweather"]        # pyrsss.mag, pyrsss.usarray.mag2geo
+iri = ["iri2016"]                               # pyrsss.iri
+emtf = ["geomagio", "cartopy"]                  # pyrsss.emtf, pyrsss.util.plot
+usarray = ["obspy"]                             # pyrsss.usarray.iris
+hdf = ["pyhdf"]                                 # pyrsss.l1.hdf4to5
+full = ["apexpy", "igrf", "spaceweather", "iri2016", "geomagio", "cartopy", "obspy", "pyhdf"]
+
+[project.urls]
+Repository = "https://github.com/butala/pyrsss"
+
+[tool.setuptools.packages.find]
+include = ["pyrsss*"]
