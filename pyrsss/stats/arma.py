@@ -112,8 +112,8 @@ def arma_sensitivity(b, a, x, Nk, zi=None):
     Da_c = np.pad(v[:-1], (1, 0))
     Da = sp.linalg.toeplitz(Da_c, r=Da_r)
 
-    Db_r = np.zeros(len(b) - Nk)
     Db_c = np.pad(w[:(len(w) - Nk)], (Nk, 0))
+    Db_r = np.zeros(len(b) - Nk, dtype=float if np.isrealobj(Db_c) else complex)
     if Nk == 0:
         Db_r[0] = Db_c[0]
     Db = sp.linalg.toeplitz(Db_c, r=Db_r)
