@@ -1,33 +1,11 @@
 """Tests for pyrsss.gnss.bias (bias removal / calibration)."""
-from datetime import timedelta
-
 import numpy as np
 import pytest
 
-from pyrsss.gnss.bias import CalibratedArc, calibrate_arcs, calibrate_dcb, estimate_receiver_bias
-from pyrsss.gnss.constants import GPS_EPOCH, NS_TO_TECU, TECU_TO_NS
-from pyrsss.gnss.level import LeveledArc
-
-
-def make_leveled_arc(sat='G01', n=10, el=45.0, L_I=None, P_I=None):
-    t0 = GPS_EPOCH + timedelta(days=1800 * 7, seconds=259200)
-    arc = LeveledArc({'gps_time': [t0 + timedelta(seconds=30 * i)
-                                   for i in range(n)],
-                      'az': np.full(n, 180.0),
-                      'el': np.full(n, el),
-                      'satx': np.full(n, 1000.0),
-                      'saty': np.full(n, 2000.0),
-                      'satz': np.full(n, 3000.0),
-                      'P_I': P_I if P_I is not None else np.full(n, 10.0),
-                      'L_I': L_I if L_I is not None else np.full(n, 5.0)})
-    arc.xyz = [1.0, 2.0, 3.0]
-    arc.llh = [40.0, -88.0, 200.0]
-    arc.stn = 'TEST'
-    arc.recv_type = 'TEST'
-    arc.sat = sat
-    arc.L = 5.0
-    arc.L_scatter = 0.1
-    return arc
+from helpers import synthetic_leveled_arc as make_leveled_arc
+from pyrsss.gnss.bias import (CalibratedArc, calibrate_arcs, calibrate_dcb,
+                              estimate_receiver_bias)
+from pyrsss.gnss.constants import NS_TO_TECU, TECU_TO_NS
 
 
 def test_estimate_receiver_bias():

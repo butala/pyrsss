@@ -19,7 +19,8 @@ def ipp_from_azel(stn_pos, az, el, ht=450, tol=1e-5):
         return Position(*los_xyz)
     def J(s):
         return abs(los_pos(s).height - ht * 1e3)
-    res = scipy.optimize.minimize_scalar(J, bounds=(0, 1), tol=tol)
+    res = scipy.optimize.minimize_scalar(J, bounds=(0, 1),
+                                          options={'xatol': tol})
     assert res.success
     s_star = res.x
     return los_pos(s_star)

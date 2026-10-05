@@ -1,7 +1,7 @@
 """Round-trip tests for the .grd reader/writer (pyrsss.emtf.grdio)."""
 import numpy as np
 
-from pyrsss.emtf.grdio.grd_io import grd_read, grd_write
+from pyrsss.emtf.grd_io import grd_read, grd_write
 
 
 def test_roundtrip(tmp_path):

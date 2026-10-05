@@ -32,3 +32,9 @@ executables:
 
 Everything else (leveling, bias estimation and calibration, IONEX
 handling, ...) is pure Python and needs no external tools.
+
+## Notebooks
+
+The `notebooks/` directory contains exploratory research notebooks and
+reference documents predating the current package layout; they are kept
+for historical context and are not maintained against the library API.

@@ -131,6 +131,9 @@ class Bartels(dict):
             obj._interval_map[interval] = b_id
         return obj
 
+    def __init__(self, local_fname=BARTELS_FNAME):
+        """All work happens in :meth:`__new__` (keep dict.__init__ quiet)."""
+        pass
 
     def __call__(self, dt):
         """

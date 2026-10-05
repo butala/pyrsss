@@ -20,7 +20,7 @@ jobs:
       - name: Byte-compile (SyntaxWarning as error)
         run: python -W error::SyntaxWarning -m compileall -q pyrsss
       - name: Unit tests
-        run: python -m pytest tests/ -q
+        run: python -m pytest -q --cov=pyrsss --cov-report=term
       - name: Import smoke test (core modules)
         run: |
           python - <<'EOF'

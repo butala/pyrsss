@@ -20,4 +20,4 @@ def rad2tenths_of_arcminutes(rad):
     """
     Return *rad* convert to tenths of arcminutes.
     """
-    return deg2tenths_of_minute(np.degrees(rad))
+    return deg2tenths_of_arcminute(np.degrees(rad))

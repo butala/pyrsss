@@ -96,7 +96,7 @@ def emission_v6300(ne,
     elif oplus_type == OplusType.charge_neutrality:
         oplus = Oplus(ne, Te, Ti, O2, N2, exp=exp)
     else:
-        raise NotImplemented('oplus_type = ' + str(oplus_type))
+        raise NotImplementedError('oplus_type = ' + str(oplus_type))
     N = (A_1D / A_6300) * BETA_1D * k1(Ti, exp=exp) * O2 * oplus
     D = 1 + (k3(Tn, exp=exp) * N2 + k4(Tn, exp=exp) * O2 + k5(Tn) * ne) / A_1D
     return N / D
