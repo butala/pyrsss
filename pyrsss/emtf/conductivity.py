@@ -14,7 +14,7 @@ def parse_conductivity(fid):
     for line in fid:
         if line.startswith('*/'):
             if 'thicknesses' in line.split('!')[1].lower():
-                thicknesses = map(float, line[1:].split('/')[1].split(',')[:-1])
+                thicknesses = list(map(float, line[1:].split('/')[1].split(',')[:-1]))
             elif 'resistivities' in line.split('!')[1].lower():
                 resistivites = list(map(float, line[1:].split('/')[1].split(',')[:-1]))
             else:

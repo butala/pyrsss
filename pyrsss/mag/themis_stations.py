@@ -1,4 +1,5 @@
-from urllib2 import urlopen
+from urllib.request import urlopen
+from io import TextIOWrapper
 from contextlib import closing
 from collections import OrderedDict, namedtuple
 
@@ -25,7 +26,9 @@ def get_station_info(info_url=INFO_URL, parse_map=PARSE_MAP):
     :class:`Info` regarding the site.
     """
     station_info = OrderedDict()
-    with closing(urlopen(info_url)) as fid:
+    with closing(TextIOWrapper(urlopen(info_url),
+                           encoding="utf-8",
+                           errors="replace")) as fid:
         stn_data = {}
         for line in fid:
             if line.startswith('};'):
@@ -37,7 +40,7 @@ def get_station_info(info_url=INFO_URL, parse_map=PARSE_MAP):
                 station_info[key] = Info(**stn_data)
                 stn_data = {}
             line = line.lstrip()
-            for search_key, (key, convert) in parse_map.iteritems():
+            for search_key, (key, convert) in parse_map.items():
                 if line.startswith(search_key):
                     stn_data[key] = convert(line.split('"')[1])
     return station_info

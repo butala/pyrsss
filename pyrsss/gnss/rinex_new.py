@@ -4,9 +4,9 @@ from datetime import timedelta
 
 import pandas as pd
 
-from constants import GPS_EPOCH
-from preprocess import normalize_rinex
-from rinex import dump_rinex, RINDUMP_OBS_MAP
+from .constants import GPS_EPOCH
+from .preprocess import normalize_rinex
+from .rinex import dump_rinex, RINDUMP_OBS_MAP
 
 
 def week_sec2dt(gps_week, seconds):

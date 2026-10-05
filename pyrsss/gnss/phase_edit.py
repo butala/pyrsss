@@ -290,7 +290,7 @@ def filter_obs_map(obs_map,
         L2_delta = 0
         reject_list = list(time_reject_map[sat])
         offset_list = list(phase_adjust_map[sat])
-        for dt, obs in obs_map[sat].iteritems():
+        for dt, obs in obs_map[sat].items():
             # time rejection
             while reject_list and dt > reject_list[0].upper:
                 reject_list.pop(0)

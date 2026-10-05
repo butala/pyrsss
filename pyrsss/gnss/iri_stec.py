@@ -11,8 +11,8 @@ from ..gnsstk import PyPosition
 from ..util.path import SmartTempDir, replace_path
 from ..util.date import UNIX_EPOCH
 from ..iri.iri_stec import iri_stec
-from rinex import dump_preprocessed_rinex, read_rindump
-from observation import ObsMapFlatIterator
+from .rinex import dump_preprocessed_rinex, read_rindump
+from .observation import ObsMapFlatIterator
 
 
 class STecInfo(namedtuple('StecInfo',
@@ -94,7 +94,7 @@ def dump_stec_map(h5_fname, stec_map):
         assert sat[0] == 'G'
         table = h5file.create_table(group, sat, STecTable, 'GPS prn={} data'.format(sat[1:]))
         row = table.row
-        for dt, stec_info in stec_map[sat].iteritems():
+        for dt, stec_info in stec_map[sat].items():
             row['dt'] = (dt - UNIX_EPOCH).total_seconds()
             row['stec'] = stec_info.stec
             row['az'] = stec_info.az

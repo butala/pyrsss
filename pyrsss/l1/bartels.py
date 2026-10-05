@@ -1,6 +1,6 @@
 import os
 import logging
-from urllib2 import urlopen
+from urllib.request import urlopen
 from contextlib import closing
 from collections import OrderedDict, namedtuple
 from datetime import datetime, timedelta
@@ -32,7 +32,7 @@ def update(local_fname=BARTELS_FNAME,
     """
     with open(local_fname, 'w') as fid, closing(urlopen(bartels_url)) as fid_in:
         logger.info('fetching {}'.format(bartels_url))
-        fid.write(fid_in.read())
+        fid.write(fid_in.read().decode('utf-8'))
     return local_fname
 
 
@@ -121,8 +121,9 @@ class Bartels(dict):
         obj = super(Bartels, cls).__new__(cls)
         parse(local_fname=local_fname, data_map=obj)
         obj._interval_map = OrderedDict()
-        times_1 = [x.dt for x in obj.values()[:-1]]
-        times_2 = [x.dt for x in obj.values()[1:]]
+        values = list(obj.values())
+        times_1 = [x.dt for x in values[:-1]]
+        times_2 = [x.dt for x in values[1:]]
         for b_id, (t1, t2) in zip(obj,
                                   zip(times_1,
                                       times_2)):
@@ -136,7 +137,7 @@ class Bartels(dict):
         Return the Bartels rotation number corresponding to the date time
         *dt*.
         """
-        for interval, b_id in self._interval_map.iteritems():
+        for interval, b_id in self._interval_map.items():
             if dt in interval:
                 return b_id
         return None

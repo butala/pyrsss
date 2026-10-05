@@ -1,12 +1,13 @@
 import logging
 from datetime import timedelta
-from collections import OrderedDict, namedtuple, Iterator
+from collections import OrderedDict, namedtuple
+from collections.abc import Iterator
 
 import scipy.constants as const
 from tables import open_file, IsDescription, Time64Col, Float64Col
 
 from ..util.date import UNIX_EPOCH
-from constants import F_1, F_2, LAMBDA_1, LAMBDA_2
+from .constants import F_1, F_2, LAMBDA_1, LAMBDA_2
 
 logger = logging.getLogger('pyrsss.gps.observation')
 
@@ -109,9 +110,9 @@ class ObsMapFlatIterator(Iterator):
         sorted_sats = sorted(obs_map)
         self.obs_dts = OrderedDict([(x, self.obs_map[x].keys()) for x in sorted_sats])
 
-    def next(self):
+    def __next__(self):
         """ ??? """
-        front_dts = [None if len(x) == 0 else x[0] for x in self.obs_dts.itervalues()]
+        front_dts = [None if len(x) == 0 else x[0] for x in self.obs_dts.values()]
         if all([x is None for x in front_dts]):
             raise StopIteration
         # below is the argmin function that ignores entries that are
@@ -119,7 +120,7 @@ class ObsMapFlatIterator(Iterator):
         I, min_dt = min(filter(lambda x: x[1] is not None,
                                enumerate(front_dts)),
                         key=lambda x: x[1])
-        sat = self.obs_dts.keys()[I]
+        sat = list(self.obs_dts.keys())[I]
         self.obs_dts[sat].pop(0)
         return min_dt, sat, self.obs_map[sat][min_dt]
 
@@ -172,7 +173,7 @@ class ObsMap(OrderedDict):
             assert sat[0] == 'G'
             table = h5file.create_table(group, sat, ObsMap.Table, 'GPS prn={} data'.format(sat[1:]))
             row = table.row
-            for dt, obs in self[sat].iteritems():
+            for dt, obs in self[sat].items():
                 row['dt'] = (dt - UNIX_EPOCH).total_seconds()
                 row['C1'] = obs.C1
                 row['P1'] = obs.P1

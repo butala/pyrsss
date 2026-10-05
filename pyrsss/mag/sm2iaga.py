@@ -154,7 +154,7 @@ def df_map2iaga(path, df_map, nez=False):
     """
     """
     output_map = defaultdict(dict)
-    for stn, df in df_map.iteritems():
+    for stn, df in df_map.items():
         station_info = STATION_MAP[stn.upper()]
         lat = station_info.glat
         lon = station_info.glon

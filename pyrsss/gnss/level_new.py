@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 
 from ..stats.stats import weighted_avg_and_std
-from constants import LAMBDA_1, LAMBDA_2, TECU_TO_M, M_TO_TECU, glonass_lambda
-from level import DEFAULT_CONFIG
-from rms_model import RMSModel
+from .constants import LAMBDA_1, LAMBDA_2, TECU_TO_M, M_TO_TECU, glonass_lambda
+from .level import DEFAULT_CONFIG
+from .rms_model import RMSModel
 
 logger = logging.getLogger('pyrsss.gps.level_new')
 

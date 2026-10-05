@@ -4,10 +4,10 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 #from constants import M_TO_TECU, NS_TO_TECU
-from rinex_new import RinexDump
+from .rinex_new import RinexDump
 from ..ionex.read_ionex import read_header
 #from constants import K, F_GLO_1, F_GLO_2, F_GLO_1_DELTA, F_GLO_2_DELTA
-from constants import K, F_1, F_2
+from .constants import K, F_1, F_2
 # from glonass import GLONASS_Status
 
 

@@ -122,9 +122,10 @@ def process(output_mat_fname,
     """
     # gather Bx and By magnetometer measurements
     _, data_map = parse(input_iaga2002_fname)
-    interval = int((data_map.keys()[1] - data_map.keys()[0]).total_seconds())
-    Bx = nan_interp([record.x * 1e-9 for record in data_map.itervalues()])
-    By = nan_interp([record.y * 1e-9 for record in data_map.itervalues()])
+    keys = list(data_map.keys())
+    interval = int((keys[1] - keys[0]).total_seconds())
+    Bx = nan_interp([record.x * 1e-9 for record in data_map.values()])
+    By = nan_interp([record.y * 1e-9 for record in data_map.values()])
     # filter with transfer function
     Ex, Ey = apply_transfer_function(Bx,
                                      By,
@@ -133,7 +134,7 @@ def process(output_mat_fname,
                                      model_map=model_map)
     # save E field
     stn_name = os.path.basename(input_iaga2002_fname)[:3]
-    j2000 = map(toJ2000, data_map.iterkeys())
+    j2000 = list(map(toJ2000, data_map.keys()))
     mdict = {'Ex': Ex,
              'Ey': Ey,
              'j2000': j2000,
@@ -142,8 +143,8 @@ def process(output_mat_fname,
     if save_B:
         mdict['Bx'] = Bx
         mdict['By'] = By
-        mdict['Bx_raw'] = [getattr(x, stn_name.upper() + 'X') * 1e-9 for x in data_map.itervalues()]
-        mdict['By_raw'] = [getattr(x, stn_name.upper() + 'Y') * 1e-9 for x in data_map.itervalues()]
+        mdict['Bx_raw'] = [getattr(x, stn_name.upper() + 'X') * 1e-9 for x in data_map.values()]
+        mdict['By_raw'] = [getattr(x, stn_name.upper() + 'Y') * 1e-9 for x in data_map.values()]
     savemat(output_mat_fname, mdict)
     return output_mat_fname
 

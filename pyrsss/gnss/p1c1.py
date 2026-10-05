@@ -58,9 +58,9 @@ class P1C1Table(OrderedDict):
         Return the table entry closest to *date*. Check that the closest
         table entry is no greater than *delta* away.
         """
-        diff = np.array([abs((x - date).total_seconds()) for x in self.iterkeys()])
+        diff = np.array([abs((x - date).total_seconds()) for x in self.keys()])
         I = np.argmin(diff)
-        closest_date = self.keys()[I]
+        closest_date = list(self.keys())[I]
         # make sure date argument is no further than 1 month away from
         # a table entry
         assert abs(date - closest_date) < delta

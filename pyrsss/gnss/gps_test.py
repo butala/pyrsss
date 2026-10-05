@@ -5,12 +5,12 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
-from constants import NS_TO_TECU
-from preprocess import normalize_rinex
-from rinex import dump_rinex, get_receiver_position
-from phase_edit_new import phase_edit, apply_phase_adjustments, apply_rejections, label_phase_arcs, parse_discfix_log
-from rinex_new import week_sec2dt, RinexDump
-from level_new import level
+from .constants import NS_TO_TECU
+from .preprocess import normalize_rinex
+from .rinex import dump_rinex, get_receiver_position
+from .phase_edit_new import phase_edit, apply_phase_adjustments, apply_rejections, label_phase_arcs, parse_discfix_log
+from .rinex_new import week_sec2dt, RinexDump
+from .level_new import level
 from ..ionex.read_ionex import read_header
 
 

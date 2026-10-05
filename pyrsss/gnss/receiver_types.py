@@ -3,7 +3,7 @@ import os
 from collections import namedtuple
 
 from ..util.path import replace_path
-from sideshow import update_sideshow_file
+from .sideshow import update_sideshow_file
 
 
 RECEIVER_TYPES_FNAME = os.path.join(os.path.dirname(__file__),

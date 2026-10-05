@@ -30,7 +30,7 @@ def rinex_info(rinex_fname,
         elif line.lstrip().startswith('antenna WGS 84 (xyz)'):
             # make sure units are [m]
             assert line.rstrip().endswith('(m)')
-            info['xyz'] = map(float, line.split(':')[1].split('(')[0].split())
+            info['xyz'] = list(map(float, line.split(':')[1].split('(')[0].split()))
         elif line.lstrip().startswith('antenna WGS 84 (geo)'):
             if line.split(':')[1].lstrip()[0] in ['N', 'S']:
                 # skip arcmin, arcsec line

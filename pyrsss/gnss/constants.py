@@ -3,7 +3,7 @@ from datetime import datetime
 
 import scipy.constants as const
 
-from glonass import GLONASS_Status
+from .glonass import GLONASS_Status
 
 
 GPS_EPOCH = datetime(1980, 1, 6)

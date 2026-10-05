@@ -4,7 +4,7 @@ from datetime import datetime
 
 from intervals import DateTimeInterval
 
-from sideshow import update_sideshow_file
+from .sideshow import update_sideshow_file
 
 
 GLO_STATUS_FNAME = os.path.join(os.path.dirname(__file__),
@@ -66,7 +66,7 @@ class GLONASS_Status(dict):
         Return the :class:`StatusInfo` associated with GLONASS satellite
         with ID *slot* at :class:`datetime` *dt*.
         """
-        for interval, info in self[slot].iteritems():
+        for interval, info in self[slot].items():
             if dt in interval:
                 return info
         raise KeyError('no record for {} at {:%Y-%m-%d %H:%M} found'.format(slot, dt))

@@ -1,6 +1,6 @@
 import logging
 import os
-from cPickle import load, dump
+from pickle import load, dump
 
 import pyfftw
 

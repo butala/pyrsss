@@ -67,7 +67,7 @@ def parse_ace_data(hdf4_fname, N=1000):
                                                    hours=hr,
                                                    minutes=minute,
                                                    seconds=sec))
-    data = {k: v for k, v in data_map.iteritems() if k not in remove_set}
+    data = {k: v for k, v in data_map.items() if k not in remove_set}
     df = pd.DataFrame(index=dt,
                       data=data)
     return df

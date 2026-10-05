@@ -666,7 +666,7 @@ def interpolate2D_temporal(path_to_file, temporal_grid, method = "linear", data 
     import calendar
     from scipy import interpolate
 
-    k      = tec_maps.keys()[0]
+    k      = list(tec_maps.keys())[0]
     n_lons = tec_maps[k][1].shape[0]
     n_lats = tec_maps[k][1].shape[1]
 

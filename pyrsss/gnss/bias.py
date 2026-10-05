@@ -10,12 +10,12 @@ import numpy as np
 from scipy.interpolate import RectBivariateSpline
 from tables import open_file, IsDescription, Time64Col, Float64Col
 
-from constants import SHELL_HEIGHT, TECU_TO_NS
-from level import LeveledArc, ArcMap
-from util import shell_mapping
-from ipp import ipp_from_azel
-from teqc import rinex_info
-from sideshow import update_sideshow_file
+from .constants import SHELL_HEIGHT, TECU_TO_NS
+from .level import LeveledArc, ArcMap
+from .util import shell_mapping
+from .ipp import ipp_from_azel
+from .teqc import rinex_info
+from .sideshow import update_sideshow_file
 from ..gnsstk import PyPosition
 from ..ionex.read_ionex import interpolate2D_temporal
 from ..util.search import find_le
@@ -55,7 +55,7 @@ class AugmentedArcMap(ArcMap):
         super(AugmentedArcMap, self).__init__()
         stn_pos = PyPosition(*arc_map.llh,
                              s=PyPosition.CoordinateSystem['geodetic'])
-        for key, arc_list in arc_map.iteritems():
+        for key, arc_list in arc_map.items():
             self[key] = [AugLeveledArc(x,
                                        stn_pos,
                                        shell_height=shell_height) for x in arc_list]
@@ -99,7 +99,7 @@ class CalibratedArcMap(ArcMap):
                          stn_bias_sigma):
         """ ??? """
         calibrated_arc_map = cls()
-        for sat, aug_leveled_arcs in aug_arc_map.iteritems():
+        for sat, aug_leveled_arcs in aug_arc_map.items():
              assert sat.startswith('G')
              sat_bias = -sat_biases['GPS'][int(sat[1:])][0] / TECU_TO_NS
              calibrated_arc_map[sat] = [CalibratedArc.from_aug_leveled_arc(x, sat_bias, stn_bias) for x in aug_leveled_arcs]
@@ -222,7 +222,7 @@ def get_dt_list(arc_map):
     """
     """
     dt_set = set()
-    for arc_list in arc_map.itervalues():
+    for arc_list in arc_map.values():
         for arc in arc_list:
             dt_set.update(arc.dt)
     return sorted(dt_set)
@@ -248,7 +248,7 @@ def ionex_stec_map(ionex_fname,
                                           bbox=bbox) for i, dt in enumerate(dt_list)}
     # compute interpolated stec
     stec_map = defaultdict(list)
-    for key, arc_list in augmented_arc_map.iteritems():
+    for key, arc_list in augmented_arc_map.items():
         for arc in arc_list:
             ionex_stec = []
             for (dt_i, ipp_lat_i, ipp_lon_i, el_map_i) in zip(arc.dt,
@@ -275,7 +275,7 @@ def estimate_receiver_bias(arc_map,
     stec_minus_sat_bias = []
     el = []
     model_sobs = []
-    for sat, arcs in arc_map.iteritems():
+    for sat, arcs in arc_map.items():
         if not sat.startswith('G'):
             raise NotImplementedError('only GPS satellites are currently '
                                       'supported')

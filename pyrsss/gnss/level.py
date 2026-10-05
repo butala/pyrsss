@@ -3,7 +3,8 @@ import sys
 import math
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from datetime import timedelta
-from collections import namedtuple, OrderedDict, Iterator
+from collections import namedtuple, OrderedDict
+from collections.abc import Iterator
 from datetime import timedelta
 from itertools import groupby
 
@@ -103,14 +104,15 @@ def arc_iter(obs_time_series, gap_length):
     """
     arc_label = []
     arc_index = 0
-    for i, (dt, obs) in enumerate(obs_time_series.iteritems()):
-        if i > 0 and dt - obs_time_series.keys()[i - 1] > gap_length:
+    for i, (dt, obs) in enumerate(obs_time_series.items()):
+        obs_times = list(obs_time_series.keys())
+        if i > 0 and dt - obs_times[i - 1] > gap_length:
             arc_index += 1
         arc_label.append(arc_index)
     for arc_index_i, group in groupby(zip(arc_label,
-                                          obs_time_series.iteritems()),
+                                          obs_time_series.items()),
                                       key=lambda x: x[0]):
-        yield arc_index_i, ObsTimeSeries(zip(*group)[1])
+        yield arc_index_i, ObsTimeSeries(list(zip(*group))[1])
 
 
 class ArcMapFlatIterator(Iterator):
@@ -120,7 +122,7 @@ class ArcMapFlatIterator(Iterator):
         sorted_sats = sorted(arc_map)
         self.flat_iters = [peekable(arc_map[x].flat) for x in sorted_sats]
 
-    def next(self):
+    def __next__(self):
         """ ??? """
         front_entries = [x.peek(None) for x in self.flat_iters]
         if all([x is None for x in front_entries]):
@@ -130,7 +132,7 @@ class ArcMapFlatIterator(Iterator):
         I, _ = min(filter(lambda x: x[1] is not None,
                           enumerate(front_entries)),
                    key=lambda x: x[1].dt)
-        return self.flat_iters[I].next()
+        return next(self.flat_iters[I])
 
 
 """
@@ -276,8 +278,8 @@ def level_phase_to_code(obs_map,
         # break up arcs at this point!
         for arc_index, obs_time_series in arc_iter(obs_map[sat], gap_length):
             logger.info('processing sat={} arc={}'.format(sat, arc_index))
-            arc_time_length = (obs_time_series.keys()[-1] -
-                               obs_time_series.keys()[0]).total_seconds()
+            arc_time_length = (obs_times[-1] -
+                               obs_times[0]).total_seconds()
             if arc_time_length < config.minimum_arc_time:
                 # reject short arc (time)
                 logger.info('rejecting sat={} arc={} --- '
@@ -286,8 +288,8 @@ def level_phase_to_code(obs_map,
                             'length={} [s] '
                             '< {} [s]'.format(sat,
                                               arc_index,
-                                              obs_time_series.keys()[0],
-                                              obs_time_series.keys()[-1],
+                                              obs_times[0],
+                                              obs_times[-1],
                                               arc_time_length,
                                               config.minimum_arc_time))
                 continue
@@ -309,7 +311,7 @@ def level_phase_to_code(obs_map,
                                      valid_filter=valid_filter,
                                      p1p2_filter=p1p2_filter)
             dts_obs = obs_time_series.items()
-            for name, obs_filter in filter_map.iteritems():
+            for name, obs_filter in filter_map.items():
                 dts_obs = filter(obs_filter, dts_obs)
                 if len(dts_obs) == 0:
                     break
@@ -400,7 +402,7 @@ def get_epilog(config=DEFAULT_CONFIG,
     """
     """
     output = 'Default configuration names, values, and units:\n'
-    for name, value in config._asdict().iteritems():
+    for name, value in config._asdict().items():
         output += '\t{}={}\t[{}]\n'.format(name, value, config_units[name])
     return output
 
@@ -436,3 +438,4 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.getLogger('sh').setLevel(logging.WARNING)
     sys.exit(main())
+exit(main())

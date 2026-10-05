@@ -1,8 +1,8 @@
 import logging
 from collections import namedtuple
 
-from phase_edit import phase_edit
-from rinex_new import week_sec2dt, RinexDump
+from .phase_edit import phase_edit
+from .rinex_new import week_sec2dt, RinexDump
 
 
 """ ??? """
@@ -52,7 +52,7 @@ def apply_rejections(rinex_dump, time_reject_map):
     """
     """
     # total = 0
-    for sat, rejections in time_reject_map.iteritems():
+    for sat, rejections in time_reject_map.items():
         # count = 0
         for rejection in rejections:
             I = (rinex_dump.sat == sat) & \
@@ -69,7 +69,7 @@ def apply_rejections(rinex_dump, time_reject_map):
 def apply_phase_adjustments(rinex_dump, phase_adjust_map):
     """
     """
-    for sat, adjustments in phase_adjust_map.iteritems():
+    for sat, adjustments in phase_adjust_map.items():
         for dt, col, offset in adjustments:
             I = (rinex_dump.sat == sat) & \
                 (rinex_dump.gps_time >= dt)
@@ -92,8 +92,8 @@ if __name__ == '__main__':
                                     work_path=work_path,
                                     discfix_args=discfix_args)
 
-    # print(time_reject_map.items()[0])
-    # print(phase_adjust_map.items()[0])
+    # print(list(time_reject_map.items())[0])
+    # print(list(phase_adjust_map.items())[0])
 
     # print(time_reject_map)
     # print(phase_adjust_map)

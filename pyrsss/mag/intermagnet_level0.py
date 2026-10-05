@@ -172,7 +172,7 @@ def process_iaga2002(output_nc_fname,
             if not check_consistency(header,
                                      last_header):
                 raise RuntimeError('header inconsistency detected')
-        for dt_i, data_i in data_map.iteritems():
+        for dt_i, data_i in data_map.items():
             # accumulate data in lists
             dt.append(dt_i)
             data_i = fill_missing(data_i)

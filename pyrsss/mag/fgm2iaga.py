@@ -33,7 +33,7 @@ def parse(fname):
     http://www.carisma.ca/carisma-data/fgm-data-format.
     """
     with open(fname) as fid:
-        siteid, lat, lon, date, pos_format, units, sample_rate = fid.next().split()
+        siteid, lat, lon, date, pos_format, units, sample_rate = next(fid).split()
         dt = []
         x = []
         y = []
