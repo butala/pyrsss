@@ -108,7 +108,7 @@ class ObsMapFlatIterator(Iterator):
         """ ??? """
         self.obs_map = obs_map
         sorted_sats = sorted(obs_map)
-        self.obs_dts = OrderedDict([(x, self.obs_map[x].keys()) for x in sorted_sats])
+        self.obs_dts = OrderedDict([(x, list(self.obs_map[x].keys())) for x in sorted_sats])
 
     def __next__(self):
         """ ??? """

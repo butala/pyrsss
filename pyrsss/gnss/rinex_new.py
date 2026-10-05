@@ -1,20 +1,11 @@
 import logging
 from collections import OrderedDict, defaultdict
-from datetime import timedelta
 
 import pandas as pd
 
-from .constants import GPS_EPOCH
+from .constants import week_sec2dt
 from .preprocess import normalize_rinex
 from .rinex import dump_rinex, RINDUMP_OBS_MAP
-
-
-def week_sec2dt(gps_week, seconds):
-    """
-    I belong somewhere else.
-    """
-    return GPS_EPOCH + timedelta(days=7 * gps_week,
-                                 seconds=seconds)
 
 
 class RinexDump(pd.DataFrame):
@@ -23,7 +14,7 @@ class RinexDump(pd.DataFrame):
                  'stn',
                  'recv_type',
                  'recv_p1c1',
-                 'p1c1']
+                 'p1c1_table']
 
     @property
     def _constructor(self):
@@ -32,6 +23,9 @@ class RinexDump(pd.DataFrame):
     @classmethod
     def load(cls, rindump_fname, replace_p1_with_c1=True, p1c1=True):
         """
+        Parse a teqc RINEX dump file and return a :class:`RinexDump`.
+        Apply P1C1 bias corrections when *p1c1* (see :func:`correct_p1c1`,
+        which also honors *replace_p1_with_c1*).
         """
         with open(rindump_fname) as fid:
             columns = None
@@ -50,13 +44,13 @@ class RinexDump(pd.DataFrame):
                     toks = line.split(' ')
                     assert toks[2] == 'XYZ(m):'
                     assert toks[7] == 'LLH(ddm):'
-                    xyz = map(float, toks[3:6])
+                    xyz = list(map(float, toks[3:6]))
                     llh = toks[8:11]
                     assert llh[0][-1] == 'N'
                     assert llh[1][-1] == 'E'
-                    llh = map(float, [llh[0][:-1],
-                                      llh[1][:-1],
-                                      llh[2]])
+                    llh = list(map(float, [llh[0][:-1],
+                                          llh[1][:-1],
+                                          llh[2]]))
                 elif line.startswith('# Station ID:'):
                     stn = line.split(':')[1].strip()
                 elif line.startswith('# Receiver type:'):
@@ -76,12 +70,9 @@ class RinexDump(pd.DataFrame):
                     seconds = float(toks[1])
                     gps_time = week_sec2dt(gps_week, seconds)
                     sat = toks[2]
-                    data = map(float, toks[3:])
+                    data = list(map(float, toks[3:]))
                     for column, data_i in zip(columns, [gps_time, sat] + data):
                         data_map[column].append(data_i)
-            # print(rindump_fname)
-            # print(data_map.keys())
-            # print(map(len, data_map))
             rinex_dump = cls(columns=columns, data=data_map)
             rinex_dump.xyz = xyz
             rinex_dump.llh = llh
@@ -96,6 +87,8 @@ class RinexDump(pd.DataFrame):
 
 def correct_p1c1(rinex_dump, replace_p1_with_c1=True):
     """
+    Apply the P1-C1 code bias table to *rinex_dump* (receiver types
+    1--3). When *replace_p1_with_c1*, fill missing P1 with C1.
     """
     if rinex_dump.recv_p1c1 not in [1, 2, 3]:
         raise ValueError('unknown receiver type {} (must be 1, 2, or 3)'.format(rinex_dump.recv_p1c1))

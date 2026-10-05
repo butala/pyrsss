@@ -1,17 +1,26 @@
 import logging
 from collections import namedtuple
 
+from .constants import week_sec2dt
 from .phase_edit import phase_edit
-from .rinex_new import week_sec2dt, RinexDump
+from .rinex_new import RinexDump
+
+logger = logging.getLogger('pyrsss.gnss.phase_edit_new')
 
 
-""" ??? """
 class ArcInfo(namedtuple('ArcInfo', 'gap tot sat ok s start end dt obs_types')):
+    """
+    Record from the DiscFix "Fine" arc summary table: gap and tot point
+    counts, satellite, ok count, solution flag, start/stop times, length
+    [s], and observation types.
+    """
     pass
 
 
 def parse_discfix_log(log_fname):
     """
+    Parse the DiscFix arc summary ("Fine" lines) from *log_fname*. Return
+    the list of :class:`ArcInfo`.
     """
     phase_breaks = []
     with open(log_fname) as fid:
@@ -36,20 +45,29 @@ def parse_discfix_log(log_fname):
 def label_phase_arcs(rinex_dump, phase_breaks):
     """
     """
+    """
+    Label each observation of *rinex_dump* with the DiscFix arc index
+    given *phase_breaks* (from :func:`parse_discfix_log`). Observations
+    outside all arcs are dropped (they cannot be leveled).
+    """
     rinex_dump.loc[:, 'arc'] = -1
     for i, phase_break in enumerate(phase_breaks):
         I = (rinex_dump.sat == phase_break.sat) & \
             (rinex_dump.gps_time >= phase_break.start) & \
             (rinex_dump.gps_time <= phase_break.end)
         rinex_dump.loc[I, 'arc'] = i
-    # why are there data not assigned to an arc?
-    I = rinex_dump[rinex_dump.arc == -1].index
-    # rinex_dump.drop(I, inplace=True)
+    unassigned = rinex_dump.arc == -1
+    if unassigned.any():
+        logger.warning('dropping {} observations outside DiscFix '
+                       'arcs'.format(int(unassigned.sum())))
+        rinex_dump.drop(rinex_dump.index[unassigned], inplace=True)
     return rinex_dump
 
 
 def apply_rejections(rinex_dump, time_reject_map):
     """
+    Drop the rejected time intervals (sat -> list of intervals) from
+    *rinex_dump*.
     """
     # total = 0
     for sat, rejections in time_reject_map.items():
@@ -68,6 +86,8 @@ def apply_rejections(rinex_dump, time_reject_map):
 
 def apply_phase_adjustments(rinex_dump, phase_adjust_map):
     """
+    Apply phase clock offset adjustments (sat -> list of (dt, column,
+    offset)) to *rinex_dump*.
     """
     for sat, adjustments in phase_adjust_map.items():
         for dt, col, offset in adjustments:

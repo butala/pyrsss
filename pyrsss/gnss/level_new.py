@@ -12,11 +12,15 @@ logger = logging.getLogger('pyrsss.gps.level_new')
 
 
 class LeveledArc(pd.DataFrame):
+    """
+    One phase-leveled arc: columns gps_time, az, el, satx/y/z, P_I, L_I
+    ([TECU]) with station/satellite metadata and leveling results (L,
+    L_scatter in [TECU]) attached as attributes.
+    """
     _metadata = ['xyz',
                  'llh',
                  'stn',
                  'recv_type',
-                 'stn',
                  'sat',
                  'L',
                  'L_scatter']
@@ -28,8 +32,9 @@ class LeveledArc(pd.DataFrame):
 
 def convert_phase_m(df_arc, sat):
     """
+    Return the (L1, L2) carrier phase of *df_arc* in [m]. Resolve
+    satellite *sat* wavelengths (GLONASS frequencies vary by slot).
     """
-    print(df_arc.shape)
     if sat[0] == 'G':
         return (df_arc.L1 * LAMBDA_1,
                 df_arc.L2 * LAMBDA_2)
@@ -41,12 +46,15 @@ def convert_phase_m(df_arc, sat):
                 df_arc.L2 * lambda2)
     else:
         raise ValueError('cannot convert phase to [m] for {}'.format(sat))
-    assert False
 
 
 def level(rinex_dump,
           config=DEFAULT_CONFIG):
     """
+    Phase-level the arcs labeled in *rinex_dump* (see
+    :func:`phase_edit_new.label_phase_arcs`) to code. Return the list of
+    accepted :class:`LeveledArc` according to the *config* rejection
+    rules.
     """
     rms_model = RMSModel()
     leveled_arcs = []
@@ -95,8 +103,7 @@ def level(rinex_dump,
         # L2m = df_arc.L2 * LAMBDA_2
         L_Im = L1m - L2m
         diff = P_I - L_Im
-        modeled_var = (np.array(map(rms_model,
-                                    df_arc.el.values)) * TECU_TO_M)**2
+        modeled_var = (np.array([rms_model(el) for el in df_arc.el.values]) * TECU_TO_M)**2
         # compute level, level scatter, and modeled scatter
         N = len(diff)
         if N == 0:

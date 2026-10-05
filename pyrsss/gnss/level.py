@@ -278,6 +278,7 @@ def level_phase_to_code(obs_map,
         # break up arcs at this point!
         for arc_index, obs_time_series in arc_iter(obs_map[sat], gap_length):
             logger.info('processing sat={} arc={}'.format(sat, arc_index))
+            obs_times = list(obs_time_series.keys())
             arc_time_length = (obs_times[-1] -
                                obs_times[0]).total_seconds()
             if arc_time_length < config.minimum_arc_time:
@@ -310,9 +311,9 @@ def level_phase_to_code(obs_map,
             filter_map = OrderedDict(el_filter=el_filter,
                                      valid_filter=valid_filter,
                                      p1p2_filter=p1p2_filter)
-            dts_obs = obs_time_series.items()
+            dts_obs = list(obs_time_series.items())
             for name, obs_filter in filter_map.items():
-                dts_obs = filter(obs_filter, dts_obs)
+                dts_obs = list(filter(obs_filter, dts_obs))
                 if len(dts_obs) == 0:
                     break
             if len(dts_obs) == 0:
@@ -326,8 +327,7 @@ def level_phase_to_code(obs_map,
             P_I = np.array([x.P_I for x in obs])
             L_Im = np.array([x.L_Im for x in obs])
             diff = P_I - L_Im
-            modeled_var = (np.array(map(rms_model,
-                                        [x.el for x in obs])) * TECU_TO_M)**2
+            modeled_var = (np.array([rms_model(x.el) for x in obs]) * TECU_TO_M)**2
             # compute level, level scatter, and modeled scatter
             N = len(diff)
             L, L_scatter = weighted_avg_and_std(diff, 1/modeled_var)

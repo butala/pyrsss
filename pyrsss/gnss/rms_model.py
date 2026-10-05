@@ -51,8 +51,8 @@ class RMSModel(OrderedDict):
         ???
         """
         super(RMSModel, self).__init__()
-        self.el = np.array(model_spec.keys())
-        self.rms = np.array(model_spec.values())
+        self.el = np.array(list(model_spec.keys()))
+        self.rms = np.array(list(model_spec.values()))
         self.alpha, self.beta = fit_power_law(self.el,
                                               self.rms)
 

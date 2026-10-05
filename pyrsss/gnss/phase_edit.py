@@ -9,7 +9,7 @@ import sh
 from intervals import DateTimeInterval
 
 from ..util.path import SmartTempDir, replace_path
-from .path import GNSSTK_BUILD_PATH
+from .path import get_gnsstk_build_path
 from .rinex import read_rindump, Observation, dump_rinex
 from .observation import ObsMap
 from .preprocess import normalize_rinex
@@ -23,15 +23,17 @@ Called/used by process.py.
 Implement cycle-slip detection and repair.
 """
 
-DISC_FIX = os.path.join(GNSSTK_BUILD_PATH,
-                        'ext',
-                        'apps',
-                        'geomatics',
-                        'cycleslips',
-                        'DiscFix')
-"""
-???
-"""
+DISC_FIX_RELPATH = os.path.join('ext',
+                                'apps',
+                                'geomatics',
+                                'cycleslips',
+                                'DiscFix')
+"""Path to the DiscFix tool relative to the GNSSTk build directory."""
+
+
+def get_disc_fix():
+    """Return the full path to the DiscFix tool."""
+    return os.path.join(get_gnsstk_build_path(), DISC_FIX_RELPATH)
 
 """
 ADD CONFIG CLASS
@@ -71,12 +73,16 @@ For DiscFix, GDC commands are of the form --DC<GDCcmd>, e.g. --DCWLSigma=1.5
 
 def phase_edit(rinex_fname,
                work_path=None,
-               disc_fix=DISC_FIX,
+               disc_fix=None,
                discfix_args=[],
                glonass=False):
     """
-    ???
+    Apply GNSSTk DiscFix cycle-slip detection and repair to *rinex_fname*.
+    Return the (time_reject_map, phase_adjust_map) parsed from the
+    generated edit commands.
     """
+    if disc_fix is None:
+        disc_fix = get_disc_fix()
     logger.info('applying GNSSTk DiscFix to {}'.format(rinex_fname))
     command = sh.Command(disc_fix)
     with SmartTempDir(work_path) as work_path:

@@ -1,5 +1,5 @@
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import scipy.constants as const
 
@@ -8,6 +8,15 @@ from .glonass import GLONASS_Status
 
 GPS_EPOCH = datetime(1980, 1, 6)
 """The epoch for GPS time."""
+
+
+def week_sec2dt(gps_week, seconds):
+    """
+    Convert GPS *gps_week* and seconds of week *seconds* to a
+    :class:`datetime`.
+    """
+    return GPS_EPOCH + timedelta(days=7 * gps_week,
+                                 seconds=seconds)
 
 F_0 = 10.23e6
 """Fundamental GPS frequency [Hz]."""

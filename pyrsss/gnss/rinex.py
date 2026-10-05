@@ -9,7 +9,7 @@ from io import StringIO
 import sh
 
 from .constants import GPS_EPOCH
-from .path import GNSSTK_BUILD_PATH
+from .path import get_gnsstk_build_path
 from .teqc import rinex_info
 from .preprocess import normalize_rinex
 from .observation import Observation, ObsTimeSeries, ObsMap
@@ -21,23 +21,50 @@ logger = logging.getLogger('pyrsss.gps.rinex')
 
 
 
-GPS_RECEIVER_TYPES = ReceiverTypes()
+_gps_receiver_types = None
+
+
+def get_receiver_types():
+    """
+    Return the shared :class:`ReceiverTypes` table (built on first use
+    so that import does not trigger a network fetch).
+    """
+    global _gps_receiver_types
+    if _gps_receiver_types is None:
+        _gps_receiver_types = ReceiverTypes()
+    return _gps_receiver_types
 """
 Global scope table of GPS receiver types.
 """
 
 
-P1C1_TABLE = P1C1Table()
+_p1c1_table = None
+
+
+def get_p1c1_table():
+    """
+    Return the shared :class:`P1C1Table` (built on first use so that
+    import does not trigger a network fetch).
+    """
+    global _p1c1_table
+    if _p1c1_table is None:
+        _p1c1_table = P1C1Table()
+    return _p1c1_table
 """
 Global scope table of CODE derived P1-C1 DCBs.
 """
 
 
-RIN_DUMP = os.path.join(GNSSTK_BUILD_PATH,
-                        'core',
-                        'apps',
-                        'Rinextools',
-                        'RinDump')
+RIN_DUMP_RELPATH = os.path.join('core',
+                                'apps',
+                                'Rinextools',
+                                'RinDump')
+"""Path to the RinDump tool relative to the GNSSTk build directory."""
+
+
+def get_rin_dump():
+    """Return the full path to the RinDump tool."""
+    return os.path.join(get_gnsstk_build_path(), RIN_DUMP_RELPATH)
 
 
 
@@ -124,12 +151,14 @@ def append_station_id(dump_fname,
 
 def append_receiver_type(dump_fname,
                          rinex_fname,
-                         receiver_types=GPS_RECEIVER_TYPES):
+                         receiver_types=None):
     """
     Append the lines "# Receiver type: {receiver_type}" and "#
     Receiver p1c1 type: {p1c1_type}" from *rinex_fname* to
     *dump_fname*. Return *dump_fname*.
     """
+    if receiver_types is None:
+        receiver_types = get_receiver_types()
     with open(dump_fname, 'a') as fid:
         receiver_type = get_receiver_type(rinex_fname)
         fid.write('# Receiver type: {}\n'.format(receiver_type))
@@ -156,16 +185,19 @@ def dump_rinex(dump_fname,
                rinex_fname,
                nav_fname,
                data_keys=GPS_KEYS,
-               p1c1_table=P1C1_TABLE,
+               p1c1_table=None,
                receiver_position=None,
-               rin_dump=RIN_DUMP):
+               rin_dump=None):
     """
-    ???
-
-    currently only dumps GPS observables
-
-    receiver position in [m]
+    Run GNSSTk RinDump on *rinex_fname* and write the result to
+    *dump_fname*. Currently only dumps GPS observables. Receiver
+    position in [m] (*receiver_position* is parsed from the navigation
+    file when not given).
     """
+    if rin_dump is None:
+        rin_dump = get_rin_dump()
+    if p1c1_table is None:
+        p1c1_table = get_p1c1_table()
     rin_dump_command = sh.Command(rin_dump)
     stderr_buffer = StringIO()
     if receiver_position is None:

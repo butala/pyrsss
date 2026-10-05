@@ -46,7 +46,8 @@ mag = ["apexpy", "igrf", "spaceweather"]        # pyrsss.mag, pyrsss.usarray.mag
 iri = ["iri2016"]                               # pyrsss.iri
 emtf = ["geomagio", "cartopy"]                  # pyrsss.emtf, pyrsss.util.plot
 usarray = ["obspy"]                             # pyrsss.usarray.iris
-hdf = ["pyhdf"]                                 # pyrsss.l1.hdf4to5
+hdf = ["pyhdf"]
+dev = ["pytest"]                                 # pyrsss.l1.hdf4to5
 full = ["apexpy", "igrf", "spaceweather", "iri2016", "geomagio", "cartopy", "obspy", "pyhdf"]
 
 [project.urls]
