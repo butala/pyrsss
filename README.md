@@ -33,6 +33,12 @@ executables:
 Everything else (leveling, bias estimation and calibration, IONEX
 handling, ...) is pure Python and needs no external tools.
 
+RINEX can also be read without the GNSSTk tools via
+`pyrsss.gnss.rinex.RinexDump.from_rinex(obs_fname, nav_fname)`
+(georinex + hatanaka; RINEX 2/3 including Hatanaka-compressed input,
+with optional broadcast-orbit geometry for the az/el and satellite ECEF
+columns).
+
 ## Notebooks
 
 The `notebooks/` directory contains exploratory research notebooks and

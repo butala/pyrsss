@@ -21,6 +21,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
+    "georinex",
+    "hatanaka",
     "matplotlib",
     "netCDF4",
     "numpy",

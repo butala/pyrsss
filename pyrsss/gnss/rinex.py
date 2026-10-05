@@ -13,6 +13,8 @@ from collections import defaultdict
 import pandas as pd
 
 from .constants import week_sec2dt
+from .orbit import azel, satellite_position
+from ..util.position import Position
 from .path import get_gnsstk_build_path
 from .teqc import rinex_info
 from .preprocess import normalize_rinex
@@ -399,6 +401,68 @@ class RinexDump(pd.DataFrame):
                 correct_p1c1(rinex_dump)
             return rinex_dump
 
+    @classmethod
+    def from_rinex(cls, obs_fname, nav_fname=None, p1c1=True,
+                   replace_p1_with_c1=True):
+        """
+        Construct a :class:`RinexDump` directly from the RINEX OBS file
+        *obs_fname* (any RINEX 2/3 revision, Hatanaka-compressed or
+        .gz) using georinex --- no GNSSTk tools required. When the RINEX
+        NAV file *nav_fname* is given, the az/el and satellite ECEF
+        columns are computed from the broadcast ephemeris; otherwise
+        these columns are NaN. P1C1 handling matches :meth:`load`.
+        """
+        import georinex as gr
+
+        obs_ds = gr.load(obs_fname)
+        meta = _rinex_header_meta(obs_fname)
+        xyz = list(obs_ds.attrs.get('position', meta['position']))
+        columns = ['C1', 'P1', 'L1', 'P2', 'L2']
+        var_map = {}
+        for column in columns:
+            for code in COLUMN_PREFERENCE[column]:
+                if code in obs_ds.data_vars:
+                    var_map[column] = code
+                    break
+        df = obs_ds.to_dataframe().reset_index()
+        obs_vars = [var_map[c] for c in var_map]
+        if obs_vars:
+            df = df.dropna(subset=obs_vars, how='all')
+        out = {'gps_time': [t.to_pydatetime() for t in df['time']],
+               'sat': df['sv'].tolist()}
+        for column in columns:
+            if column in var_map:
+                out[column] = df[var_map[column]].tolist()
+            else:
+                out[column] = [float('nan')] * len(out['sat'])
+        for column in ('el', 'az', 'satx', 'saty', 'satz'):
+            out[column] = [float('nan')] * len(out['sat'])
+        rinex_dump = cls(out)
+        rinex_dump.xyz = xyz
+        rinex_dump.llh = list(Position(*xyz).llh)
+        rinex_dump.stn = meta['stn']
+        rinex_dump.recv_type = meta['recv_type']
+        if nav_fname is not None:
+            eph_map = _nav_ephemeris(nav_fname)
+            for i in range(len(out['sat'])):
+                sat = out['sat'][i]
+                eph = _select_ephemeris(eph_map, sat, out['gps_time'][i])
+                sat_xyz = satellite_position({sat: eph}, sat, out['gps_time'][i])
+                az, el = azel(rinex_dump.llh, sat_xyz)
+                rinex_dump.loc[rinex_dump.index[i], ['el', 'az',
+                                                     'satx', 'saty', 'satz']] = [el, az, *sat_xyz]
+        rinex_dump.recv_p1c1 = None
+        rinex_dump.p1c1_table = {}
+        if p1c1:
+            recv_p1c1 = get_receiver_types()[rinex_dump.recv_type].c1p1
+            date = fname2date(obs_fname)
+            p1c1_table = {'G{:02d}'.format(prn): value
+                          for prn, value in get_p1c1_table()[date]['prn'].items()}
+            rinex_dump.recv_p1c1 = recv_p1c1
+            rinex_dump.p1c1_table = p1c1_table
+            correct_p1c1(rinex_dump, replace_p1_with_c1=replace_p1_with_c1)
+        return rinex_dump
+
 
 def correct_p1c1(rinex_dump, replace_p1_with_c1=True):
     """
@@ -418,3 +482,66 @@ def correct_p1c1(rinex_dump, replace_p1_with_c1=True):
         I = pd.isnull(rinex_dump['P1'])
         rinex_dump.loc[I, 'P1'] = rinex_dump.loc[I, 'C1']
     return rinex_dump
+
+
+COLUMN_PREFERENCE = {'C1': ['C1', 'C1C', 'C2'],
+                     'P1': ['P1', 'C1W', 'C1P'],
+                     'L1': ['L1', 'L1C', 'L1W', 'L1P'],
+                     'P2': ['P2', 'C2W', 'C2P', 'C2'],
+                     'L2': ['L2', 'L2W', 'L2P', 'L2C']}
+"""RINEX observable names mapped to each :class:`RinexDump` column (first
+available wins)."""
+
+
+def _rinex_header_meta(fname):
+    """
+    Return the dict with 'stn', 'recv_type', and 'position' parsed from
+    the RINEX OBS header (metadata not exposed as Dataset attributes by
+    georinex).
+    """
+    meta = {'stn': os.path.basename(fname)[:4],
+            'recv_type': None,
+            'position': [float('nan')] * 3}
+    with open(fname) as fid:
+        for line in fid:
+            label = line[60:].strip()
+            if label == 'END OF HEADER':
+                break
+            elif label == 'MARKER NAME':
+                meta['stn'] = line[:60].strip()[:4]
+            elif label == 'REC # / TYPE':
+                meta['recv_type'] = line[20:40].strip()
+            elif label == 'APPROX POSITION XYZ':
+                meta['position'] = [float(x) for x in line[:60].split()]
+    return meta
+
+
+def _nav_ephemeris(nav_fname):
+    """
+    Return the mapping sat -> list of (toc, ephemeris parameter dict)
+    parsed from the RINEX NAV file *nav_fname* with georinex.
+    """
+    import georinex as gr
+
+    nav_ds = gr.load(nav_fname)
+    df = nav_ds.to_dataframe().reset_index()
+    eph_map = {}
+    for sat in sorted(set(df['sv'])):
+        entries = []
+        sub = df[df['sv'] == sat].sort_values('time')
+        for _, row in sub.iterrows():
+            eph = {name: row[name] for name in nav_ds.data_vars}
+            eph['_epoch'] = row['time'].to_pydatetime()
+            entries.append((eph['_epoch'], eph))
+        eph_map[sat] = entries
+    return eph_map
+
+
+def _select_ephemeris(eph_map, sat, t):
+    """
+    Return the ephemeris of *sat* with the clock epoch closest to *t*.
+    """
+    entries = eph_map.get(sat)
+    if not entries:
+        raise KeyError('no broadcast ephemeris for {}'.format(sat))
+    return min(entries, key=lambda item: abs(item[0] - t))[1]
