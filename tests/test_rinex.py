@@ -1,11 +1,10 @@
-"""Tests for pyrsss.gnss.constants, pyrsss.gnss.rinex_new."""
+"""Tests for pyrsss.gnss.rinex (RinexDump) and pyrsss.gnss.constants."""
 from datetime import timedelta
 
-import pandas as pd
 import pytest
 
 from pyrsss.gnss.constants import GPS_EPOCH, week_sec2dt
-from pyrsss.gnss.rinex_new import RinexDump, correct_p1c1
+from pyrsss.gnss.rinex import RinexDump, correct_p1c1
 
 
 def test_week_sec2dt():
@@ -45,12 +44,23 @@ def test_load(tmp_path):
     assert dump.iloc[0].C1 == pytest.approx(21000000.1)
 
 
+def test_load_with_p1c1(tmp_path):
+    p = tmp_path / 'test.dump'
+    p.write_text(RINDUMP_FIXTURE)
+    dump = RinexDump.load(str(p), p1c1=True)
+    # receiver type 2: C1 corrected by +0.1 and missing P1 filled from C1
+    assert dump.iloc[0].C1 == pytest.approx(21000000.2)
+    assert dump.iloc[0].P1 == pytest.approx(21000000.2)
+    # P2 untouched by type 2
+    assert dump.iloc[0].P2 == pytest.approx(210000100.2)
+
+
 def test_correct_p1c1_receiver_type_2():
-    dump = pd.DataFrame({'sat': ['G01', 'G01'],
-                         'C1': [21.0, 21.5],
-                         'P1': [22.0, float('nan')],
-                         'P2': [23.0, 23.5]},
-                        index=[0, 1])
+    dump = RinexDump({'sat': ['G01', 'G01'],
+                      'C1': [21.0, 21.5],
+                      'P1': [22.0, float('nan')],
+                      'P2': [23.0, 23.5]},
+                     index=[0, 1])
     dump.recv_p1c1 = 2
     dump.p1c1_table = {'G01': 0.5}
     correct_p1c1(dump)
@@ -64,10 +74,10 @@ def test_correct_p1c1_receiver_type_2():
 
 
 def test_correct_p1c1_receiver_type_1():
-    dump = pd.DataFrame({'sat': ['G01'],
-                         'C1': [21.0],
-                         'P1': [22.0],
-                         'P2': [23.0]})
+    dump = RinexDump({'sat': ['G01'],
+                      'C1': [21.0],
+                      'P1': [22.0],
+                      'P2': [23.0]})
     dump.recv_p1c1 = 1
     dump.p1c1_table = {'G01': 0.5}
     correct_p1c1(dump, replace_p1_with_c1=False)
@@ -78,7 +88,7 @@ def test_correct_p1c1_receiver_type_1():
 
 
 def test_correct_p1c1_unknown_receiver_type():
-    dump = pd.DataFrame({'sat': ['G01'], 'C1': [21.0], 'P1': [22.0], 'P2': [23.0]})
+    dump = RinexDump({'sat': ['G01'], 'C1': [21.0], 'P1': [22.0], 'P2': [23.0]})
     dump.recv_p1c1 = 9
     dump.p1c1_table = {'G01': 0.5}
     with pytest.raises(ValueError):

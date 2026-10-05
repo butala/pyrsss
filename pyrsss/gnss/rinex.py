@@ -8,11 +8,14 @@ from io import StringIO
 
 import sh
 
-from .constants import GPS_EPOCH
+from collections import OrderedDict, defaultdict
+
+import pandas as pd
+
+from .constants import week_sec2dt
 from .path import get_gnsstk_build_path
 from .teqc import rinex_info
 from .preprocess import normalize_rinex
-from .observation import Observation, ObsTimeSeries, ObsMap
 from .receiver_types import ReceiverTypes
 from .p1c1 import P1C1Table
 from ..util.path import SmartTempDir, replace_path, tail
@@ -263,131 +266,6 @@ routines.
 """
 
 
-class P1C1ObsTimeSeries(ObsTimeSeries):
-    def __init__(self, receiver_type, p1c1_bias, replace_p1_with_c1=True):
-        """ ??? """
-        super(P1C1ObsTimeSeries, self).__init__()
-        self.receiver_type = receiver_type
-        self.p1c1_bias = p1c1_bias
-        self.replace_p1_with_c1 = replace_p1_with_c1
-
-    def __missing__(self, key):
-        prn = int(key[1:])
-        self[key] = ObsTimeSeries(self.receiver_p1c1_type,
-                                  self.p1c1_table[prn])
-        return self[key]
-
-    def __setitem__(self, key, value):
-        """ ??? """
-        if self.receiver_type == 1:
-            # C1 -> C1 + b
-            # P2 -> P2 + b
-            if value[0] != 0.0:
-                value[0] += self.p1c1_bias
-            if value[2] != 0.0:
-                value[2] += self.p1c1_bias
-        elif self.receiver_type == 2:
-            # C1 -> C1 + b
-            if value[0] != 0.0:
-                value[0] += self.p1c1_bias
-        elif self.receiver_type == 3:
-            pass
-        else:
-            raise ValueError('unknown receiver type {}'.format(self.receiver_type))
-        if value[1] == 0.0 and self.replace_p1_with_c1:
-            # replace P1 with C1 (with bias correction if necessary)
-            value[1] = value[0]
-        # replace empty values (==0.0) with None
-        value = [None if x == 0.0 else x for x in value]
-        super(P1C1ObsTimeSeries, self).__setitem__(key,
-                                                   Observation(*value))
-
-
-class P1C1ObsMap(ObsMap):
-    def __init__(self, receiver_type, receiver_p1c1_type, p1c1_table, h5_fname=None):
-        """ ??? """
-        super(P1C1ObsMap, self).__init__(h5_fname=h5_fname)
-        self.receiver_type = receiver_type
-        if receiver_p1c1_type not in [1, 2, 3]:
-            raise ValueError('receiver P1-C1 type {} is unknown '
-                             '(should be 1, 2, or 3 --- see the '
-                             'GPS_Receiver_Type file header)')
-        self.receiver_p1c1_type = receiver_p1c1_type
-        self.p1c1_table = p1c1_table
-
-    def __missing__(self, key):
-        prn = int(key[1:])
-        self[key] = P1C1ObsTimeSeries(self.receiver_p1c1_type,
-                                      self.p1c1_table[prn])
-        return self[key]
-
-
-def read_rindump_footer(rindump_fname):
-    """
-    Return the receiver tuple and P1-C1 bias information found at the
-    end of *rindump_fname*.
-    """
-    receiver_type = None
-    receiver_p1c1_type = None
-    p1c1_table = {}
-    with open(rindump_fname) as fid:
-        for line in tail(fid, window=100):
-            if line.startswith('# Receiver type:'):
-                receiver_type = line[17:].strip()
-            elif line.startswith('# Receiver p1c1 type:'):
-                receiver_p1c1_type = int(line[21:].strip())
-            elif line.startswith('# P1-C1 [m]:'):
-                prn = int(line[14:16])
-                p1c1_table[prn] = float(line[17:])
-            else:
-                continue
-    return receiver_type, receiver_p1c1_type, p1c1_table
-
-
-def read_rindump(rindump_fname):
-    """
-    ???
-    """
-    obs_map = P1C1ObsMap(*read_rindump_footer(rindump_fname))
-    with open(rindump_fname) as fid:
-        for line in fid:
-            if line.startswith('# wk'):
-                # data header line
-                cols = line.split()
-                data_index_map = {RINDUMP_OBS_MAP[data_id]: i for i, data_id in enumerate(cols[4:])}
-                column_mapping = []
-                for x in Observation._fields:
-                    try:
-                        column_mapping.append(data_index_map[x])
-                    except KeyError:
-                        raise RuntimeError('could not find {} observable in {}'.format(x, rindump_fname))
-                def reorder(l):
-                    return [l[i] for i in column_mapping]
-            elif line.startswith('# Refpos'):
-                cols = line.split()
-                # [m, m, m]
-                obs_map.xyz = map(float, cols[3:6])
-                lat = float(cols[8][:-1])
-                lon = float(cols[9][:-1])
-                if lon > 180:
-                    lon -= 360
-                alt = float(cols[10])
-                # [deg, deg, m]
-                obs_map.llh = [lat, lon, alt]
-            elif line.startswith('#'):
-                # skip other header lines
-                continue
-            else:
-                cols = line.split()
-                gps_week = int(cols[0])
-                seconds = float(cols[1])
-                sat = cols[2]
-                dt = GPS_EPOCH + timedelta(days=7 * gps_week,
-                                       seconds=seconds)
-                obs_map[sat][dt] = reorder(map(float, cols[3:]))
-    return obs_map
-
-
 def dump_preprocessed_rinex(dump_fname,
                             obs_fname,
                             nav_fname,
@@ -443,3 +321,100 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.getLogger('sh').setLevel(logging.WARNING)
     sys.exit(main())
+
+
+class RinexDump(pd.DataFrame):
+    _metadata = ['xyz',  # in [m]
+                 'llh',  # in [ddm]
+                 'stn',
+                 'recv_type',
+                 'recv_p1c1',
+                 'p1c1_table']
+
+    @property
+    def _constructor(self):
+        return RinexDump
+
+    @classmethod
+    def load(cls, rindump_fname, replace_p1_with_c1=True, p1c1=True):
+        """
+        Parse a teqc RINEX dump file and return a :class:`RinexDump`.
+        Apply P1C1 bias corrections when *p1c1* (see :func:`correct_p1c1`,
+        which also honors *replace_p1_with_c1*).
+        """
+        with open(rindump_fname) as fid:
+            columns = None
+            # parse up to "# Data" line
+            for line in fid:
+                if line.startswith('# Data'):
+                    columns = ['gps_time', 'sat'] + [RINDUMP_OBS_MAP[x] for x in line.rstrip().split(' ')[2:]]
+                    break
+            if columns is None:
+                raise ValueError('# Data line not found in {}'.format(rindump_fname))
+            data_map = defaultdict(list)
+            p1c1_table = OrderedDict()
+            # parse remaining lines
+            for line in fid:
+                if line.startswith('# Refpos'):
+                    toks = line.split(' ')
+                    assert toks[2] == 'XYZ(m):'
+                    assert toks[7] == 'LLH(ddm):'
+                    xyz = list(map(float, toks[3:6]))
+                    llh = toks[8:11]
+                    assert llh[0][-1] == 'N'
+                    assert llh[1][-1] == 'E'
+                    llh = list(map(float, [llh[0][:-1],
+                                          llh[1][:-1],
+                                          llh[2]]))
+                elif line.startswith('# Station ID:'):
+                    stn = line.split(':')[1].strip()
+                elif line.startswith('# Receiver type:'):
+                    recv_type = line[17:].rstrip()
+                elif line.startswith('# Receiver p1c1 type:'):
+                    recv_p1c1 = int(line[22:])
+                elif line.startswith('# P1-C1 [m]:'):
+                    toks = line.split()
+                    p1c1_table[toks[3][:-1]] = float(toks[4])
+                elif line.startswith('#'):
+                    # skip comment lines
+                    pass
+                else:
+                    # parse data line
+                    toks = line.replace(' 0.000 ', ' nan ').split()
+                    gps_week = int(toks[0])
+                    seconds = float(toks[1])
+                    gps_time = week_sec2dt(gps_week, seconds)
+                    sat = toks[2]
+                    data = list(map(float, toks[3:]))
+                    for column, data_i in zip(columns, [gps_time, sat] + data):
+                        data_map[column].append(data_i)
+            rinex_dump = cls(columns=columns, data=data_map)
+            rinex_dump.xyz = xyz
+            rinex_dump.llh = llh
+            rinex_dump.stn = stn
+            rinex_dump.recv_type = recv_type
+            rinex_dump.recv_p1c1 = recv_p1c1
+            rinex_dump.p1c1_table = p1c1_table
+            if p1c1:
+                correct_p1c1(rinex_dump)
+            return rinex_dump
+
+
+def correct_p1c1(rinex_dump, replace_p1_with_c1=True):
+    """
+    Apply the P1-C1 code bias table to *rinex_dump* (receiver types
+    1--3). When *replace_p1_with_c1*, fill missing P1 with C1.
+    """
+    if rinex_dump.recv_p1c1 not in [1, 2, 3]:
+        raise ValueError('unknown receiver type {} (must be 1, 2, or 3)'.format(rinex_dump.recv_p1c1))
+    for sat in sorted(set(rinex_dump.sat)):
+        b = rinex_dump.p1c1_table[sat]
+        if rinex_dump.recv_p1c1 == 1:
+            rinex_dump.loc[rinex_dump.sat == sat, 'C1'] += b
+            rinex_dump.loc[rinex_dump.sat == sat, 'P2'] += b
+        elif rinex_dump.recv_p1c1 == 2:
+            rinex_dump.loc[rinex_dump.sat == sat, 'C1'] += b
+    if replace_p1_with_c1:
+        I = pd.isnull(rinex_dump['P1'])
+        rinex_dump.loc[I, 'P1'] = rinex_dump.loc[I, 'C1']
+    return rinex_dump

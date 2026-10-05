@@ -1,4 +1,4 @@
-"""Tests for pyrsss.gnss.phase_edit_new."""
+"""Tests for pyrsss.gnss.phase_edit (DiscFix log parsing and edits)."""
 from collections import namedtuple
 from datetime import timedelta
 
@@ -6,10 +6,11 @@ import pandas as pd
 import pytest
 
 from pyrsss.gnss.constants import GPS_EPOCH
-from pyrsss.gnss.phase_edit_new import (apply_phase_adjustments,
-                                        apply_rejections,
-                                        label_phase_arcs,
-                                        parse_discfix_log)
+from pyrsss.gnss.phase_edit import (ArcInfo,
+                                    apply_phase_adjustments,
+                                    apply_rejections,
+                                    label_phase_arcs,
+                                    parse_discfix_log)
 
 Interval = namedtuple('Interval', 'lower upper')
 
@@ -46,7 +47,6 @@ def _dump_with_times():
 
 def test_label_phase_arcs():
     t0 = GPS_EPOCH + timedelta(days=1800 * 7, seconds=259200)
-    from pyrsss.gnss.phase_edit_new import ArcInfo
     phase_breaks = [
         ArcInfo(0, 3, 'G01', 3, 0,
                 t0,

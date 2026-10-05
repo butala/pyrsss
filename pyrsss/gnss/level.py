@@ -1,22 +1,18 @@
+"""
+Phase-level carrier phase to code for phase-connected arcs.
+"""
 import logging
 import sys
-import math
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from datetime import timedelta
-from collections import namedtuple, OrderedDict
-from collections.abc import Iterator
-from datetime import timedelta
-from itertools import groupby
+from collections import namedtuple
 
 import numpy as np
-from tables import open_file, IsDescription, Time64Col, Float64Col
-from more_itertools import peekable
+import pandas as pd
 
 from ..stats.stats import weighted_avg_and_std
-from ..util.date import UNIX_EPOCH
-from .constants import TECU_TO_M, M_TO_TECU
+from .constants import (LAMBDA_1, LAMBDA_2, M_TO_TECU, TECU_TO_M,
+                        glonass_lambda)
 from .rms_model import RMSModel
-from .observation import ObsMap, ObsTimeSeries
 
 logger = logging.getLogger('pyrsss.gps.level')
 
@@ -32,34 +28,22 @@ class Config(namedtuple('Config',
 
 
 MINIMUM_ELEVATION = 10
-"""
-??? (in [deg])
-"""
+"""Minimum elevation angle cut-off [deg]."""
 
 MINIMUM_ARC_TIME = 18 * 60
-"""
-??? (in [s])
-"""
+"""Minimum arc time span [s]."""
 
 MINIMUM_ARC_POINTS = 3
-"""
-??? (in [#])
-"""
+"""Minimum number of points per arc [#]."""
 
 SCATTER_FACTOR = 1.6
-"""
-??? (in [#])
-"""
+"""Allowed leveling scatter in multiples of the modeled scatter [#]."""
 
 SCATTER_THRESHOLD = 20
-"""
-??? (in [TECU])
-"""
+"""Maximum leveling uncertainty [TECU]."""
 
 P1P2_THRESHOLD = 5e-6
-"""
-??? (in in [m])
-"""
+"""Minimum |P1 - P2| used to detect bad code observations [m]."""
 
 
 CONFIG_UNITS = {'minimum_elevation': 'deg',
@@ -78,294 +62,142 @@ DEFAULT_CONFIG = Config(MINIMUM_ELEVATION,
                         P1P2_THRESHOLD)
 
 
-class LeveledArc(namedtuple('LeveledArc',
-                            'dt '
-                            'stec '
-                            'sprn '
-                            'az '
-                            'el '
-                            'satx '
-                            'saty '
-                            'satz '
-                            'L '
-                            'L_scatter')):
-    def timeiter(self, skip_fields=['L', 'L_scatter']):
-        """
-        ???
-        """
-        ArcPoint = namedtuple('ArcPoint', filter(lambda x: x not in skip_fields, self._fields))
-        I_fields, fields = zip(*[(i, x) for i, x in enumerate(self._fields) if x not in skip_fields])
-        for i in range(len(self.dt)):
-            yield ArcPoint(*[self[i_field][i] for i_field in I_fields])
-
-
-def arc_iter(obs_time_series, gap_length):
+class LeveledArc(pd.DataFrame):
     """
+    One phase-leveled arc: columns gps_time, az, el, satx/y/z, P_I, L_I
+    ([TECU]) with station/satellite metadata and leveling results (L,
+    L_scatter in [TECU]) attached as attributes.
     """
-    arc_label = []
-    arc_index = 0
-    for i, (dt, obs) in enumerate(obs_time_series.items()):
-        obs_times = list(obs_time_series.keys())
-        if i > 0 and dt - obs_times[i - 1] > gap_length:
-            arc_index += 1
-        arc_label.append(arc_index)
-    for arc_index_i, group in groupby(zip(arc_label,
-                                          obs_time_series.items()),
-                                      key=lambda x: x[0]):
-        yield arc_index_i, ObsTimeSeries(list(zip(*group))[1])
-
-
-class ArcMapFlatIterator(Iterator):
-    def __init__(self, arc_map):
-        """ ??? """
-        self.arc_map = arc_map
-        sorted_sats = sorted(arc_map)
-        self.flat_iters = [peekable(arc_map[x].flat) for x in sorted_sats]
-
-    def __next__(self):
-        """ ??? """
-        front_entries = [x.peek(None) for x in self.flat_iters]
-        if all([x is None for x in front_entries]):
-            raise StopIteration
-        # below is the argmin function that ignores entries that are
-        # None
-        I, _ = min(filter(lambda x: x[1] is not None,
-                          enumerate(front_entries)),
-                   key=lambda x: x[1].dt)
-        return next(self.flat_iters[I])
-
-
-"""
-???
-"""
-class ArcList(list):
-    @property
-    def flat(self):
-        for arc in self:
-            for x in arc.timeiter():
-                yield x
-
-
-class ArcMap(OrderedDict):
-    def __init__(self, h5_fname=None):
-        """ ??? """
-        super(ArcMap, self).__init__()
-        if h5_fname:
-            self.undump(h5_fname)
-
-    def __missing__(self, key):
-        """ ??? """
-        self[key] = ArcList()
-        return self[key]
+    _metadata = ['xyz',
+                 'llh',
+                 'stn',
+                 'recv_type',
+                 'sat',
+                 'L',
+                 'L_scatter']
 
     @property
-    def flat(self):
-        return ArcMapFlatIterator(self)
-
-    """ ??? """
-    class Table(IsDescription):
-        dt   = Time64Col()
-        stec = Float64Col()
-        sprn = Float64Col()
-        az   = Float64Col()
-        el   = Float64Col()
-        satx = Float64Col()
-        saty = Float64Col()
-        satz = Float64Col()
-
-    def dump(self, h5_fname):
-        """ ??? """
-        h5file = open_file(h5_fname, mode='w', title='pyrsss.gps.level output')
-        leveled_phase_arcs_group = h5file.create_group('/',
-                                                       'leveled_phase_arcs',
-                                                       'Leveled phase connected arcs')
-        if hasattr(self, 'xyz'):
-            leveled_phase_arcs_group._v_attrs.xyz = self.xyz
-        if hasattr(self, 'llh'):
-            leveled_phase_arcs_group._v_attrs.llh = self.llh
-        for sat in sorted(self):
-            assert sat[0] == 'G'
-            sat_group = h5file.create_group(leveled_phase_arcs_group,
-                                            sat,
-                                            'Leveled phase connected arcs for {}'.format(sat))
-            for i, leveled_arc in enumerate(self[sat]):
-                table = h5file.create_table(sat_group,
-                                            'arc' + str(i),
-                                            ArcMap.Table,
-                                            'GPS prn={} arc={} data'.format(sat, i))
-                table.attrs.L = leveled_arc.L
-                table.attrs.L_scatter = leveled_arc.L_scatter
-                row = table.row
-                for j in range(len(leveled_arc.dt)):
-                    row['dt'] = (leveled_arc.dt[j] - UNIX_EPOCH).total_seconds()
-                    row['stec'] = leveled_arc.stec[j]
-                    row['sprn'] = leveled_arc.sprn[j]
-                    row['az'] = leveled_arc.az[j]
-                    row['el'] = leveled_arc.el[j]
-                    row['satx'] = leveled_arc.satx[j]
-                    row['saty'] = leveled_arc.saty[j]
-                    row['satz'] = leveled_arc.satz[j]
-                    row.append()
-                table.flush()
-        h5file.close()
-        return h5_fname
-
-    def undump(self, h5_fname):
-        """ ??? """
-        h5file = open_file(h5_fname, mode='r')
-        leveled_phase_arcs_group = h5file.root.leveled_phase_arcs
-        try:
-            self.xyz = leveled_phase_arcs_group._v_attrs.xyz
-        except:
-            logger.warning('{} does not contain XYZ position'.format(h5_fname))
-        try:
-            self.llh = leveled_phase_arcs_group._v_attrs.llh
-        except:
-            logger.warning('{} does not contain LLH position'.format(h5_fname))
-        for sat_group in leveled_phase_arcs_group:
-            sat = sat_group._v_name
-            for arc_table in sat_group:
-                dt = []
-                stec = []
-                sprn = []
-                az = []
-                el = []
-                satx = []
-                saty = []
-                satz = []
-                for row in arc_table.iterrows():
-                    dt.append(UNIX_EPOCH + timedelta(seconds=row['dt']))
-                    stec.append(row['stec'])
-                    sprn.append(row['sprn'])
-                    az.append(row['az'])
-                    el.append(row['el'])
-                    satx.append(row['satx'])
-                    saty.append(row['saty'])
-                    satz.append(row['satz'])
-                self[sat].append(LeveledArc(dt,
-                                            stec,
-                                            sprn,
-                                            az,
-                                            el,
-                                            satx,
-                                            saty,
-                                            satz,
-                                            arc_table.attrs.L,
-                                            arc_table.attrs.L_scatter))
-        h5file.close()
-        return self
+    def _constructor(self):
+        return LeveledArc
 
 
-def level_phase_to_code(obs_map,
-                        gap_length=timedelta(minutes=10),
-                        config=DEFAULT_CONFIG):
+def convert_phase_m(df_arc, sat):
     """
-    ???
-
-    gap_length should come from phase_edit?
-
-    THIS FUNCTION IS TOO LONG --- BREAK INTO COMPONENTS
+    Return the (L1, L2) carrier phase of *df_arc* in [m]. Resolve
+    satellite *sat* wavelengths (GLONASS frequencies vary by slot).
     """
-    arc_map = ArcMap()
-    arc_map.xyz = obs_map.xyz
-    arc_map.llh = obs_map.llh
+    if sat[0] == 'G':
+        return (df_arc.L1 * LAMBDA_1,
+                df_arc.L2 * LAMBDA_2)
+    elif sat[0] == 'R':
+        dt = df_arc.iloc[0].gps_time
+        slot = int(sat[1:])
+        lambda1, lambda2 = glonass_lambda(slot, dt)
+        return (df_arc.L1 * lambda1,
+                df_arc.L2 * lambda2)
+    else:
+        raise ValueError('cannot convert phase to [m] for {}'.format(sat))
+
+
+def level(rinex_dump,
+          config=DEFAULT_CONFIG):
+    """
+    Phase-level the arcs labeled in *rinex_dump* (see
+    :func:`phase_edit.label_phase_arcs`) to code. Return the list of
+    accepted :class:`LeveledArc` according to the *config* rejection
+    rules.
+    """
     rms_model = RMSModel()
-    for sat in sorted(obs_map):
-        # NO NO NO!!! Breaking arcs by gap length is wrong! Instead,
-        # parse the log generated by DiscFix to determine the phase
-        # breaks. The output of phase_edit should be phase connected
-        # arcs suitable for leveling --- there is no reason to further
-        # break up arcs at this point!
-        for arc_index, obs_time_series in arc_iter(obs_map[sat], gap_length):
-            logger.info('processing sat={} arc={}'.format(sat, arc_index))
-            obs_times = list(obs_time_series.keys())
-            arc_time_length = (obs_times[-1] -
-                               obs_times[0]).total_seconds()
-            if arc_time_length < config.minimum_arc_time:
-                # reject short arc (time)
-                logger.info('rejecting sat={} arc={} --- '
-                            'begin={:%Y-%m-%d %H:%M:%S} '
-                            'end={:%Y-%m-%d %H:%M:%S} '
-                            'length={} [s] '
-                            '< {} [s]'.format(sat,
-                                              arc_index,
-                                              obs_times[0],
-                                              obs_times[-1],
-                                              arc_time_length,
-                                              config.minimum_arc_time))
-                continue
-            if len(obs_time_series) < config.minimum_arc_points:
-                # reject short arc (number of epochs)
-                logger.info('rejecting sat={} arc={} --- len(arc) = '
-                            '{} < {}'.format(sat,
-                                             arc_index,
-                                             len(obs_time_series),
-                                             config.minimum_arc_points))
-                continue
-            # remove observations below minimum elevation limit
-            el_filter = lambda x: x[1].el >= config.minimum_elevation
-            # remove observations for which P1, P2, L1, or L2 are nan
-            valid_filter = lambda x: not any(np.isnan([getattr(x[1], attr) for attr in ['P1', 'P2', 'L1', 'L2']]))
-            # remove measurements with |p1 - p2| < threshold
-            p1p2_filter = lambda x: abs(x[1].P1 - x[1].P2) > config.p1p2_threshold
-            filter_map = OrderedDict(el_filter=el_filter,
-                                     valid_filter=valid_filter,
-                                     p1p2_filter=p1p2_filter)
-            dts_obs = list(obs_time_series.items())
-            for name, obs_filter in filter_map.items():
-                dts_obs = list(filter(obs_filter, dts_obs))
-                if len(dts_obs) == 0:
-                    break
-            if len(dts_obs) == 0:
-                logger.info('rejecting sat={} arc={} after {} pass'.format(sat,
-                                                                           arc_index,
-                                                                           name))
-                continue
-
-            dts, obs = zip(*dts_obs)
-
-            P_I = np.array([x.P_I for x in obs])
-            L_Im = np.array([x.L_Im for x in obs])
-            diff = P_I - L_Im
-            modeled_var = (np.array([rms_model(x.el) for x in obs]) * TECU_TO_M)**2
-            # compute level, level scatter, and modeled scatter
-            N = len(diff)
-            L, L_scatter = weighted_avg_and_std(diff, 1/modeled_var)
-            sigma_scatter = np.sqrt(np.sum(modeled_var) / N)
-            # check for excessive leveling uncertainty
-            if L_scatter > config.scatter_factor * sigma_scatter:
-                logger.info('rejecting sat={} arc={} --- L scatter={:.6f} '
-                            '> {:.1f} * {:.6f}'.format(sat,
-                                                       arc_index,
-                                                       L_scatter,
-                                                       config.scatter_factor,
-                                                       sigma_scatter))
-                continue
-            if L_scatter / TECU_TO_M > config.scatter_threshold:
-                logger.info('rejecting sat={} arc={} --- L uncertainty (in '
-                            '[TECU])={:.1f} > '
-                            '{:.1f}'.format(sat,
-                                            arc_index,
-                                            L_scatter * M_TO_TECU,
-                                            config.scatter_threshold))
-                continue
-            # store information
-            arc_map[sat].append(LeveledArc(dts,
-                                           (L_Im + L) * M_TO_TECU,
-                                           P_I * M_TO_TECU,
-                                           [x.az for x in obs],
-                                           [x.el for x in obs],
-                                           [x.satx for x in obs],
-                                           [x.saty for x in obs],
-                                           [x.satz for x in obs],
-                                           L * M_TO_TECU,
-                                           L_scatter * M_TO_TECU))
-    return arc_map
+    leveled_arcs = []
+    for arc_index, arc in enumerate(sorted(set(rinex_dump.arc))):
+        df_arc = rinex_dump[rinex_dump.arc == arc]
+        sat = df_arc.iloc[0].sat
+        delta = df_arc.iloc[-1].gps_time - df_arc.iloc[0].gps_time
+        arc_time_length = delta.total_seconds()
+        if arc_time_length < config.minimum_arc_time:
+            # reject short arc (time)
+            logger.info('rejecting arc={} --- '
+                        'begin={:%Y-%m-%d %H:%M:%S} '
+                        'end={:%Y-%m-%d %H:%M:%S} '
+                        'length={} [s] '
+                        '< {} [s]'.format(arc,
+                                          df_arc.iloc[0].gps_time,
+                                          df_arc.iloc[-1].gps_time,
+                                          arc_time_length,
+                                          config.minimum_arc_time))
+            continue
+        if df_arc.shape[0] < config.minimum_arc_points:
+            # reject short arc (number of epochs)
+            logger.info('rejecting arc={} --- len(arc) = '
+                        '{} < {}'.format(sat,
+                                         arc,
+                                         df_arc.shape[0],
+                                         config.minimum_arc_points))
+            continue
+        # remove observations below minimum elevation limit
+        I = df_arc.el >= config.minimum_elevation
+        # remove observations for which P1, P2, L1, or L2 are nan
+        I &= df_arc.P1.notnull()
+        I &= df_arc.P2.notnull()
+        I &= df_arc.L1.notnull()
+        I &= df_arc.L2.notnull()
+        # remove measurements with |p1 - p2| < threshold
+        I &= abs(df_arc.P1 - df_arc.P2) > config.p1p2_threshold
+        # compute geometry free combinations
+        df_arc = df_arc.loc[I, :]
+        if df_arc.shape[0] == 0:
+            continue
+        P_I = df_arc.P2 - df_arc.P1
+        L1m, L2m = convert_phase_m(df_arc, sat)
+        L_Im = L1m - L2m
+        diff = P_I - L_Im
+        modeled_var = (np.array([rms_model(el) for el in df_arc.el.values]) * TECU_TO_M)**2
+        # compute level, level scatter, and modeled scatter
+        N = len(diff)
+        if N == 0:
+            continue
+        L, L_scatter = weighted_avg_and_std(diff, 1 / modeled_var)
+        sigma_scatter = np.sqrt(np.sum(modeled_var) / N)
+        # check for excessive leveling uncertainty
+        if L_scatter > config.scatter_factor * sigma_scatter:
+            logger.info('rejecting arc={} --- L scatter={:.6f} '
+                        '> {:.1f} * {:.6f}'.format(arc_index,
+                                                   L_scatter,
+                                                   config.scatter_factor,
+                                                   sigma_scatter))
+            continue
+        if L_scatter / TECU_TO_M > config.scatter_threshold:
+            logger.info('rejecting arc={} --- L uncertainty (in '
+                        '[TECU])={:.1f} > '
+                        '{:.1f}'.format(arc_index,
+                                        L_scatter * M_TO_TECU,
+                                        config.scatter_threshold))
+            continue
+        # store information
+        data_map = {'gps_time': df_arc.gps_time.values,
+                    'az': df_arc.az.values,
+                    'el': df_arc.el.values,
+                    'satx': df_arc.satx.values,
+                    'saty': df_arc.saty.values,
+                    'satz': df_arc.satz.values,
+                    'P_I': P_I * M_TO_TECU,
+                    'L_I': (L_Im + L) * M_TO_TECU}
+        leveled_arc = LeveledArc(data_map)
+        leveled_arc.xyz = df_arc.xyz
+        leveled_arc.llh = df_arc.llh
+        leveled_arc.stn = df_arc.stn
+        leveled_arc.recv_type = df_arc.recv_type
+        leveled_arc.sat = sat
+        leveled_arc.L = L * M_TO_TECU
+        leveled_arc.L_scatter = L_scatter * M_TO_TECU
+        leveled_arcs.append(leveled_arc)
+    return leveled_arcs
 
 
 def parse_override(config_overrides, config):
     """
-    ???
+    Return a :class:`Config` with the *name*=*value* entries of
+    *config_overrides* applied to *config*.
     """
     config_map = config._asdict().copy()
     for token in config_overrides:
@@ -380,32 +212,15 @@ def parse_override(config_overrides, config):
     return Config(*config_map.values())
 
 
-def level_process(output_h5_fname,
-                  input_h5_fname,
-                  config_overrides=[],
-                  config=DEFAULT_CONFIG):
-    """
-    """
-    logger.info('reading phase connected arcs from {}'.format(input_h5_fname))
-    obs_map = ObsMap(input_h5_fname)
-    logger.info('beginning level phase to code process')
-    config = parse_override(config_overrides, config)
-    logger.info('{}'.format(config))
-    arc_map = level_phase_to_code(obs_map, config=config)
-    logger.info('storing leveled phase arcs to {}'.format(output_h5_fname))
-    arc_map.dump(output_h5_fname)
-    return output_h5_fname
-
-
 def get_epilog(config=DEFAULT_CONFIG,
                config_units=CONFIG_UNITS):
     """
+    Return the help epilog documenting the leveling configuration.
     """
     output = 'Default configuration names, values, and units:\n'
     for name, value in config._asdict().items():
         output += '\t{}={}\t[{}]\n'.format(name, value, config_units[name])
     return output
-
 
 
 def main(argv=None):
@@ -415,12 +230,12 @@ def main(argv=None):
     parser = ArgumentParser('Level GPS phase to code.',
                             formatter_class=RawDescriptionHelpFormatter,
                             epilog=get_epilog())
-    parser.add_argument('leveled_arc_h5_fname',
+    parser.add_argument('output_fname',
                         type=str,
-                        help='output H5 file containing leveled phase arcs')
-    parser.add_argument('phase_edit_h5_fname',
+                        help='output pickle file containing leveled phase arcs')
+    parser.add_argument('rinex_dump_fname',
                         type=str,
-                        help='input H5 file generated by pyrsss.gps.phase_edit')
+                        help='input pickle file containing an edited, arc-labeled RinexDump')
     parser.add_argument('--config',
                         '-c',
                         type=str,
@@ -429,9 +244,11 @@ def main(argv=None):
                         help='leveling configuration overrides (specify as, e.g., minimum_elevation=15)')
     args = parser.parse_args(argv[1:])
 
-    level_process(args.leveled_arc_h5_fname,
-                  args.phase_edit_h5_fname,
-                  config_overrides=args.config)
+    config = parse_override(args.config, DEFAULT_CONFIG)
+    rinex_dump = pd.read_pickle(args.rinex_dump_fname)
+    leveled_arcs = level(rinex_dump, config=config)
+    pd.to_pickle(leveled_arcs, args.output_fname)
+    return args.output_fname
 
 
 if __name__ == '__main__':

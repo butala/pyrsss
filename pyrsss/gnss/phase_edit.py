@@ -2,16 +2,18 @@ import logging
 import sys
 import os
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, namedtuple, OrderedDict
 from datetime import datetime
 
 import sh
+
+import pandas as pd
 from intervals import DateTimeInterval
 
 from ..util.path import SmartTempDir, replace_path
 from .path import get_gnsstk_build_path
-from .rinex import read_rindump, Observation, dump_rinex
-from .observation import ObsMap
+from .constants import week_sec2dt
+from .rinex import RinexDump, dump_rinex
 from .preprocess import normalize_rinex
 
 logger = logging.getLogger('pyrsss.gps.phase_edit')
@@ -280,91 +282,140 @@ def parse_edit_commands(df_fname):
 
 
 # MAJOR REWRITE --- I OUTPUT AN ArcMap!!!
-def filter_obs_map(obs_map,
-                   time_reject_map,
-                   phase_adjust_map):
-    """
-    ???
-    """
-    edited_obs_map = ObsMap()
-    # copy receiver position information
-    edited_obs_map.xyz = obs_map.xyz
-    edited_obs_map.llh = obs_map.llh
-    for sat in sorted(obs_map):
-        # add C1_delta, P1_delta, P2_delta: cc2noncc happens here
-        L1_delta = 0
-        L2_delta = 0
-        reject_list = list(time_reject_map[sat])
-        offset_list = list(phase_adjust_map[sat])
-        for dt, obs in obs_map[sat].items():
-            # time rejection
-            while reject_list and dt > reject_list[0].upper:
-                reject_list.pop(0)
-            if reject_list and dt in reject_list[0]:
-                # delete observation from stream
-                continue
-            # phase adjustment
-            while offset_list and dt >= offset_list[0][0]:
-                _, obs_type, offset = offset_list.pop(0)
-                if obs_type == 'L1':
-                    L1_delta += offset
-                elif obs_type == 'L2':
-                    L2_delta += offset
-                else:
-                    # impossible
-                    assert False
-            edited_obs_map[sat][dt] = [obs.C1,
-                                       obs.P1,
-                                       obs.P2,
-                                       None if obs.L1 is None else obs.L1 - L1_delta,
-                                       None if obs.L2 is None else obs.L2 - L2_delta,
-                                       obs.az,
-                                       obs.el,
-                                       obs.satx,
-                                       obs.saty,
-                                       obs.satz]
-    return edited_obs_map
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger('sh').setLevel(logging.WARNING)
+    sys.exit(main())
 
 
-def phase_edit_process(h5_fname,
-                       rinex_fname,
-                       nav_fname,
-                       work_path=None,
-                       preprocess=True,
-                       discfix_args=[]):
-    """ ??? """
+class ArcInfo(namedtuple('ArcInfo', 'gap tot sat ok s start end dt obs_types')):
+    """
+    Record from the DiscFix "Fine" arc summary table: gap and tot point
+    counts, satellite, ok count, solution flag, start/stop times, length
+    [s], and observation types.
+    """
+    pass
+
+
+def parse_discfix_log(log_fname):
+    """
+    Parse the DiscFix arc summary ("Fine" lines) from *log_fname*. Return
+    the list of :class:`ArcInfo`.
+    """
+    phase_breaks = []
+    with open(log_fname) as fid:
+        for line in fid:
+            if line.startswith('Fine'):
+                toks = line.split()[2:]
+                info = ArcInfo(int(toks[0]),
+                               int(toks[1]),
+                               toks[2],
+                               int(toks[3]),
+                               int(toks[4]),
+                               week_sec2dt(int(toks[5]),
+                                           float(toks[6])),
+                               week_sec2dt(int(toks[7]),
+                                           float(toks[8])),
+                               float(toks[9]),
+                               ' '.join(toks[10:]))
+                phase_breaks.append(info)
+    return phase_breaks
+
+
+def label_phase_arcs(rinex_dump, phase_breaks):
+    """
+    """
+    """
+    Label each observation of *rinex_dump* with the DiscFix arc index
+    given *phase_breaks* (from :func:`parse_discfix_log`). Observations
+    outside all arcs are dropped (they cannot be leveled).
+    """
+    rinex_dump.loc[:, 'arc'] = -1
+    for i, phase_break in enumerate(phase_breaks):
+        I = (rinex_dump.sat == phase_break.sat) & \
+            (rinex_dump.gps_time >= phase_break.start) & \
+            (rinex_dump.gps_time <= phase_break.end)
+        rinex_dump.loc[I, 'arc'] = i
+    unassigned = rinex_dump.arc == -1
+    if unassigned.any():
+        logger.warning('dropping {} observations outside DiscFix '
+                       'arcs'.format(int(unassigned.sum())))
+        rinex_dump.drop(rinex_dump.index[unassigned], inplace=True)
+    return rinex_dump
+
+
+def apply_rejections(rinex_dump, time_reject_map):
+    """
+    Drop the rejected time intervals (sat -> list of intervals) from
+    *rinex_dump*.
+    """
+    # total = 0
+    for sat, rejections in time_reject_map.items():
+        # count = 0
+        for rejection in rejections:
+            I = (rinex_dump.sat == sat) & \
+                (rinex_dump.gps_time >= rejection.lower) & \
+                (rinex_dump.gps_time <= rejection.upper)
+            rinex_dump.drop(rinex_dump[I].index, inplace=True)
+            # count += sum(I)
+            # total += sum(I)
+        # print(sat, count)
+    # print(total)
+    return rinex_dump
+
+
+def apply_phase_adjustments(rinex_dump, phase_adjust_map):
+    """
+    Apply phase clock offset adjustments (sat -> list of (dt, column,
+    offset)) to *rinex_dump*.
+    """
+    for sat, adjustments in phase_adjust_map.items():
+        for dt, col, offset in adjustments:
+            I = (rinex_dump.sat == sat) & \
+                (rinex_dump.gps_time >= dt)
+            # print(rinex_dump.loc[I, col].iloc[0])
+            rinex_dump.loc[I, col] -= offset
+            # print(rinex_dump.loc[I, col].iloc[0])
+    return rinex_dump
+
+
+def phase_edit_rinex(rinex_fname,
+                     nav_fname,
+                     work_path=None,
+                     discfix_args=[],
+                     glonass=False,
+                     preprocess=True,
+                     p1c1=True):
+    """
+    Run the phase edit front end on *rinex_fname*: normalize the RINEX
+    file, apply DiscFix, dump the observables, and return the edited
+    :class:`RinexDump` with labeled arcs (see :func:`label_phase_arcs`).
+    """
     with SmartTempDir(work_path) as work_path:
-        # preprocess
         if preprocess:
-            logger.info('preprocessing {}'.format(rinex_fname))
-            unprocessed_rinex = rinex_fname
-            rinex_fname = replace_path(work_path, rinex_fname)
-            normalize_rinex(rinex_fname,
-                            unprocessed_rinex)
-        # phase edit
-        logger.info('phase edit {}'.format(rinex_fname))
+            normalized_rinex_fname = replace_path(work_path, rinex_fname)
+            normalize_rinex(normalized_rinex_fname,
+                            rinex_fname)
+        else:
+            normalized_rinex_fname = rinex_fname
         (time_reject_map,
-         phase_adjust_map) = phase_edit(rinex_fname,
+         phase_adjust_map) = phase_edit(normalized_rinex_fname,
                                         work_path=work_path,
-                                        discfix_args=discfix_args)
-        # dump RINEX and read in ObsMap
-        logger.info('dumping {}'.format(rinex_fname))
-        rinex_dump_fname = replace_path(work_path, rinex_fname + '.dump')
-        dump_rinex(rinex_dump_fname,
-                   rinex_fname,
+                                        discfix_args=discfix_args,
+                                        glonass=glonass)
+        log_fname = os.path.join(work_path,
+                                 os.path.basename(normalized_rinex_fname) + '.df.log')
+        dump_fname = replace_path(work_path, normalized_rinex_fname + '.dump')
+        dump_rinex(dump_fname,
+                   normalized_rinex_fname,
                    nav_fname)
-        obs_map = read_rindump(rinex_dump_fname)
-        # apply phase edit adjustments to ObsMap
-        # CHANGE: OUTPUT IS ARCMAP!!!
-        logger.info('applying phase edit adjustments')
-        edited_obs_map = filter_obs_map(obs_map,
-                                        time_reject_map,
-                                        phase_adjust_map)
-        # store ObsMap to file
-        # CHANGE: NO, OUTPUT IS ARCMAP!!!
-        logger.info('storing output to {}'.format(h5_fname))
-        edited_obs_map.dump(h5_fname, title='pyrsss.gps.phase_edit output')
-    return h5_fname
+        rinex_dump = RinexDump.load(dump_fname, p1c1=p1c1)
+        phase_breaks = parse_discfix_log(log_fname)
+        label_phase_arcs(rinex_dump, phase_breaks)
+        apply_phase_adjustments(rinex_dump, phase_adjust_map)
+        apply_rejections(rinex_dump, time_reject_map)
+        return rinex_dump
 
 
 def main(argv=None):
@@ -373,13 +424,13 @@ def main(argv=None):
 
     parser = ArgumentParser('Preprocess and apply the GNSSTk phase editor '
                             '(DiscFix) to an input RINEX record and produce '
-                            'a dump record suitable for subsequent processing '
-                            '(phase leveling).',
+                            'an edited, arc-labeled dump record suitable for '
+                            'subsequent processing (phase leveling).',
                             formatter_class=ArgumentDefaultsHelpFormatter,
                             epilog='Unrecognized arguments are passed on to DiscFix. See the DiscFix usage message for accepted options.')
-    parser.add_argument('h5_fname',
+    parser.add_argument('output_fname',
                         type=str,
-                        help='output HDF5 file')
+                        help='output pickle file containing the edited RinexDump')
     parser.add_argument('rinex_fname',
                         type=str,
                         help='input RINEX observation file')
@@ -396,14 +447,19 @@ def main(argv=None):
                         action='store_true',
                         help='disable RINEX preprocess step (i.e., '
                              'normalization)')
+    parser.add_argument('--glonass',
+                        action='store_true',
+                        help='enable GLONASS processing')
     args, discfix_args = parser.parse_known_args(argv[1:])
 
-    phase_edit_process(args.h5_fname,
-                       args.rinex_fname,
-                       args.nav_fname,
-                       work_path=args.work_path,
-                       preprocess=not args.no_preprocess,
-                       discfix_args=discfix_args)
+    rinex_dump = phase_edit_rinex(args.rinex_fname,
+                                  args.nav_fname,
+                                  work_path=args.work_path,
+                                  discfix_args=discfix_args,
+                                  glonass=args.glonass,
+                                  preprocess=not args.no_preprocess)
+    pd.to_pickle(rinex_dump, args.output_fname)
+    return args.output_fname
 
 
 if __name__ == '__main__':

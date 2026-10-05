@@ -11,8 +11,7 @@ from ..gnsstk import PyPosition
 from ..util.path import SmartTempDir, replace_path
 from ..util.date import UNIX_EPOCH
 from ..iri.iri_stec import iri_stec
-from .rinex import dump_preprocessed_rinex, read_rindump
-from .observation import ObsMapFlatIterator
+from .rinex import RinexDump, dump_preprocessed_rinex
 
 
 class STecInfo(namedtuple('StecInfo',
@@ -56,17 +55,19 @@ def rinex_iri_stec(obs_fname,
                                 nav_fname,
                                 work_path=work_path,
                                 decimate=decimate)
-        obs_map = read_rindump(dump_fname)
-        obs_map_iter = ObsMapFlatIterator(obs_map)
+        rinex_dump = RinexDump.load(dump_fname)
+        obs_iter = ((row.gps_time, row.sat, row)
+                    for row in rinex_dump.sort_values('gps_time').itertuples())
 
         pool = Pool(processes)
-        stec_output = pool.map(iri_stec_wrap, zip(repeat(obs_map.xyz), obs_map_iter))
+        stec_output = pool.map(iri_stec_wrap,
+                               zip(repeat(rinex_dump.xyz), obs_iter))
         pool.close()
         pool.join()
 
         stec_map = STecMap()
-        stec_map.xyz = obs_map.xyz
-        stec_map.llh = obs_map.llh
+        stec_map.xyz = rinex_dump.xyz
+        stec_map.llh = rinex_dump.llh
         for sat, dt, stec_info in stec_output:
             stec_map[sat][dt] = stec_info
     return stec_map

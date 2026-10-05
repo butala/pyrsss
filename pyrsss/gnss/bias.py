@@ -1,240 +1,88 @@
-import sys
-import logging
-import os
-import posixpath
-from collections import namedtuple, defaultdict, OrderedDict
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from datetime import datetime, timedelta
-
-import numpy as np
-from scipy.interpolate import RectBivariateSpline
-from tables import open_file, IsDescription, Time64Col, Float64Col
-
-from .constants import SHELL_HEIGHT, TECU_TO_NS
-from .level import LeveledArc, ArcMap
-from .util import shell_mapping
-from .ipp import ipp_from_azel
-from .teqc import rinex_info
-from .sideshow import update_sideshow_file
-from ..gnsstk import PyPosition
-from ..ionex.read_ionex import interpolate2D_temporal
-from ..util.search import find_le
-from ..util.path import SmartTempDir
-from ..util.date import UNIX_EPOCH
-from ..util.angle import convert_lon
-
-logger = logging.getLogger('pyrsss.gps.bias')
-
 """
 Remove transmitter and receiver biases from phase-connected arcs. Use
 Attila's method to estimate the receiver bias (using IGS IONEX records
-containing satellite biases and modeled VTEC maps).
+containing satellite biases and modeled VTEC maps) or apply the IONEX
+DCB tables for both satellite and station biases directly.
 """
+import logging
+import os
+import posixpath
+import sys
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
+from scipy.interpolate import RectBivariateSpline
+
+from ..ionex.read_ionex import interpolate2D_temporal
+from ..util.angle import convert_lon
+from ..util.path import SmartTempDir
+from ..util.search import find_le
+from .constants import SHELL_HEIGHT, TECU_TO_NS, NS_TO_TECU
+from .level import LeveledArc
+from .sideshow import update_sideshow_file
+from .util import shell_mapping
+
+logger = logging.getLogger('pyrsss.gps.bias')
 
 
-class AugLeveledArc(namedtuple('AugLeveledArc',
-                               ' '.join(LeveledArc._fields + ('el_map',
-                                                              'ipp_lat',
-                                                              'ipp_lon'))),
-                    LeveledArc):
-    def __new__(cls,
-                leveled_arc,
-                stn_pos,
-                shell_height=SHELL_HEIGHT):
-        fields = leveled_arc._asdict()
-        fields['el_map'] = [shell_mapping(el_i, h=shell_height) for el_i in fields['el']]
-        ipp_pos = [ipp_from_azel(stn_pos, az_i, el_i) for az_i, el_i in zip(fields['az'],
-                                                                            fields['el'])]
-        fields['ipp_lat'] = [x.geodeticLatitude for x in ipp_pos]
-        fields['ipp_lon'] = [convert_lon(x.longitude) for x in ipp_pos]
-        return cls._make(fields.values())
+class CalibratedArc(pd.DataFrame):
+    """
+    Absolutely calibrated arc: columns gps_time, az, el, satx/y/z, sobs,
+    sprn ([TECU]) and, when augmented (Attila's method), el_map, ipp_lat,
+    ipp_lon. Bias metadata is attached as attributes.
+    """
+    _metadata = ['xyz',
+                 'llh',
+                 'stn',
+                 'recv_type',
+                 'sat',
+                 'L',
+                 'L_scatter',
+                 'sat_bias',
+                 'stn_bias',
+                 'stn_bias_sigma']
+
+    @property
+    def _constructor(self):
+        return CalibratedArc
 
 
-class AugmentedArcMap(ArcMap):
-    def __init__(self, arc_map, shell_height=SHELL_HEIGHT):
-        super(AugmentedArcMap, self).__init__()
-        stn_pos = PyPosition(*arc_map.llh,
+def augment_arc(arc, stn_pos=None, shell_height=SHELL_HEIGHT):
+    """
+    Return a copy of the :class:`LeveledArc` *arc* with the mapped shell
+    height (*el_map*) and ionospheric pierce point (*ipp_lat*,
+    *ipp_lon* [deg]) columns added. *stn_pos* is a :class:`PyPosition`
+    built from *arc.llh* when not given.
+    """
+    # the gnsstk extension is only required for IPP computation
+    from ..gnsstk import PyPosition
+    from .ipp import ipp_from_azel
+
+    if stn_pos is None:
+        stn_pos = PyPosition(*arc.llh,
                              s=PyPosition.CoordinateSystem['geodetic'])
-        for key, arc_list in arc_map.items():
-            self[key] = [AugLeveledArc(x,
-                                       stn_pos,
-                                       shell_height=shell_height) for x in arc_list]
-        self.xyz = arc_map.xyz
-        self.llh = arc_map.llh
-        self.shell_height = shell_height
-
-    def dump(self, *args, **kwds):
-        raise NotImplementedError()
-
-    def undump(self, *args, **kwds):
-        raise NotImplementedError()
-
-
-class CalibratedArc(namedtuple('CalibratedArc',
-                               ' '.join(AugLeveledArc._fields).replace('stec',
-                                                                       'sobs')),
-                    AugLeveledArc):
-    @classmethod
-    def from_aug_leveled_arc(cls,
-                             aug_leveled_arc,
-                             sat_bias,
-                             stn_bias):
-        fields = aug_leveled_arc._asdict()
-        fields['stec'] -= sat_bias + stn_bias
-        return cls._make(fields.values())
-
-
-class CalibratedArcMap(ArcMap):
-    def __init__(self, h5_fname=None):
-        if h5_fname is not None:
-            raise NotImplementedError("Construction from h5 file record functionality is broken.  Note that undump is a classmethod in CalibratedArcMap and a normal method in ArcMap. The class method approach is correct. For this case, however, you need to change ArcMap undump to a class method, ditch __init__ overload in ArcMap, and instead overload __new__ which calls and returns the output of undump.")
-            assert False
-        super(CalibratedArcMap, self).__init__()
-
-    @classmethod
-    def from_aug_arc_map(cls,
-                         aug_arc_map,
-                         sat_biases,
-                         stn_bias,
-                         stn_bias_sigma):
-        """ ??? """
-        calibrated_arc_map = cls()
-        for sat, aug_leveled_arcs in aug_arc_map.items():
-             assert sat.startswith('G')
-             sat_bias = -sat_biases['GPS'][int(sat[1:])][0] / TECU_TO_NS
-             calibrated_arc_map[sat] = [CalibratedArc.from_aug_leveled_arc(x, sat_bias, stn_bias) for x in aug_leveled_arcs]
-        calibrated_arc_map.llh = aug_arc_map.llh
-        calibrated_arc_map.xyz = aug_arc_map.xyz
-        calibrated_arc_map.sat_biases = sat_biases
-        calibrated_arc_map.stn_bias = stn_bias
-        calibrated_arc_map.stn_bias_sigma = stn_bias_sigma
-        return calibrated_arc_map
-
-    """ ??? """
-    class Table(IsDescription):
-        dt   = Time64Col()
-        sobs = Float64Col()
-        sprn = Float64Col()
-        az   = Float64Col()
-        el   = Float64Col()
-        satx = Float64Col()
-        saty = Float64Col()
-        satz = Float64Col()
-        el_map = Float64Col()
-        ipp_lat = Float64Col()
-        ipp_lon = Float64Col()
-
-    def dump(self, h5_fname):
-        """ ??? """
-        h5file = open_file(h5_fname, mode='w', title='pyrsss.gps.bias output')
-        calibrated_phase_arcs_group = h5file.create_group('/',
-                                                        'calibrated_phase_arcs',
-                                                        'Calibrated phase connected arcs')
-        calibrated_phase_arcs_group._v_attrs.xyz = self.xyz
-        calibrated_phase_arcs_group._v_attrs.llh = self.llh
-        calibrated_phase_arcs_group._v_attrs.stn_bias = self.stn_bias
-        calibrated_phase_arcs_group._v_attrs.stn_bias_sigma = self.stn_bias_sigma
-        for prn in sorted(self.sat_biases['GPS']):
-            bias, rms = self.sat_biases['GPS'][prn]
-            setattr(calibrated_phase_arcs_group._v_attrs, 'G{:02d}'.format(prn), -bias / TECU_TO_NS)
-            setattr(calibrated_phase_arcs_group._v_attrs, 'G{:02d}_rms'.format(prn), rms / TECU_TO_NS)
-        for sat in sorted(self):
-            assert sat[0] == 'G'
-            sat_group = h5file.create_group(calibrated_phase_arcs_group,
-                                            sat,
-                                            'Calibrated phase connected arcs for {}'.format(sat))
-            for i, calibrated_arc in enumerate(self[sat]):
-                table = h5file.create_table(sat_group,
-                                            'arc' + str(i),
-                                            CalibratedArcMap.Table,
-                                            'GPS prn={} arc={} data'.format(sat, i))
-                table.attrs.L = calibrated_arc.L
-                table.attrs.L_scatter = calibrated_arc.L_scatter
-                row = table.row
-                for j in range(len(calibrated_arc.dt)):
-                    row['dt'] = (calibrated_arc.dt[j] - UNIX_EPOCH).total_seconds()
-                    row['sobs'] = calibrated_arc.sobs[j]
-                    row['sprn'] = calibrated_arc.sprn[j]
-                    row['az'] = calibrated_arc.az[j]
-                    row['el'] = calibrated_arc.el[j]
-                    row['satx'] = calibrated_arc.satx[j]
-                    row['saty'] = calibrated_arc.saty[j]
-                    row['satz'] = calibrated_arc.satz[j]
-                    row['el_map'] = calibrated_arc.el_map[j]
-                    row['ipp_lat'] = calibrated_arc.ipp_lat[j]
-                    row['ipp_lon'] = calibrated_arc.ipp_lon[j]
-                    row.append()
-                table.flush()
-        h5file.close()
-        return h5_fname
-
-    @classmethod
-    def undump(cls, h5_fname):
-        calibrated_arc_map = cls()
-        h5file = open_file(h5_fname, mode='r')
-        calibrated_phase_arcs_group = h5file.root.calibrated_phase_arcs
-        for attr in calibrated_phase_arcs_group._v_attrs._f_list():
-            setattr(calibrated_arc_map, attr, getattr(calibrated_phase_arcs_group._v_attrs, attr))
-        for sat_group in calibrated_phase_arcs_group:
-            sat = sat_group._v_name
-            for arc_table in sat_group:
-                dt = []
-                sobs = []
-                sprn = []
-                az = []
-                el = []
-                satx = []
-                saty = []
-                satz = []
-                el_map = []
-                ipp_lat = []
-                ipp_lon = []
-                for row in arc_table.iterrows():
-                    dt.append(UNIX_EPOCH + timedelta(seconds=row['dt']))
-                    sobs.append(row['sobs'])
-                    sprn.append(row['sprn'])
-                    az.append(row['az'])
-                    el.append(row['el'])
-                    satx.append(row['satx'])
-                    saty.append(row['saty'])
-                    satz.append(row['satz'])
-                    el_map.append(row['el_map'])
-                    ipp_lat.append(row['ipp_lat'])
-                    ipp_lon.append(row['ipp_lon'])
-                calibrated_arc_map[sat].append(CalibratedArc(dt,
-                                                             sobs,
-                                                             sprn,
-                                                             az,
-                                                             el,
-                                                             satx,
-                                                             saty,
-                                                             satz,
-                                                             arc_table.attrs.L,
-                                                             arc_table.attrs.L_scatter,
-                                                             el_map,
-                                                             ipp_lat,
-                                                             ipp_lon))
-        h5file.close()
-        return calibrated_arc_map
-
-
-def get_dt_list(arc_map):
-    """
-    """
-    dt_set = set()
-    for arc_list in arc_map.values():
-        for arc in arc_list:
-            dt_set.update(arc.dt)
-    return sorted(dt_set)
+    ipp_pos = [ipp_from_azel(stn_pos, az_i, el_i)
+               for az_i, el_i in zip(arc.az, arc.el)]
+    aug = arc.copy()
+    aug['el_map'] = [shell_mapping(el_i, h=shell_height) for el_i in arc.el]
+    aug['ipp_lat'] = [x.geodeticLatitude for x in ipp_pos]
+    aug['ipp_lon'] = [convert_lon(x.longitude) for x in ipp_pos]
+    return aug
 
 
 def ionex_stec_map(ionex_fname,
-                   augmented_arc_map):
+                   arcs):
     """
+    Return the tuple (*model_stec*, *sat_biases*) where *model_stec* is a
+    list (one entry per :class:`LeveledArc` of *arcs*) of IONEX-modeled
+    STEC [TECU] along the line of sight and *sat_biases* is the IONEX
+    DCB table.
     """
     logger.info('computing interpolated and mapped STEC from {}'.format(ionex_fname))
     # compute temporally interpolated IONEX VTEC maps
-    dt_list = get_dt_list(augmented_arc_map)
+    dt_list = sorted({dt for arc in arcs for dt in arc.gps_time})
     (grid_lon, grid_lat, vtec,
      _, sat_biases, _) = interpolate2D_temporal(ionex_fname,
                                                 dt_list)
@@ -247,44 +95,46 @@ def ionex_stec_map(ionex_fname,
                                           vtec[:, ::-1, i],
                                           bbox=bbox) for i, dt in enumerate(dt_list)}
     # compute interpolated stec
-    stec_map = defaultdict(list)
-    for key, arc_list in augmented_arc_map.items():
-        for arc in arc_list:
-            ionex_stec = []
-            for (dt_i, ipp_lat_i, ipp_lon_i, el_map_i) in zip(arc.dt,
-                                                              arc.ipp_lat,
-                                                              arc.ipp_lon,
-                                                              arc.el_map):
-                i, _ = find_le(dt_list, dt_i)
-                interpolator = interp_map[dt_list[i]]
-                vtec_i = float(interpolator.ev(ipp_lon_i,
-                                               ipp_lat_i))
-                ionex_stec.append(vtec_i * el_map_i)
-            stec_map[key].append(ionex_stec)
-    return stec_map, sat_biases
+    model_stec = []
+    for arc in arcs:
+        ionex_stec = []
+        for (dt_i, ipp_lat_i, ipp_lon_i, el_map_i) in zip(arc.gps_time,
+                                                          arc.ipp_lat,
+                                                          arc.ipp_lon,
+                                                          arc.el_map):
+            i, _ = find_le(dt_list, dt_i)
+            interpolator = interp_map[dt_list[i]]
+            vtec_i = float(interpolator.ev(ipp_lon_i,
+                                           ipp_lat_i))
+            ionex_stec.append(vtec_i * el_map_i)
+        model_stec.append(ionex_stec)
+    return model_stec, sat_biases
 
 
-def estimate_receiver_bias(arc_map,
-                           model_stec_map,
+def estimate_receiver_bias(arcs,
+                           model_stec,
                            sat_biases,
                            n_std=3):
     """
+    Estimate the receiver bias [TECU] and its uncertainty given the
+    augmented *arcs* and the IONEX-modeled STEC *model_stec* (see
+    :func:`ionex_stec_map`). Return the (bias, sigma) tuple.
     """
     logger.info('estimating receiver bias')
     # gather vectors
     stec_minus_sat_bias = []
     el = []
     model_sobs = []
-    for sat, arcs in arc_map.items():
+    for arc, model in zip(arcs, model_stec):
+        sat = arc.sat
         if not sat.startswith('G'):
             raise NotImplementedError('only GPS satellites are currently '
                                       'supported')
         # IONEX DCBs are given in [ns] --- convert to [TECU]
         sat_bias = -sat_biases['GPS'][int(sat[1:])][0] / TECU_TO_NS
-        for i, arc in enumerate(arcs):
-            stec_minus_sat_bias.extend([x - sat_bias for x in arc.stec])
-            el.extend(arc.el)
-            model_sobs.extend(model_stec_map[sat][i])
+        stec_minus_sat_bias.extend([x - sat_bias for x in arc.L_I])
+        el.extend(arc.el)
+        model_sobs.extend(model)
     # flag outliers
     srgim = np.ma.masked_invalid(np.array(model_sobs) -
                                  np.array(stec_minus_sat_bias))
@@ -297,16 +147,84 @@ def estimate_receiver_bias(arc_map,
     return bias, sigma
 
 
-"""
-???
-"""
+def calibrate_arcs(arcs,
+                   sat_biases,
+                   stn_bias,
+                   stn_bias_sigma=None):
+    """
+    Return the list of :class:`CalibratedArc` obtained by removing the
+    IONEX satellite DCB and the estimated receiver bias *stn_bias*
+    [TECU] from the leveled phase (L_I) of each arc of *arcs* (Attila's
+    method).
+    """
+    calibrated_arcs = []
+    for arc in arcs:
+        assert arc.sat.startswith('G')
+        # IONEX DCBs are given in [ns] --- convert to [TECU]
+        sat_bias = -sat_biases['GPS'][int(arc.sat[1:])][0] / TECU_TO_NS
+        data_map = {'gps_time': arc.gps_time.values,
+                    'az': arc.az.values,
+                    'el': arc.el.values,
+                    'satx': arc.satx.values,
+                    'saty': arc.saty.values,
+                    'satz': arc.satz.values,
+                    'sobs': arc.L_I.values - (sat_bias + stn_bias),
+                    'sprn': arc.P_I.values}
+        for column in ('el_map', 'ipp_lat', 'ipp_lon'):
+            if column in arc.columns:
+                data_map[column] = arc[column].values
+        calibrated_arc = CalibratedArc(data_map)
+        for attr in LeveledArc._metadata:
+            setattr(calibrated_arc, attr, getattr(arc, attr))
+        calibrated_arc.sat_bias = sat_bias
+        calibrated_arc.stn_bias = stn_bias
+        calibrated_arc.stn_bias_sigma = stn_bias_sigma
+        calibrated_arcs.append(calibrated_arc)
+    return calibrated_arcs
+
+
+def calibrate_dcb(arcs,
+                  sat_biases,
+                  stn_biases):
+    """
+    Return the list of :class:`CalibratedArc` obtained by applying the
+    IONEX DCB tables *sat_biases* and *stn_biases* to both the leveled
+    phase (L_I) and code (P_I) of each arc of *arcs*.
+    """
+    calibrated_arcs = []
+    for arc in arcs:
+        if arc.sat[0] == 'G':
+            sat_bias = sat_biases['GPS'][int(arc.sat[1:])][0] * NS_TO_TECU
+            stn_bias = stn_biases['GPS'][arc.stn.upper()][0] * NS_TO_TECU
+        elif arc.sat[0] == 'R':
+            sat_bias = sat_biases['GLONASS'][int(arc.sat[1:])][0] * NS_TO_TECU
+            stn_bias = stn_biases['GLONASS'][arc.stn.upper()][0] * NS_TO_TECU
+        else:
+            raise ValueError('Satellite bias for {} not found'.format(arc.sat))
+
+        data_map = {'gps_time': arc.gps_time.values,
+                    'az': arc.az.values,
+                    'el': arc.el.values,
+                    'satx': arc.satx.values,
+                    'saty': arc.saty.values,
+                    'satz': arc.satz.values,
+                    'sobs': arc.L_I.values + sat_bias + stn_bias,
+                    'sprn': arc.P_I.values + sat_bias + stn_bias}
+        calibrated_arc = CalibratedArc(data_map)
+        for attr in LeveledArc._metadata:
+            setattr(calibrated_arc, attr, getattr(arc, attr))
+        calibrated_arc.sat_bias = sat_bias
+        calibrated_arc.stn_bias = stn_bias
+        calibrated_arcs.append(calibrated_arc)
+    return calibrated_arcs
+
+
 JPLH_TEMPLATE = '/pub/iono_daily/IONEX_rapid/JPLH{date:%j}0.{date:%y}I.gz'
+"""Sideshow path template for rapid JPL IONEX records."""
 
 
-"""
-???
-"""
 JPLH_ARCHIVE_TEMPLATE = '/pub/iono_daily/IONEX_rapid/archive/JPLH{date:%j}0.{date:%y}I.gz'
+"""Sideshow path template for archived JPL IONEX records."""
 
 
 def fetch_sideshow_ionex(path,
@@ -314,7 +232,8 @@ def fetch_sideshow_ionex(path,
                          work_path=None,
                          templates=[JPLH_TEMPLATE, JPLH_ARCHIVE_TEMPLATE]):
     """
-    ???
+    Fetch the JPL IONEX record for *date* into *path* from the sideshow
+    FTP server. Return the local file name.
     """
     with SmartTempDir(work_path) as work_path:
         for template in templates:
@@ -324,40 +243,33 @@ def fetch_sideshow_ionex(path,
                 update_sideshow_file(local_fname,
                                      server_fname)
                 return local_fname
-            except:
+            except Exception:
                 logger.info('could not download {}'.format(server_fname))
                 continue
     raise RuntimeError('could not download IONEX file from sideshow for {:%Y-%m-%d}'.format(date))
 
 
-def bias_process(output_h5_fname,
-                 leveled_arc_h5_fname,
+def bias_process(leveled_arcs,
                  ionex_fname):
     """
-    ???
+    Run Attila's method end-to-end: augment the *leveled_arcs* with IPP
+    information, estimate the receiver bias against the IONEX record
+    *ionex_fname*, and return the list of :class:`CalibratedArc`.
     """
-    # load arc map
-    arc_map = ArcMap(leveled_arc_h5_fname)
-    # compute IPPs
     logger.info('computing IPPs')
-    aug_arc_map = AugmentedArcMap(arc_map)
-    # compute VTEC mapped to STEC for arc map lines of site
+    aug_arcs = [augment_arc(arc) for arc in leveled_arcs]
     logger.info('computing STEC from IONEX')
-    (stec_map,
+    (model_stec,
      sat_biases) = ionex_stec_map(ionex_fname,
-                                  aug_arc_map)
-    # estimate receiver bias and uncertainty
+                                  aug_arcs)
     logger.info('least squares estimate of receiver bias')
-    stn_bias, stn_bias_sigma = estimate_receiver_bias(aug_arc_map,
-                                                      stec_map,
+    stn_bias, stn_bias_sigma = estimate_receiver_bias(aug_arcs,
+                                                      model_stec,
                                                       sat_biases)
-    # store output
-    calibrated_arc_map = CalibratedArcMap.from_aug_arc_map(aug_arc_map,
-                                                       sat_biases,
-                                                       stn_bias,
-                                                       stn_bias_sigma)
-    calibrated_arc_map.dump(output_h5_fname)
-    return output_h5_fname
+    return calibrate_arcs(aug_arcs,
+                          sat_biases,
+                          stn_bias,
+                          stn_bias_sigma)
 
 
 def main(argv=None):
@@ -366,12 +278,12 @@ def main(argv=None):
 
     parser = ArgumentParser('Estimate receiver bias from phase-leveled data.',
                             formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument('output_h5_fname',
+    parser.add_argument('output_fname',
                         type=str,
-                        help='output H5 files containing calibrated, leveled phase arcs')
-    parser.add_argument('leveled_arc_h5_fname',
+                        help='output pickle file containing calibrated, leveled phase arcs')
+    parser.add_argument('leveled_arcs_fname',
                         type=str,
-                        help='input H5 file containing leveled phase arcs')
+                        help='input pickle file containing leveled phase arcs')
     parser.add_argument('--work-path',
                         '-w',
                         type=str,
@@ -389,15 +301,15 @@ def main(argv=None):
                                    help='fetch IONEX for the given date')
     args = parser.parse_args(argv[1:])
 
-
     with SmartTempDir(args.work_path) as work_path:
         if args.ionex_fname is None:
             ionex_fname = fetch_sideshow_ionex(work_path, args.date)
         else:
             ionex_fname = args.ionex_fname
-        bias_process(args.output_h5_fname,
-                     args.leveled_arc_h5_fname,
-                     ionex_fname)
+        leveled_arcs = pd.read_pickle(args.leveled_arcs_fname)
+        calibrated_arcs = bias_process(leveled_arcs, ionex_fname)
+        pd.to_pickle(calibrated_arcs, args.output_fname)
+    return args.output_fname
 
 
 if __name__ == '__main__':

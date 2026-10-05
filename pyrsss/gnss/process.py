@@ -1,12 +1,15 @@
 import logging
+import os
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-from .phase_edit import phase_edit_process
-from .level import level_process
-from .bias import fetch_sideshow_ionex, bias_process
-from .rinex import fname2date
+import pandas as pd
+
 from ..util.path import SmartTempDir, replace_path
+from .bias import bias_process, fetch_sideshow_ionex
+from .level import DEFAULT_CONFIG, level, parse_override
+from .phase_edit import phase_edit_rinex
+from .rinex import fname2date
 
 logger = logging.getLogger('pyrsss.gps.process')
 
@@ -19,43 +22,36 @@ def process(path,
             leveling_config_overrides=[],
             ionex_fname=None):
     """
-    ???
+    End-to-end processing of the RINEX files *rinex_fnames* (with the
+    navigation file *nav_fname*) to absolutely calibrated phase arcs
+    written as pickles under *path*. Return the list of output file
+    names.
     """
+    calibrated_fnames = []
+    ionex_map = {}
+    config = parse_override(leveling_config_overrides, DEFAULT_CONFIG)
     with SmartTempDir(work_path) as work_path:
-        # phase edit
-        phase_edit_h5 = []
         for rinex_fname in rinex_fnames:
+            # phase edit + observable dump
             logger.info('editing {}'.format(rinex_fname))
             try:
-                phase_edit_h5.append(
-                    phase_edit_process(replace_path(work_path,
-                                                    rinex_fname + '.phase_edit.h5'),
-                                       rinex_fname,
-                                       nav_fname,
-                                       work_path=work_path,
-                                       discfix_args=discfix_args))
+                rinex_dump = phase_edit_rinex(rinex_fname,
+                                              nav_fname,
+                                              work_path=work_path,
+                                              discfix_args=discfix_args)
             except Exception as e:
                 logger.warning('phase edit step failed for {} ({}) --- '
                                'skipping'.format(rinex_fname, e))
                 continue
-        # level phase to code
-        level_h5 = []
-        for phase_edit_h5_i in phase_edit_h5:
-            logger.info('leveling {}'.format(phase_edit_h5_i))
+            # level phase to code
+            logger.info('leveling {}'.format(rinex_fname))
             try:
-                level_h5.append(
-                    level_process(replace_path(work_path,
-                                               rinex_fname + '.level.h5'),
-                                  phase_edit_h5_i,
-                                  config_overrides=leveling_config_overrides))
+                leveled_arcs = level(rinex_dump, config=config)
             except Exception as e:
                 logger.warning('level step failed for {} ({}) --- '
-                               'skipping'.format(phase_edit_h5_i, e))
+                               'skipping'.format(rinex_fname, e))
                 continue
-        # receiver bias estimation and subtraction
-        calibrated_h5 = []
-        ionex_map = {}
-        for level_h5_i, rinex_fname in zip(level_h5, rinex_fnames):
+            # receiver bias estimation and subtraction
             date = fname2date(rinex_fname)
             if ionex_fname:
                 ionex_fname_date = ionex_fname
@@ -64,22 +60,24 @@ def process(path,
                     logger.info('fetching IONEX for {:%Y-%m-%d}'.format(date))
                     ionex_map[date] = fetch_sideshow_ionex(work_path, date)
                 ionex_fname_date = ionex_map[date]
-            logger.info('calibrating {}'.format(level_h5_i))
+            logger.info('calibrating {}'.format(rinex_fname))
             try:
-                calibrated_h5.append(
-                    bias_process(replace_path(path,
-                                              rinex_fname + '.h5'),
-                                 level_h5_i,
-                                 ionex_fname_date))
+                calibrated_arcs = bias_process(leveled_arcs,
+                                               ionex_fname_date)
             except Exception as e:
                 logger.warning('bias calibration step failed for {} ({}) --- '
-                               'skipping'.format(level_h5_i, e))
+                               'skipping'.format(rinex_fname, e))
                 continue
-        return calibrated_h5
+            output_fname = replace_path(path, rinex_fname + '.pkl')
+            pd.to_pickle(calibrated_arcs, output_fname)
+            calibrated_fnames.append(output_fname)
+        return calibrated_fnames
 
 
 def add_dashes(s):
     """
+    Prefix each token of *s* with dashes suitable for the DiscFix
+    command line (single character tokens get one dash).
     """
     output = []
     for x in s.split():
@@ -105,7 +103,7 @@ def main(argv=None):
     parser.add_argument('rinex_fnames',
                         type=str,
                         nargs='+',
-                        metavar='rinex_fanme',
+                        metavar='rinex_fname',
                         help='input RINEX file')
     parser.add_argument('--work-path',
                         '-w',
@@ -124,7 +122,7 @@ def main(argv=None):
                         type=str,
                         nargs='+',
                         default=[],
-                        help='overrides to default leveling configuration (see the help message fro pyrsss.gps.level for the possibilities)')
+                        help='overrides to default leveling configuration (see the help message for pyrsss.gps.level for the possibilities)')
     parser.add_argument('--ionex-fname',
                         '-i',
                         type=str,
@@ -139,6 +137,7 @@ def main(argv=None):
             discfix_args=args.discfix_options,
             leveling_config_overrides=args.leveling_config_overrides,
             ionex_fname=args.ionex_fname)
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
