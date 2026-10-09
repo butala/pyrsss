@@ -6,13 +6,9 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 import numpy as np
 import pandas as pd
-from geomagio.StreamConverter import get_obs_from_geo, get_geo_from_obs
-from obspy.core.stream import Stream
-from obspy.core.utcdatetime import UTCDateTime
-from obspy.core.trace import Trace
-
+from .hdfio import (get_dec_tenths_arcminute, hdx_to_xyz, read_hdf,
+                    write_hdf, xyz_to_hdx)
 from .iaga2002 import iaga2df
-from ..util.angle import deg2tenths_of_arcminute
 
 logger = logging.getLogger('pyrsss.mag.iaga2hdf')
 
@@ -55,45 +51,17 @@ def reduce_headers(headers,
     return reduced_header
 
 
-def fix_sign(x, N=360 * 60 * 10):
-    """
-    Convert negative tenths of arcminutes *x* to positive by checking
-    bounds and taking the modulus N (360 degrees * 60 minutes per
-    degree * 10 tenths per 1).
-    """
-    if x < 0:
-        assert x > -N
-        x += N
-    assert x < N
-    return x % N
-
-
-def get_dec_tenths_arcminute(header, date):
-    """
-    Return the local magnetic declination angle associated with a
-    sensor at the location given in *header* and *date*. The returned
-    angle is in tenths of arcminutes (there are 360 * 60 * 10 tenths
-    of arcminnutes in one circle).
-    """
-    point = Point(date,
-                  header['Geodetic Latitude'],
-                  header['Geodetic Longitude'],
-                  header['Elevation'])
-    point.run_igrf()
-    dec_deg = point.dec
-    if 'IAGA CODE' in header:
-        logger.info('using declination angle {:f} (deg) for {}'.format(dec_deg, header['IAGA CODE']))
-    else:
-        logger.info('using declination angle {:f} (deg)'.format(dec_deg))
-    return fix_sign(deg2tenths_of_arcminute(dec_deg))
-
-
 def df2stream(df,
               header,
               network='NT',
               location='R0',
               radians=True,
               default_elevation=0):
+    # obspy is an `usarray`-extra dependency and only this function needs
+    # it; importing here keeps the module loadable without it.
+    from obspy.core.stream import Stream
+    from obspy.core.trace import Trace
+    from obspy.core.utcdatetime import UTCDateTime
     """
     Build and return obspy :class:`Stream` from *header* information
     and the :class:`DataFrame` *df*. Use *dec_tenths_arcminute* (local
@@ -146,33 +114,6 @@ def df2stream(df,
     return Stream(traces=traces)
 
 
-def write_hdf(hdf_fname, df, key, header):
-    """
-    Output the contents of *df* and *header* to the HDF file
-    *hdf_fname* under identifier *key*.
-    """
-    with pd.HDFStore(hdf_fname) as store:
-        store.put(key, df)
-        store.get_storer(key).attrs.header = header
-    return hdf_fname
-
-
-def read_hdf(hdf_fname, key):
-    """
-    Read contents of HDF file *hdf_fname* associated with *key* and
-    return a :class:`DataFrame`, header tuple.
-    """
-    if not os.path.isfile(hdf_fname):
-        raise ValueError('file {} does not exist'.format(hdf_fname))
-    with pd.HDFStore(hdf_fname) as store:
-        df = store.get(key)
-        try:
-            header = store.get_storer(key).attrs.header
-        except AttributeError:
-            header = None
-        return df, header
-
-
 def combine_iaga(iaga2002_fnames):
     """
     Load one or more IAGA-2002 data records *iaga_fnames* and
@@ -187,38 +128,64 @@ def combine_iaga(iaga2002_fnames):
     return pd.concat(df_list), reduce_headers(header_list)
 
 
+def _dec_degrees(df, header):
+    """
+    The station declination driving the component rotation, in degrees.
+
+    The IAGA header's ``decbas`` baseline (tenths of arcminutes) wins when
+    present; otherwise IGRF at the header's site and the record's first
+    epoch (see ``hdfio.get_dec_tenths_arcminute``).
+    """
+    return get_dec_tenths_arcminute(
+        header, pd.Timestamp(df.index[0]).to_pydatetime()) / (60.0 * 10.0)
+
+
 def xy2df(df, header):
     """
     Add `B_X` and `B_Y` (surface magnetic field in geographic
     coordinates, X is north and Y is east) to the :class:`DataFrame`
-    *df* and return. The record *header* is necessary to carry out the
-    coordinate transformation.
+    *df* by the declination rotation, and return. The record *header*
+    supplies the declination (its ``decbas`` or IGRF).
+
+    Needs ``B_H`` and ``B_E``: this is the HDZ -> XYZ rotation of the
+    horizontal components (geomagio's ``get_geo_from_obs``, replaced by
+    ``hdfio.hdx_to_xyz``).
     """
-    obs = df2stream(df, header)
-    geo = get_geo_from_obs(obs)
-    return df.assign(B_X=geo.select(channel='X').traces[0].data,
-                     B_Y=geo.select(channel='Y').traces[0].data)
+    for col in ('B_H', 'B_E', 'B_Z'):
+        if col not in df.columns:
+            raise ValueError(
+                f'xy2df needs {col}; the HDZ->XYZ rotation takes B_H, B_E '
+                f'and B_Z (columns found: {list(df.columns)})')
+    dec_deg = _dec_degrees(df, header)
+    X, Y, _ = hdx_to_xyz(df['B_H'].values, df['B_E'].values,
+                         df['B_Z'].values, dec_deg)
+    return df.assign(B_X=X, B_Y=Y)
 
 
 def he2df(df, header):
     """
     Add `B_H` and `B_E` (surface magnetic field in local geomagnetic
     coordinates, H is local north and E is local east) to the
-    :class:`DataFrame` *df* and return. The record *header* is
-    necessary to carry out the coordinate transformation.
+    :class:`DataFrame` *df* by the declination rotation, and return.
+    The record *header* supplies the declination.
+
+    Needs ``B_X`` and ``B_Y``: this is the XYZ -> HDZ rotation
+    (geomagio's ``get_obs_from_geo``, replaced by ``hdfio.xyz_to_hdx``).
     """
+    for col in ('B_X', 'B_Y', 'B_Z'):
+        if col not in df.columns:
+            raise ValueError(
+                f'he2df needs {col}; the XYZ->HDZ rotation takes B_X, B_Y '
+                f'and B_Z (columns found: {list(df.columns)})')
     if ('B_F' not in df.columns):
-        # The USGS geomag-algorithms module requires the magnetic
-        # field magnitude B_F to transform from XY to HE --- add the
-        # B_F column if it is not present
         values = zip(df['B_X'].values,
                      df['B_Y'].values,
                      df['B_Z'].values)
         df = df.assign(B_F=[np.linalg.norm([x, y, z]) for x, y, z in values])
-    geo = df2stream(df, header)
-    obs = get_obs_from_geo(geo)
-    return df.assign(B_H=obs.select(channel='H').traces[0].data,
-                     B_E=obs.select(channel='E').traces[0].data)
+    dec_deg = _dec_degrees(df, header)
+    H, E, _ = xyz_to_hdx(df['B_X'].values, df['B_Y'].values,
+                         df['B_Z'].values, dec_deg)
+    return df.assign(B_H=H, B_E=E)
 
 
 def add_columns(df, header, xy, he):

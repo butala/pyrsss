@@ -9,7 +9,7 @@ from obspy.core.utcdatetime import UTCDateTime
 from obspy.core.trace import Trace
 
 from .fgm2iaga import parse
-from .iaga2hdf import get_dec_tenths_arcminute, write_hdf
+from .hdfio import get_dec_tenths_arcminute, write_hdf
 
 logger = logging.getLogger('pyrsss.mat.fgm2hdf')
 

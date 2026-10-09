@@ -7,7 +7,7 @@ import pandas as pd
 
 from .calc_e import apply_transfer_function as tf_1D
 from .calc_e_3d import apply_transfer_function as tf_3D
-from ..mag.iaga2hdf import read_hdf, write_hdf
+from ..mag.hdfio import read_hdf, write_hdf
 from ..usarray_emtf.index import get_index
 from .usgs_regions import get_region
 

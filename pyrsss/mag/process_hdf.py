@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import scipy.signal
 
-from .iaga2hdf import read_hdf, write_hdf
+from .hdfio import read_hdf, write_hdf
 from .filters import minute_interval_filter, second_interval_filter
 from ..util.nan import nan_interp
 from ..signal.lfilter import lp_fir_filter
