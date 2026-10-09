@@ -21,9 +21,9 @@ jobs:
       - name: Install
         run: uv sync --extra dev
       - name: Byte-compile (SyntaxWarning as error)
-        run: python -W error::SyntaxWarning -m compileall -q pyrsss
+        run: uv run python -W error::SyntaxWarning -m compileall -q pyrsss
       - name: Unit tests
-        run: python -m pytest -q --cov=pyrsss --cov-report=term
+        run: uv run python -m pytest -q --cov=pyrsss --cov-report=term
       - name: Import smoke test (core modules)
         run: |
           python - <<'EOF'
