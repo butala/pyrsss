@@ -56,6 +56,17 @@ pyrsss-solar-fetch-orbit 2008-02-01 --out data/orbit
 pyrsss-solar-fetch-kcor 2019-02-28 --out data/kcor
 ```
 
+The geometry half of tomography lives beside it: `registry` is the
+catalog of every calibrated instrument with a knowable position (FOV
+model, archive, product level), `fov` draws them as rectangular pyramids
+and coronagraph annuli in direction space, `ephemeris` places the
+observer (SOHO orbit files, ground sites, or JPL HORIZONS), `overlap`
+finds the shared sky and `overlap.compare` returns the intercalibration
+constant of two images over it. `viz4d` puts all of it in one 4-D scene
+with pyviz4d -- source locations and FOV pyramids animated over time
+(`pip install 'pyrsss[solar-viz]'`, then
+`pyrsss-solar-fov-scene --ids lasco_c2,kcor --live`).
+
 On the shelf: ASO-S/LST, Aditya-L1 VELC/SUIT, PROBA-3/ASPIICS,
 Solar Orbiter/Metis.
 

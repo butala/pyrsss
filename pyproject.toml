@@ -47,6 +47,7 @@ emtf = ["geomagio", "cartopy"]                  # pyrsss.emtf, pyrsss.util.plot
 usarray = ["obspy"]                             # pyrsss.usarray.iris
 hdf = ["pyhdf"]                                # pyrsss.l1.hdf4to5
 solar = ["astropy", "beautifulsoup4", "requests", "sunpy"]  # pyrsss.solar (punchbowl stays optional for punch)
+solar-viz = ["astropy", "requests", "pyviz4d @ git+https://github.com/butala/pyviz4d.git"]  # pyrsss.solar.viz4d (4-D FOV scene)
 dev = ["pytest", "pytest-cov"]
 full = ["apexpy", "igrf", "spaceweather", "iri2016", "geomagio", "cartopy", "obspy", "pyhdf", "astropy", "beautifulsoup4", "requests", "sunpy"]
 
@@ -73,6 +74,7 @@ pyrsss-mag-process-hdf = "pyrsss.mag.process_hdf:main"
 pyrsss-mag-sm2hdf = "pyrsss.mag.sm2hdf:main"
 pyrsss-mag-sm2iaga = "pyrsss.mag.sm2iaga:main"
 pyrsss-solar-fetch-kcor = "pyrsss.solar.mlso:main"
+pyrsss-solar-fov-scene = "pyrsss.solar.viz4d:main"
 pyrsss-solar-fetch-orbit = "pyrsss.solar.soho:main"
 pyrsss-solar-fetch-punch = "pyrsss.solar.punch:main"
 pyrsss-stats-stats = "pyrsss.stats.stats:main"

@@ -34,7 +34,8 @@ footprint is heavier than the rest and stays its own choice).
 """
 
 from .manifest import sha256, write_manifest, read_manifest, verify
-from . import fido, mlso, punch, soho
+from . import ephemeris, fov, fido, mlso, overlap, punch, registry, soho
 
 __all__ = ['sha256', 'write_manifest', 'read_manifest', 'verify',
-           'fido', 'mlso', 'punch', 'soho']
+           'ephemeris', 'fov', 'fido', 'mlso', 'overlap', 'punch',
+           'registry', 'soho']
