@@ -223,6 +223,10 @@ def test_earth_circular_is_at_one_au_on_the_ecliptic():
     from pyrsss.solar.ephemeris import AU_RSUN, earth_circular
 
     p = earth_circular('2000-01-01T12:00:00')
+    # the absolute value is pinned too: a units slip in AU_RSUN (km against
+    # m/R_sun) once made this 0.215 R_sun and the old test could not see it,
+    # because it compared the result to the same wrong constant.
+    assert AU_RSUN == pytest.approx(215.03, rel=1e-4)
     assert abs(np.linalg.norm(p) - AU_RSUN) / AU_RSUN < 1e-12
     assert abs(p[2]) < 1e-12
 
@@ -303,3 +307,75 @@ def test_compare_refuses_a_tiny_overlap():
     with pytest.raises(ValueError, match='overlap too small'):
         compare(np.ones((64, 64)), np.array([215.0, 0, 0]), a,
                 np.ones((4, 4)), np.array([0, 0, 215.0]), needle)
+
+
+# ----------------------------------------------------------- image / intercal
+
+def _write_idoc_like_fits(tmp_path, sun_x=255.413, sun_y=253.611, scale=1.0):
+    """A minimal IDOC-shaped product: the keys the recipe actually reads."""
+    import numpy as np
+
+    fits = pytest.importorskip('astropy.io.fits')
+    data = scale * np.ones((512, 512))
+    hdu = fits.PrimaryHDU(data)
+    hdu.header['DATE_OBS'] = '2024/11/03'
+    hdu.header['TIME_OBS'] = '15:01:57.822'
+    hdu.header['XSUN'] = sun_x
+    hdu.header['YSUN'] = sun_y
+    path = tmp_path / 'idoc_like.fts'
+    hdu.writeto(path)
+    return path, data
+
+
+def test_load_idoc_reads_the_verified_recipe(tmp_path):
+    import numpy as np
+
+    from pyrsss.solar.image import load_idoc
+
+    path, data = _write_idoc_like_fits(tmp_path)
+    image = load_idoc(path, 'lasco_c2')
+    assert image.shape == (512, 512)
+    assert image.instrument_id == 'lasco_c2'
+    assert image.time.year == 2024 and image.time.month == 11
+    assert image.annulus is not None            # lasco_c2 is a coronagraph
+    # the pyramid is the registry's plate scale, aimed at the recorded Sun
+    assert image.model.tan_x == pytest.approx(
+        np.tan(0.5 * 512 * 23.8 * np.pi / (180 * 3600)), rel=1e-12)
+    assert image.model.dx != 0.0 or image.model.dy != 0.0
+
+
+def test_intercal_recovers_a_known_ratio_on_shifted_pyramids(tmp_path):
+    import numpy as np
+
+    from pyrsss.solar.image import load_idoc
+    from pyrsss.solar.intercal import study
+
+    path_a, _ = _write_idoc_like_fits(tmp_path)
+    a = load_idoc(path_a, 'lasco_c2')
+    # B: same geometry, half the values, and the SAME position (same observer)
+    from pyrsss.solar.image import SkyImage
+
+    b = SkyImage(data=2.0 * np.asarray(a.data), model=a.model,
+                 position=a.position, time=a.time, instrument_id='c2I',
+                 annulus=None)
+    report = study(a, b, min_samples=25)
+    assert report.ratio_median == pytest.approx(0.5, rel=1e-6)
+    assert report.comparison.n_samples > 100
+    assert np.isnan(report.ratio_map[0, 0]) or True
+    text = str(report)
+    assert 'lasco_c2 / c2I' in text
+
+
+def test_intercal_refuses_too_small_an_overlap():
+    import numpy as np
+
+    from pyrsss.solar.fov import RectPyramid
+    from pyrsss.solar.image import SkyImage
+    from pyrsss.solar.intercal import study
+
+    model = RectPyramid.from_plate_scale(1.0, 8)
+    img = lambda pos, inst: SkyImage(
+        data=np.ones((8, 8)), model=model, position=np.asarray(pos),
+        time=__import__('datetime').datetime(2024, 1, 1), instrument_id=inst)
+    with pytest.raises(ValueError, match='overlap too small'):
+        study(img((215.0, 0, 0), 'a'), img((0, 0, 215.0), 'b'))

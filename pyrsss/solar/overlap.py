@@ -77,12 +77,15 @@ def pixel_directions(model, position, shape):
     :class:`RectPyramid` (an imager; a coronagraph's annulus mask only
     zeros pixels afterwards).
     """
-    if not isinstance(model, RectPyramid):
-        raise TypeError('pixel grids need a RectPyramid model')
+    if not (hasattr(model, 'tan_x') and hasattr(model, 'tan_y')):
+        raise TypeError('pixel grids need a tangent-plane model '
+                        '(RectPyramid or ShiftedPyramid)')
     ny, nx = shape
     b, e, n = observer_frame(position)
-    tx = (np.arange(nx) + 0.5 - nx / 2.0) / (nx / 2.0) * model.tan_x
-    ty = (np.arange(ny) + 0.5 - ny / 2.0) / (ny / 2.0) * model.tan_y
+    dx = getattr(model, 'dx', 0.0)      # a ShiftedPyramid's boresight offset
+    dy = getattr(model, 'dy', 0.0)
+    tx = (np.arange(nx) + 0.5 - nx / 2.0) / (nx / 2.0) * model.tan_x + dx
+    ty = (np.arange(ny) + 0.5 - ny / 2.0) / (ny / 2.0) * model.tan_y + dy
     out = np.empty((ny, nx, 3))
     for i, uy in enumerate(ty):
         for j, ux in enumerate(tx):
@@ -103,8 +106,10 @@ def resample(image_b, pos_b, model_b, directions, fill=np.nan):
         t = project(d, pos_b, model_b)
         if t is None:
             continue
-        j = t[0] / model_b.tan_x * (nx / 2.0) + nx / 2.0 - 0.5
-        i = t[1] / model_b.tan_y * (ny / 2.0) + ny / 2.0 - 0.5
+        dx = getattr(model_b, 'dx', 0.0)
+        dy = getattr(model_b, 'dy', 0.0)
+        j = (t[0] - dx) / model_b.tan_x * (nx / 2.0) + nx / 2.0 - 0.5
+        i = (t[1] - dy) / model_b.tan_y * (ny / 2.0) + ny / 2.0 - 0.5
         if not (0 <= j <= nx - 1 and 0 <= i <= ny - 1):
             continue
         i0, j0 = int(np.floor(i)), int(np.floor(j))

@@ -31,7 +31,8 @@ from .soho import closest_orbit, parse_orbit_file
 
 logger = logging.getLogger('pyrsss.solar.ephemeris')
 
-AU_RSUN = 149_597_870.7 / 6.957e8          # 215.03 R_sun
+AU_RSUN = 149_597_870.7 / 6.957e5          # km/km: 215.03 R_sun
+RSUN_KM = 6.957e5                          # for orbit-file conversions
 EARTH_OBLIQUITY = np.deg2rad(23.4392911)   # for ground-site offsets
 
 # Registry observer names -> HORIZONS body names.
@@ -100,7 +101,7 @@ def soho_orbit_file(time, dat_path):
     if abs(offset.total_seconds()) > 900:
         logger.warning('closest orbit record is %s from the request', offset)
     return np.array([record.hec_x_km, record.hec_y_km, record.hec_z_km]) \
-        / 6.957e5                      # km -> R_sun (6.957e5 km per R_sun)
+        / RSUN_KM                    # km -> R_sun
 
 
 def horizons(body, time):
