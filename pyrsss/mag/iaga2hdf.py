@@ -1,6 +1,4 @@
-import os
 import sys
-import math
 import logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 

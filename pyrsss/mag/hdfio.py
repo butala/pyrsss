@@ -92,8 +92,6 @@ def get_dec_tenths_arcminute(header, date):
     if 'decbas' in header:
         return fix_sign(float(header['decbas']))
     try:
-        from datetime import datetime
-
         import ppigrf
     except ImportError as e:
         raise ImportError(
