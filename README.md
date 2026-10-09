@@ -39,6 +39,26 @@ RINEX can also be read without the GNSSTk tools via
 with optional broadcast-orbit geometry for the az/el and satellite ECEF
 columns).
 
+## Solar data (`pyrsss.solar`)
+
+Archive acquisition for solar tomography, on the division of labour that
+keeps it small: **sunpy FIDO is the engine** for the missions it serves
+(SOHO, STEREO, SDO, PSP/WISPR, Hinode), and thin mission shims cover what
+FIDO cannot reach -- `soho` (IDOC LASCO C2 *polarized* brightness and the
+SOHO orbit `.DAT` files), `mlso` (K-Cor L2 `pbavg`), `punch` (full-Sun
+polarized mosaics, via the mission's `punchbowl`). Every cache gets a
+`SHA256SUMS` manifest (`pyrsss.solar.manifest`) so a campaign's data can be
+re-verified.
+
+```bash
+pip install 'pyrsss[solar]'
+pyrsss-solar-fetch-orbit 2008-02-01 --out data/orbit
+pyrsss-solar-fetch-kcor 2019-02-28 --out data/kcor
+```
+
+On the shelf: ASO-S/LST, Aditya-L1 VELC/SUIT, PROBA-3/ASPIICS,
+Solar Orbiter/Metis.
+
 ## Notebooks
 
 The `notebooks/` directory contains exploratory research notebooks and

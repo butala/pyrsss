@@ -46,8 +46,9 @@ iri = ["iri2016"]                               # pyrsss.iri
 emtf = ["geomagio", "cartopy"]                  # pyrsss.emtf, pyrsss.util.plot
 usarray = ["obspy"]                             # pyrsss.usarray.iris
 hdf = ["pyhdf"]                                # pyrsss.l1.hdf4to5
+solar = ["astropy", "beautifulsoup4", "requests", "sunpy"]  # pyrsss.solar (punchbowl stays optional for punch)
 dev = ["pytest", "pytest-cov"]
-full = ["apexpy", "igrf", "spaceweather", "iri2016", "geomagio", "cartopy", "obspy", "pyhdf"]
+full = ["apexpy", "igrf", "spaceweather", "iri2016", "geomagio", "cartopy", "obspy", "pyhdf", "astropy", "beautifulsoup4", "requests", "sunpy"]
 
 [project.scripts]
 pyrsss-emtf-calc-e = "pyrsss.emtf.calc_e:main"
@@ -71,6 +72,9 @@ pyrsss-mag-intermagnet-level0 = "pyrsss.mag.intermagnet_level0:main"
 pyrsss-mag-process-hdf = "pyrsss.mag.process_hdf:main"
 pyrsss-mag-sm2hdf = "pyrsss.mag.sm2hdf:main"
 pyrsss-mag-sm2iaga = "pyrsss.mag.sm2iaga:main"
+pyrsss-solar-fetch-kcor = "pyrsss.solar.mlso:main"
+pyrsss-solar-fetch-orbit = "pyrsss.solar.soho:main"
+pyrsss-solar-fetch-punch = "pyrsss.solar.punch:main"
 pyrsss-stats-stats = "pyrsss.stats.stats:main"
 pyrsss-usarray-emtf-mirror = "pyrsss.usarray_emtf.mirror:main"
 pyrsss-usarray-iris = "pyrsss.usarray.iris:main"
