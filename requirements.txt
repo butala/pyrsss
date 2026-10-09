@@ -1,4 +1,3 @@
-# Convenience wrapper --- the authoritative dependency list is
-# pyproject.toml:
-#     pip install -r requirements.txt
-.[full]
+# Dependencies live in pyproject.toml; this file existed for pip.
+# Install with uv (see README):
+#     uv sync --extra full

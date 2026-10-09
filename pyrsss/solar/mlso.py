@@ -31,7 +31,7 @@ logger = logging.getLogger('pyrsss.solar.mlso')
 def _requests():
     """``requests``, or the error that says how to get it."""
     if requests is None:
-        raise ImportError("fetching needs requests: pip install 'pyrsss[solar]'")
+        raise ImportError("fetching needs requests: uv sync --extra solar")
     return requests
 
 # The public data front end. One call lists every file for an instrument /

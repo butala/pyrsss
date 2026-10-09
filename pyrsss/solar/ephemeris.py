@@ -114,7 +114,7 @@ def horizons(body, time):
         from astroquery.jplhorizons import Horizons
     except ImportError as e:
         raise ImportError(
-            "HORIZONS needs astroquery: pip install 'pyrsss[solar]'") from e
+            "HORIZONS needs astroquery: uv sync --extra solar") from e
     name = HORIZONS_NAMES.get(body, body)
     t = _to_datetime(time)
     # epochs wants Julian *dates* in a list -- ISO strings give

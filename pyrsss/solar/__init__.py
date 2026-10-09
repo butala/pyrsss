@@ -27,9 +27,9 @@ ASO-S/LST (China, Ly-alpha + white-light coronagraph,
 Solar Orbiter/Metis (SOAR). Install the extras group to pull the
 dependencies this family wants::
 
-    pip install 'pyrsss[solar]'
+    uv sync --extra solar
 
-PUNCH support additionally wants ``pip install punchbowl`` (its dependency
+PUNCH support additionally wants the ``punchbowl`` package (its dependency
 footprint is heavier than the rest and stays its own choice).
 """
 

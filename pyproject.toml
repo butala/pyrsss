@@ -43,13 +43,17 @@ dependencies = [
 # parts of the package (and are not always trivial to install):
 mag = ["apexpy", "igrf", "spaceweather"]        # pyrsss.mag, pyrsss.usarray.mag2geo
 iri = ["iri2016"]                               # pyrsss.iri
-emtf = ["geomagio", "cartopy"]                  # pyrsss.emtf, pyrsss.util.plot
+emtf = ["cartopy"]                                    # pyrsss.emtf, pyrsss.util.plot
+# geomagio is NOT on PyPI (it lives in github.com/jmfee-usgs/geomag-algorithms
+# and its legacy setup.py defeats isolated builds), so it cannot ride in an
+# extra without breaking `uv lock` for the whole project. The emtf modules
+# import it lazily; install it by hand when you need EMTF work.
 usarray = ["obspy"]                             # pyrsss.usarray.iris
 hdf = ["pyhdf"]                                # pyrsss.l1.hdf4to5
 solar = ["astropy", "beautifulsoup4", "requests", "sunpy"]  # pyrsss.solar (punchbowl stays optional for punch)
 solar-viz = ["astropy", "requests", "pyviz4d @ git+https://github.com/butala/pyviz4d.git"]  # pyrsss.solar.viz4d (4-D FOV scene)
 dev = ["pytest", "pytest-cov"]
-full = ["apexpy", "igrf", "spaceweather", "iri2016", "geomagio", "cartopy", "obspy", "pyhdf", "astropy", "beautifulsoup4", "requests", "sunpy"]
+full = ["apexpy", "igrf", "spaceweather", "iri2016", "cartopy", "obspy", "pyhdf", "astropy", "beautifulsoup4", "requests", "sunpy"]
 
 [project.scripts]
 pyrsss-emtf-calc-e = "pyrsss.emtf.calc_e:main"

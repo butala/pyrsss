@@ -16,7 +16,7 @@ impact radii -- the same convention SphericalCT's plate draws.
 
 Import of pyviz4d is deferred: the registry, geometry and overlap math of
 this package work without it, and the tests skip the scene when it is
-absent. ``pip install 'pyrsss[solar-viz]'`` or a sibling ``~/src/pyviz4d``
+absent. ``uv sync --extra solar-viz`` or a sibling ``~/src/pyviz4d``
 checkout (which is how SphericalCT consumes it) both work.
 """
 
@@ -38,7 +38,7 @@ def _pyviz4d():
         return pyviz4d, series, viz
     except ImportError as e:
         raise ImportError(
-            'the FOV scene needs pyviz4d: pip install \'pyrsss[solar-viz]\' '
+            'the FOV scene needs pyviz4d: uv sync --extra solar-viz '
             'or set PYTHONPATH to a pyviz4d checkout') from e
 
 

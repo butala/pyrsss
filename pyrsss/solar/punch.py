@@ -31,7 +31,7 @@ def _punchbowl():
     except ImportError as e:
         raise ImportError(
             'PUNCH support needs the mission package: '
-            'pip install punchbowl') from e
+            'uv add punchbowl  (or: uv add --optional solar punchbowl)') from e
     return punchbowl
 
 

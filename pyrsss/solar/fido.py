@@ -36,7 +36,7 @@ def _fido():
         from sunpy.net import fido
     except ImportError as e:
         raise ImportError(
-            'FIDO support needs sunpy: pip install \'pyrsss[solar]\'') from e
+            'FIDO support needs sunpy: uv sync --extra solar') from e
     return fido
 
 

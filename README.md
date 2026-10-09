@@ -6,16 +6,16 @@ Python remote sensing and space science tools.
 
 ## Install
 
-Requires Python 3.10+. Core install (pure Python):
+Requires Python 3.10+. Core install (pure Python, with [uv](https://docs.astral.sh/uv/)):
 
 ```bash
-pip install .
+uv sync
 ```
 
 Domain-specific extras (see `pyproject.toml` for what each pulls in):
 
 ```bash
-pip install '.[full]'
+uv sync --extra full          # or --extra solar, --extra mag, ...
 ```
 
 ### External tools (RINEX front end)
@@ -51,7 +51,7 @@ polarized mosaics, via the mission's `punchbowl`). Every cache gets a
 re-verified.
 
 ```bash
-pip install 'pyrsss[solar]'
+uv sync --extra solar
 pyrsss-solar-fetch-orbit 2008-02-01 --out data/orbit
 pyrsss-solar-fetch-kcor 2019-02-28 --out data/kcor
 ```
@@ -64,7 +64,7 @@ observer (SOHO orbit files, ground sites, or JPL HORIZONS), `overlap`
 finds the shared sky and `overlap.compare` returns the intercalibration
 constant of two images over it. `viz4d` puts all of it in one 4-D scene
 with pyviz4d -- source locations and FOV pyramids animated over time
-(`pip install 'pyrsss[solar-viz]'`, then
+(`uv sync --extra solar-viz`, then
 `pyrsss-solar-fov-scene --ids lasco_c2,kcor --live`).
 
 On the shelf: ASO-S/LST, Aditya-L1 VELC/SUIT, PROBA-3/ASPIICS,
