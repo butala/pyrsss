@@ -21,6 +21,7 @@ whatever the convention is).
 import logging
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 
@@ -41,6 +42,7 @@ class SkyImage:
     time: datetime
     instrument_id: str
     annulus: object = None       # registry AnnulusFOV, or None for an imager
+    label: str = ''              # the product, e.g. 'pB' -- panel captions
 
     @property
     def shape(self):
@@ -76,8 +78,10 @@ def load_idoc(path, instrument_id='lasco_c2', position=None):
     # convention question SphericalCT settled as 0-based centres, and a
     # shifted Sun must not silently skew every ray).
     model = _shifted_pyramid(inst.fov.plate_scale_arcsec, nx, ny, sun_x, sun_y)
+    label = Path(path).stem.split('_')[-1]   # 'c2_pB.fts' -> 'pB'
     return SkyImage(data=data, model=model, position=np.asarray(position),
-                    time=time, instrument_id=instrument_id, annulus=annulus)
+                    time=time, instrument_id=instrument_id, annulus=annulus,
+                    label=label)
 
 
 def _shifted_pyramid(scale, nx, ny, sun_x, sun_y):

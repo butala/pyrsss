@@ -379,3 +379,46 @@ def test_intercal_refuses_too_small_an_overlap():
         time=__import__('datetime').datetime(2024, 1, 1), instrument_id=inst)
     with pytest.raises(ValueError, match='overlap too small'):
         study(img((215.0, 0, 0), 'a'), img((0, 0, 215.0), 'b'))
+
+
+# ----------------------------------------------------------------- panorama
+
+def test_panorama_shares_one_scale_and_checks_the_epoch(tmp_path):
+    """Same epoch is an assertion: a stale frame is flagged, not hidden."""
+    import numpy as np
+
+    from pyrsss.solar.image import load_idoc
+    from pyrsss.solar.panorama import check_epoch, extent_rsun, panorama
+
+    path_a, _ = _write_idoc_like_fits(tmp_path)
+    a = load_idoc(path_a, 'lasco_c2')
+    from pyrsss.solar.image import SkyImage
+
+    b = SkyImage(data=2.0 * np.asarray(a.data), model=a.model,
+                 position=a.position, time=a.time, instrument_id='pBs',
+                 annulus=a.annulus)
+    ok, note = check_epoch([a, b])
+    assert ok and 'same epoch' in note
+
+    # a frame an hour away must say so -- the plate's suptitle turns red
+    stale = SkyImage(data=np.asarray(a.data), model=a.model,
+                     position=a.position,
+                     time=a.time.replace(hour=a.time.hour + 1),
+                     instrument_id='stale', annulus=a.annulus)
+    ok, note = check_epoch([a, stale])
+    assert not ok and 'EPOCHS DIFFER' in note
+
+    fig = panorama([a, b], tmp_path / 'plate.png', shared_scale=True)
+    out = tmp_path / 'plate.png'
+    assert out.exists() and out.stat().st_size > 10_000
+    assert extent_rsun(a) == pytest.approx(
+        a.model.tan_x * np.linalg.norm(a.position), rel=1e-12)
+    import matplotlib.pyplot as plt
+    plt.close(fig)
+
+
+def test_panorama_requires_a_nonempty_plate():
+    from pyrsss.solar.panorama import panorama
+
+    with pytest.raises(ValueError, match='at least one'):
+        panorama([])
