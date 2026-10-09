@@ -70,7 +70,7 @@ class SepFilter():
                     slice_list.append(slice(None, None, None))
                 else:
                     slice_list.append(slice(self.m[i]-1, -(self.m[i]-1), None))
-            return y[*slice_list]
+            return y[tuple(slice_list)]
         else:
             assert False
 

@@ -224,7 +224,7 @@ class ARMA:
                 # partial with respect to kth a coefficient
                 column = np.pad(v[:(M-(k+1))], (k+1, 0))
             columns.append(column)
-        return np.c_[*columns]
+        return np.c_[tuple(columns)]
 
     def J_x(self, M):
         impulse_response = self(np.pad([1.], (0, M-1)))

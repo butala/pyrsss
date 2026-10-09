@@ -160,7 +160,7 @@ class Series(SOS):
                         raise RuntimeError('The first denominator polynomial coefficient is fixed to a0=1')
                     case _:
                         raise RuntimeError('Impossible')
-        return np.c_[*columns]
+        return np.c_[tuple(columns)]
 
 
 # aka Concurrent
@@ -198,4 +198,4 @@ class Parallel(SOS):
             columns.extend(J_ab[:, 2:][:, self.mask[i, :3]].T)
             # mask=True a parameters
             columns.extend(J_ab[:, :2][:, self.mask[i, 4:]].T)
-        return np.c_[*columns]
+        return np.c_[tuple(columns)]
