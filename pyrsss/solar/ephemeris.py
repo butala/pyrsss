@@ -117,7 +117,11 @@ def horizons(body, time):
             "HORIZONS needs astroquery: pip install 'pyrsss[solar]'") from e
     name = HORIZONS_NAMES.get(body, body)
     t = _to_datetime(time)
-    obj = Horizons(id=name, epochs=t.strftime('%Y-%m-%d %H:%M:%S'),
+    # epochs wants Julian *dates* in a list -- ISO strings give
+    # "BATVAR: no TLIST values found" from the API itself (verified 2026-10).
+    from astropy.time import Time
+
+    obj = Horizons(id=name, epochs=[float(Time(t).jd)],
                    location='500@10')                 # Sun-centred
     vec = obj.vectors()
     x = float(vec['x'][0]) * AU_RSUN

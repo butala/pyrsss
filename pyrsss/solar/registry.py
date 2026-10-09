@@ -117,12 +117,13 @@ INSTRUMENTS = (
     Instrument('punch_wfi', 'PUNCH', 'WFI x4', 'coronagraph-pb',
                'punchbowl / data.nasa.gov', 'L2 (PTM), L3_PAM',
                'L3_PAM polarized mosaic', 'spacecraft:PUNCH',
-               'horizons', _rect(288.0, 1024),
+               'earth', _annulus(3.5, 30.0, 288.0, 1024),
                '2025-ongoing', notes='four wide-field imagers, full-Sun pB '
-                                     'mosaics; 288 "/px nominal'),
+                                     'mosaics over 3.5-30 R_sun; Earth-orbit '
+                                     'constellation, modelled at Earth'),
     Instrument('punch_nfi', 'PUNCH', 'NFI', 'coronagraph-pb',
                'punchbowl / data.nasa.gov', 'L2 (PTM)', 'L2 rectified NFI',
-               'spacecraft:PUNCH', 'horizons', _rect(94.0, 1024),
+               'spacecraft:PUNCH', 'earth', _annulus(5.0, 15.0, 94.0, 1024),
                '2025-ongoing', notes='narrow-field inner corona 5-15 R_sun'),
     Instrument('wispr', 'Parker Solar Probe', 'WISPR', 'coronagraph',
                'wispr.nrl.navy.mil / SDAC', 'L2', 'L2 FITS (MSB)',

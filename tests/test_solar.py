@@ -422,3 +422,26 @@ def test_panorama_requires_a_nonempty_plate():
 
     with pytest.raises(ValueError, match='at least one'):
         panorama([])
+
+
+def test_overlap_zoom_crops_the_shared_band(tmp_path):
+    import numpy as np
+
+    from pyrsss.solar.image import load_idoc
+    from pyrsss.solar.panorama import overlap_zoom
+
+    path_a, _ = _write_idoc_like_fits(tmp_path)
+    a = load_idoc(path_a, 'lasco_c2')
+    from pyrsss.solar.image import SkyImage
+
+    b = SkyImage(data=2.0 * np.asarray(a.data), model=a.model,
+                 position=a.position, time=a.time, instrument_id='pBs',
+                 annulus=a.annulus, label='pBs')
+    fig = overlap_zoom(a, b, band=(2.5, 6.0), path=tmp_path / 'zoom.png')
+    out = tmp_path / 'zoom.png'
+    assert out.exists() and out.stat().st_size > 5_000
+    # and no shared band is refused rather than drawn
+    with pytest.raises(ValueError, match='share no impact band'):
+        overlap_zoom(a, b, band=(50.0, 60.0))
+    import matplotlib.pyplot as plt
+    plt.close(fig)

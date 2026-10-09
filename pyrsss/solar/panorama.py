@@ -164,3 +164,78 @@ def main(argv=None):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     raise SystemExit(main())
+
+
+def overlap_zoom(a, b, band=None, path=None, title=None, dpi=130):
+    """
+    Zoom into the two instruments' *intersecting region*: the shared
+    impact-parameter band, cropped from both frames on one R_sun scale.
+
+    Three panels: A's band, B's band (resampled onto A's grid so the two
+    line up pixel for pixel), and their ratio where both are positive.
+    ``band`` defaults to the shared annulus range of the two registry
+    entries. The ratio is a *raw* pB comparison only when the observers
+    are close (see :mod:`pyrsss.solar.survey`): Thomson scattering's
+    polarization depends on the scattering angle, so distant viewpoints
+    disagree for physical reasons, and the title says so when the pair
+    is one of those.
+    """
+    import matplotlib.pyplot as plt
+
+    from .overlap import pixel_directions, resample
+    from .survey import impact_band, pair_overlap
+    from . import registry
+
+    if band is None:
+        lo_a, hi_a = impact_band(registry.get(a.instrument_id))
+        lo_b, hi_b = impact_band(registry.get(b.instrument_id))
+        band = (max(lo_a, lo_b), min(hi_a, hi_b))
+        if band[1] <= band[0]:
+            raise ValueError('the two FOVs share no impact band')
+    lo, hi = band
+    r = float(np.linalg.norm(a.position))
+    half = a.model.tan_x * r
+    n = a.shape[0]
+    yy, xx = np.mgrid[0:n, 0:n]
+    rr = np.hypot((xx - n / 2 + 0.5) / (n / 2) * half,
+                  (yy - n / 2 + 0.5) / (n / 2) * half)
+    crop = (rr >= lo) & (rr <= hi)
+    if not crop.any():
+        raise ValueError("the two FOVs share no impact band")
+    dirs = pixel_directions(a.model, a.position, a.shape).reshape(-1, 3)
+    b_on_a = resample(b.data, b.position, b.model, dirs).reshape(a.shape)
+    a_data = np.asarray(a.data, dtype=float)
+    ratio = np.where(crop & (a_data > 0) & (b_on_a > 0),
+                     a_data / np.where(b_on_a > 0, b_on_a, 1), np.nan)
+
+    try:
+        verdict = pair_overlap(registry.get(a.instrument_id),
+                               registry.get(b.instrument_id), a.time)
+    except KeyError:
+        # product-level comparison (pB against c2I): no registry pair to
+        # judge, and the two share one observer anyway
+        verdict = "same observer (product-level comparison)"
+    fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.8))
+    ext = (-half, half, -half, half)
+    zoom = (max(lo - 0.5, -half), min(hi + 0.5, half))
+    for ax, data, name in ((axes[0], a_data, a.label or a.instrument_id),
+                           (axes[1], b_on_a, b.label or b.instrument_id),
+                           (axes[2], ratio, f'{a.label}/{b.label} ratio')):
+        shown = np.ma.masked_where(~crop, data)
+        im = ax.imshow(shown, origin='lower', extent=ext, cmap='gray'
+                       if name != f'{a.label}/{b.label} ratio' else 'coolwarm',
+                       aspect='equal', interpolation='nearest')
+        ax.set_xlim(zoom)
+        ax.set_ylim(zoom)
+        ax.set_title(name, fontsize=10)
+        fig.colorbar(im, ax=ax, shrink=0.85)
+    fig.suptitle(title or
+                 f'overlap band {lo:.2f}-{hi:.2f} R_sun --- {verdict}',
+                 fontsize=11)
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    if path is not None:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(path, dpi=dpi)
+        logger.info('wrote %s', path)
+    return fig
