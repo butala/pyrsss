@@ -13,6 +13,7 @@ from .sm2hdf import read_sm_csv
 from .sm_stations import STATION_MAP
 
 logger = logging.getLogger('pyrsss.mag.sm2iaga')
+from ..util.cli import add_log_options, configure_logging
 
 
 """
@@ -187,7 +188,9 @@ def main(argv=None):
     parser.add_argument('--nez',
                         action='store_true',
                         help='store (raw) HEZ components (aligned to local magnetic field) instead of XYZ components')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     df_map = read_sm_csv(args.csv_fname)
     df_map2iaga(args.output_path,

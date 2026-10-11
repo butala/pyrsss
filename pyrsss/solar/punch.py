@@ -20,6 +20,7 @@ import logging
 from pathlib import Path
 
 logger = logging.getLogger('pyrsss.solar.punch')
+from ..util.cli import add_log_options, configure_logging
 
 
 def _punchbowl():
@@ -80,7 +81,9 @@ def main(argv=None):
                         choices=sorted(levels()), help='(default: L3_PAM)')
     parser.add_argument('--out', type=Path, default=Path('.'),
                         help='cache directory (default: .)')
+    add_log_options(parser)
     args = parser.parse_args(argv)
+    configure_logging(args)
 
     day = datetime.datetime.strptime(args.date, '%Y-%m-%d')
     paths = fetch(day, level=args.level, out_dir=args.out)

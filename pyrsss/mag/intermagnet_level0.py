@@ -14,6 +14,7 @@ from .util import mag_dec
 
 
 logger = logging.getLogger('intermagnet_level0')
+from ..util.cli import add_log_options, configure_logging
 
 
 YEAR_START = 1991
@@ -265,7 +266,9 @@ def main(argv=None):
                         type=str,
                         default=root,
                         help='root path to data archive')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     intermagnet_level0(root,
                        range(args.year_range[0],

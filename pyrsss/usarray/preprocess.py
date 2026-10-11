@@ -10,6 +10,7 @@ from ..mag.process_hdf import fill_nans, second_interval_filter, minute_interval
 from ..signal.lfilter import lp_fir_filter
 
 logger = logging.getLogger('pyrsss.usarray.preprocess')
+from ..util.cli import add_log_options, configure_logging
 
 
 def nan_interpolate(df):
@@ -130,7 +131,9 @@ def main(argv=None):
                         choices=BANDPASS_MAP.keys(),
                         default='1to100mHz',
                         help='choice of bandpass filter')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     preprocess(args.hdf_fname,
                input_key=args.input_key,

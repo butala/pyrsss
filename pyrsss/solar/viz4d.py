@@ -26,6 +26,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 logger = logging.getLogger('pyrsss.solar.viz4d')
+from ..util.cli import add_log_options, configure_logging
 
 SUN_COLOR = (0.95, 0.85, 0.35)
 SUN_RADIUS_RSUN = 1.0
@@ -293,7 +294,6 @@ def main(argv=None):
     from pathlib import Path
 
     from . import registry
-    from .ephemeris import earth_circular, ground_site, horizons
 
     parser = argparse.ArgumentParser(
         description='Draw instrument locations and FOV pyramids over time.')
@@ -308,32 +308,30 @@ def main(argv=None):
                         help='output directory (default: .)')
     parser.add_argument('--live', action='store_true',
                         help='open the interactive 4-D window instead')
+    add_log_options(parser)
     args = parser.parse_args(argv)
+    configure_logging(args)
 
     t1 = datetime.fromisoformat(args.t1) if args.t1 else datetime.now()
     t0 = datetime.fromisoformat(args.t0) if args.t0 else t1 - timedelta(days=1)
 
-    def make_fn(inst):
-        span = (t1 - t0).total_seconds()
-        name = inst.observer
-
-        def fn(u):
-            t = datetime.fromtimestamp(t0.timestamp() + u * span)
-            return ground_site(t) if name.startswith('ground:') \
-                else horizons(name, t)
-        return fn
+    from .ephemeris import orbit_interpolator
 
     instruments, positions = [], {}
     for name in args.ids.split(','):
         inst = registry.get(name.strip())
         instruments.append((inst, (0.5, 0.8, 1.0)))
-        positions[inst.id] = make_fn(inst)
+        logger.info('building %s (%s, %s)', inst.id, inst.observer, inst.fov.kind)
+        positions[inst.id] = orbit_interpolator(inst.observer, t0, t1)
 
     viewer, temporals = build_scene(instruments, positions, t0, t1)
     if args.live:
+        logger.info('starting interactive playback '
+                    '(slider and space control the 4-D loop)')
         viewer.add_playback_ui(1.0)
         viewer.start()
         return 0
+    logger.info('rendering %d stills to %s', args.steps, args.out)
     paths = write_stills(viewer, temporals,
                          np.linspace(0.0, 1.0, args.steps), args.out)
     for path in paths:

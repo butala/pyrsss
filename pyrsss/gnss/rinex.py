@@ -23,6 +23,7 @@ from .p1c1 import P1C1Table
 from ..util.path import SmartTempDir, replace_path, tail
 
 logger = logging.getLogger('pyrsss.gps.rinex')
+from ..util.cli import add_log_options, configure_logging
 
 
 
@@ -312,7 +313,9 @@ def main(argv=None):
                             type=int,
                             default=None,
                             help='decimate to time interval in [s]')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     dump_preprocessed_rinex(args.dump_fname,
                             args.obs_fname,

@@ -13,6 +13,7 @@ from .usgs_regions import get_region
 
 
 logger = logging.getLogger('pyrsss.emtf.e2hdf')
+from ..util.cli import add_log_options, configure_logging
 
 
 def find_1D(header):
@@ -254,7 +255,9 @@ def main(argv=None):
                         type=int,
                         default=5,
                         help='minimum acceptable quality USArray EMTF (i.e., 0 means use all and 5 means use only highest flagged transfer functions)')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     for hdf_fname in args.hdf_fnames:
         e2hdf(hdf_fname,

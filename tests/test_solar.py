@@ -482,3 +482,40 @@ def test_registry_get_names_the_known_ids():
         assert 'lasco_c2' in message           # known ids listed
     else:
         raise AssertionError('expected KeyError')
+
+
+def test_orbit_interpolator_samples_once_and_interpolates():
+    import numpy as np
+    from datetime import datetime, timedelta
+    from pyrsss.solar import ephemeris
+
+    t0 = datetime(2026, 4, 10)
+    t1 = t0 + timedelta(days=1)
+    calls = []
+    real = ephemeris.observer_position
+
+    def counting(observer, t):
+        calls.append(t)
+        return real(observer, t)
+
+    ephemeris.observer_position = counting
+    try:
+        fn = ephemeris.orbit_interpolator('ground:MLSO', t0, t1, n=8)
+    finally:
+        ephemeris.observer_position = real
+    # one backend call per sample, all at construction time
+    assert len(calls) == 8
+    assert min(calls) == t0 and max(calls) == t1
+
+    # the interpolant hits the nodes exactly ...
+    for k in range(8):
+        np.testing.assert_allclose(fn(k / 7),
+                                   ephemeris.ground_site(t0 + (t1 - t0) * k / 7),
+                                   rtol=1e-12)
+    # ... and stays close between them (a day of 1 AU orbit is ~1 deg)
+    assert np.linalg.norm(fn(0.5)
+                          - ephemeris.ground_site(t0 + (t1 - t0) * 0.5)) \
+        < 1e-3 * ephemeris.AU_RSUN
+    # clamped outside [0, 1]
+    np.testing.assert_allclose(fn(-1.0), fn(0.0))
+    np.testing.assert_allclose(fn(2.0), fn(1.0))

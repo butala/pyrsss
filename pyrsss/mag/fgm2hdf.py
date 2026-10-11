@@ -12,6 +12,7 @@ from .fgm2iaga import parse
 from .hdfio import get_dec_tenths_arcminute, write_hdf
 
 logger = logging.getLogger('pyrsss.mat.fgm2hdf')
+from ..util.cli import add_log_options, configure_logging
 
 
 def build_header(data_list,
@@ -107,7 +108,9 @@ def main(argv=None):
                         nargs='*',
                         help='input FGM file (in time order)')
 
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     fgm2hdf(args.hdf_fname,
             args.fgm_fnames)

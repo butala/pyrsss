@@ -9,6 +9,7 @@ import igrf
 from .info import get_info_map
 
 logger = logging.getLogger('pyrsss.usarray.mag2geo')
+from ..util.cli import add_log_options, configure_logging
 
 
 def compute_mag2geo(df, dec_deg):
@@ -106,7 +107,9 @@ def main(argv=None):
                         type=str,
                         default=None,
                         help='output HDF file (use the input file if not specified)')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     mag2geo(args.hdf_fname,
             args.input_key,

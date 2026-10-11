@@ -12,6 +12,7 @@ from .phase_edit import phase_edit_rinex
 from .rinex import fname2date
 
 logger = logging.getLogger('pyrsss.gps.process')
+from ..util.cli import add_log_options, configure_logging
 
 
 def process(path,
@@ -128,7 +129,9 @@ def main(argv=None):
                         type=str,
                         default=None,
                         help='use the specified IONEX record for satellite biases and VTEC (if not specified, download automatically from JPL sideshow)')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     process(args.path,
             args.rinex_fnames,

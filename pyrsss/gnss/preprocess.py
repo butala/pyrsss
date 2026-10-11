@@ -9,6 +9,7 @@ import sh
 from .. util.path import replace_path
 
 logger = logging.getLogger('pyrsss.gps.preprocess')
+from ..util.cli import add_log_options, configure_logging
 
 
 def normalize_rinex(output_rinex_fname,
@@ -112,7 +113,9 @@ def main(argv=None):
                         type=int,
                         default=None,
                         help='decimate output to given interval in [s] (and adjust header accordingly)')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     normalize_to_path(args.path,
                       args.rinex_fnames,

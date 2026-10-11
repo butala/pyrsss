@@ -9,6 +9,7 @@ from .hdfio import (get_dec_tenths_arcminute, hdx_to_xyz, read_hdf,
 from .iaga2002 import iaga2df
 
 logger = logging.getLogger('pyrsss.mag.iaga2hdf')
+from ..util.cli import add_log_options, configure_logging
 
 
 def find_value(key, headers):
@@ -243,7 +244,9 @@ def main(argv=None):
     parser.add_argument('--he',
                         action='store_true',
                         help='include data in HE coordinate')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     iaga2hdf(args.hdf_fname,
              args.iaga2002_fnames,

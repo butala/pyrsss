@@ -17,6 +17,7 @@ from .rinex import RinexDump, dump_rinex
 from .preprocess import normalize_rinex
 
 logger = logging.getLogger('pyrsss.gps.phase_edit')
+from ..util.cli import add_log_options, configure_logging
 
 
 """
@@ -449,7 +450,9 @@ def main(argv=None):
     parser.add_argument('--glonass',
                         action='store_true',
                         help='enable GLONASS processing')
+    add_log_options(parser, short=False)
     args, discfix_args = parser.parse_known_args(argv[1:])
+    configure_logging(args)
 
     rinex_dump = phase_edit_rinex(args.rinex_fname,
                                   args.nav_fname,

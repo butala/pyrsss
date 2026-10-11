@@ -9,6 +9,7 @@ import pandas as pd
 
 from pyhdf.HDF import HDF, HDF4Error
 from pyhdf import VS
+from ..util.cli import add_log_options, configure_logging
 
 
 def key_from_fname(fname):
@@ -96,7 +97,9 @@ def main(argv=None):
     parser.add_argument('hdf4_fname',
                         type=str,
                         help='input ACE HDF4 data record')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     hdf4to5(args.hdf5_fname,
             args.hdf4_fname)

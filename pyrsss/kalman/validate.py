@@ -8,6 +8,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import numpy as np
 
 from pyrsss.kalman.kalman_filter import kalman_filter, sqrt_kalman_filter
+from ..util.cli import add_log_options, configure_logging
 
 
 def randn_pd(N):
@@ -190,7 +191,9 @@ def main(argv=None):
                         type=int,
                         default=None,
                         help='random number generator seed')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     np.random.seed(args.seed)
 

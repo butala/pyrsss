@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod, abstractproperty
 import pandas as pd
 
 logger = logging.getLogger('pyrsss.mag.iaga2002')
+from ..util.cli import add_log_options, configure_logging
 
 
 def fname2date(iaga2002_fname):
@@ -347,7 +348,9 @@ def main(argv=None):
     parser.add_argument('iaga2002_fname',
                         type=str,
                         help='IAGA2002 file name')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     header, data_map = parse(args.iaga2002_fname)
 

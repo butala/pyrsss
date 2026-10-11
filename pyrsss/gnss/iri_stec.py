@@ -12,6 +12,7 @@ from ..util.path import SmartTempDir, replace_path
 from ..util.date import UNIX_EPOCH
 from ..iri.iri_stec import iri_stec
 from .rinex import RinexDump, dump_preprocessed_rinex
+from ..util.cli import add_log_options, configure_logging
 
 
 class STecInfo(namedtuple('StecInfo',
@@ -139,7 +140,9 @@ def main(argv=None):
                         type=int,
                         default=cpu_count(),
                         help='use the given number of processes')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     stec_map = rinex_iri_stec(args.rinex_obs_fname,
                               args.rinex_nav_fname,

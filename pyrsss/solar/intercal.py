@@ -26,6 +26,7 @@ from .image import SkyImage
 from .overlap import Comparison, pixel_directions, resample
 
 logger = logging.getLogger('pyrsss.solar.intercal')
+from ..util.cli import add_log_options, configure_logging
 
 
 @dataclass(frozen=True)
@@ -157,7 +158,9 @@ def main(argv=None):
     parser.add_argument('--idb', default='lasco_c2', help='registry id of B')
     parser.add_argument('--out', type=Path, default=Path('.'),
                         help='report directory (default: .)')
+    add_log_options(parser)
     args = parser.parse_args(argv)
+    configure_logging(args)
 
     image_a = load_fits(args.a, args.ida)
     image_b = load_fits(args.b, args.idb)

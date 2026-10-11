@@ -17,6 +17,7 @@ from ..signal.lfilter import lp_fir_filter
 from ..stats.stats import despike
 
 logger = logging.getLogger('pyrsss.mag.process_hdf')
+from ..util.cli import add_log_options, configure_logging
 
 
 """
@@ -256,7 +257,9 @@ def main(argv=None):
     parser.add_argument('--he',
                         action='store_true',
                         help='include results in HE coordinate')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     for hdf_fname in args.hdf_fnames:
         process(hdf_fname,

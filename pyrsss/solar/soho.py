@@ -34,6 +34,7 @@ except ImportError:  # core install: the parsers still work, fetching does not
     requests = None
 
 logger = logging.getLogger('pyrsss.solar.soho')
+from ..util.cli import add_log_options, configure_logging
 
 
 def _requests():
@@ -228,7 +229,9 @@ def main(argv=None):
     parser.add_argument('date', help='YYYY-MM-DD')
     parser.add_argument('--out', type=Path, default=Path('.'),
                         help='cache directory (default: .)')
+    add_log_options(parser)
     args = parser.parse_args(argv)
+    configure_logging(args)
 
     date = datetime.strptime(args.date, '%Y-%m-%d')
     listing_name = f'NRL_orbits_{date:%Y}.txt'

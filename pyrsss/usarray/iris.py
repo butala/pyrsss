@@ -11,6 +11,7 @@ from .resp import get_station_resp
 from ..util.date import dt_parser, UNIX_EPOCH
 
 logger = logging.getLogger('pyrsss.usarray.iris')
+from ..util.cli import add_log_options, configure_logging
 
 
 def fetch(stn, dt1, dt2, location=0, resp=None):
@@ -101,7 +102,9 @@ def main(argv=None):
     parser.add_argument('dt2',
                         type=dt_parser,
                         help='end date and time (UTC)')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
     df = fetch(args.station_id,
                args.dt1,
                args.dt2)

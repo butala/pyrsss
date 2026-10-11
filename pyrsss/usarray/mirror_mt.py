@@ -9,6 +9,7 @@ from info import info_map
 from ..util.path import touch_path
 
 logger = logging.getLogger('pyrsss.usarray.mirror_mt')
+from ..util.cli import add_log_options, configure_logging
 
 
 def mirror(path):
@@ -48,7 +49,9 @@ def main(argv=None):
     parser.add_argument('path',
                         type=str,
                         help='location to store data records')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     mirror(args.path)
 

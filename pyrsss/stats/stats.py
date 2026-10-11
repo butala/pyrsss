@@ -8,6 +8,7 @@ import scipy.stats
 import numpy as np
 
 logger = logging.getLogger('pyrsss.stats.stats')
+from ..util.cli import add_log_options, configure_logging
 
 
 def mad(l):
@@ -153,7 +154,9 @@ def main(argv=None):
 
     parser = ArgumentParser('Report mean and standard deviation for the stream of numbers read from stdin',
                             formatter_class=ArgumentDefaultsHelpFormatter)
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     stats = Stats()
     for line in sys.stdin:

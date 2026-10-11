@@ -26,6 +26,7 @@ from .sideshow import update_sideshow_file
 from .util import shell_mapping
 
 logger = logging.getLogger('pyrsss.gps.bias')
+from ..util.cli import add_log_options, configure_logging
 
 
 class CalibratedArc(pd.DataFrame):
@@ -298,7 +299,9 @@ def main(argv=None):
                                    '-d',
                                    type=lambda x: datetime.strptime(x, '%Y-%m-%d'),
                                    help='fetch IONEX for the given date')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     with SmartTempDir(args.work_path) as work_path:
         if args.ionex_fname is None:

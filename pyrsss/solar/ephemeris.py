@@ -93,6 +93,46 @@ def ground_site(time, lat_deg=19.536, lon_deg=-155.576, height_m=3397.0):
     return earth + offset
 
 
+def observer_position(observer, time):
+    """
+    The position of a registry observer name at *time*: ground sites go
+    through :func:`ground_site`, everything else through :func:`horizons`.
+    """
+    if observer.startswith('ground:'):
+        return ground_site(time)
+    return horizons(observer, time)
+
+
+def orbit_interpolator(observer, t0, t1, n=64):
+    """
+    Return ``fn(u)`` mapping loop coordinates ``u`` in ``[0, 1]`` to the
+    observer's interpolated position over the window ``[t0, t1]``.
+
+    A HORIZONS query is a network round trip; sampling the window *n*
+    times and interpolating bounds the cost and makes playback smooth
+    (one day of 1 AU orbit is ~1 deg of arc, so linear interpolation
+    between samples is far below the geometry's accuracy). Each sample
+    is logged: this is where a scene spends its startup time.
+    """
+    span = t1 - t0
+    logger.info('sampling ephemeris for %s: %d points over %s',
+                observer, n, span)
+    times = [t0 + span * k / (n - 1) for k in range(n)]
+    table = np.empty((n, 3))
+    for k, t in enumerate(times):
+        logger.info('ephemeris %s: %d/%d at %s',
+                    observer, k + 1, n, t.isoformat())
+        table[k] = observer_position(observer, t)
+
+    def fn(u):
+        x = min(max(float(u), 0.0), 1.0) * (n - 1)
+        i = min(int(x), n - 2)
+        frac = x - i
+        return (1.0 - frac) * table[i] + frac * table[i + 1]
+
+    return fn
+
+
 def soho_orbit_file(time, dat_path):
     """
     The SOHO position from a NRL orbit ``.DAT`` (:func:`soho.parse_orbit_file`

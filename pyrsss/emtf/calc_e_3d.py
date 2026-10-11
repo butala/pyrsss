@@ -15,6 +15,7 @@ from ..signal.spectrum import nextpow2
 from ..mag.iaga2002 import parse
 from ..util.nan import nan_interp
 from ..util.date import toJ2000
+from ..util.cli import add_log_options, configure_logging
 
 
 def calc_e_3d(Bx,
@@ -397,7 +398,9 @@ def main(argv=None):
     parser.add_argument('xml_fname',
                         type=str,
                         help='EM transfer function XML file')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     process(args.output_mat_fname,
             args.input_iaga2002_fname,

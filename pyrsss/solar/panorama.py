@@ -23,6 +23,7 @@ import numpy as np
 from .image import SkyImage
 
 logger = logging.getLogger('pyrsss.solar.panorama')
+from ..util.cli import add_log_options, configure_logging
 
 
 def extent_rsun(image):
@@ -149,7 +150,9 @@ def main(argv=None):
                         help='one colour ramp for all panels (like products)')
     parser.add_argument('--out', type=Path, default=Path('panorama.png'),
                         help='output figure (default: panorama.png)')
+    add_log_options(parser)
     args = parser.parse_args(argv)
+    configure_logging(args)
 
     ids = ([s.strip() for s in args.ids.split(',')] if args.ids
            else ['lasco_c2'] * len(args.fits))

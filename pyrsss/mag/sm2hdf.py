@@ -4,6 +4,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime
 
 import pandas as pd
+from ..util.cli import add_log_options, configure_logging
 
 
 def read_sm_csv(csv_fname):
@@ -60,7 +61,9 @@ def main(argv=None):
     parser.add_argument('csv_fname',
                         type=str,
                         help='SuperMAG CSV data record')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     sm2hdf(args.hdf_fname,
            args.csv_fname)

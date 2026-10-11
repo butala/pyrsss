@@ -15,6 +15,7 @@ from ..signal.spectrum import nextpow2
 from ..mag.iaga2002 import parse
 from ..util.nan import nan_interp
 from ..util.date import toJ2000
+from ..util.cli import add_log_options, configure_logging
 
 
 def calc_e(Bx, By, Zw_function, interval):
@@ -165,7 +166,9 @@ def main(argv=None):
                         type=str,
                         choices=sorted(USGS_MODEL_MAP),
                         help='process use the given 1-D conductivity model')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     process(args.output_mat_fname,
             args.input_iaga2002_fname,

@@ -12,6 +12,7 @@ import pandas as pd
 import spaceweather as sw
 
 from ..stats.stats import Stats
+from .cli import add_log_options, configure_logging
 
 
 RED = np.array([255, 204, 204]) / 255
@@ -171,7 +172,9 @@ def main(argv=None):
                         choices=sorted(STYLE_MAP),
                         default='display',
                         help='plot style (display is more colorful and meant for screen display whereas document is high contrast and uses hatches for both color and black-white interpretation and meant for use in publication)')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     plot_indices(args.date1,
                  args.date2,

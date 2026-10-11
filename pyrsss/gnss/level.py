@@ -15,6 +15,7 @@ from .constants import (LAMBDA_1, LAMBDA_2, M_TO_TECU, TECU_TO_M,
 from .rms_model import RMSModel
 
 logger = logging.getLogger('pyrsss.gps.level')
+from ..util.cli import add_log_options, configure_logging
 
 
 class Config(namedtuple('Config',
@@ -242,7 +243,9 @@ def main(argv=None):
                         nargs='+',
                         default=[],
                         help='leveling configuration overrides (specify as, e.g., minimum_elevation=15)')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     config = parse_override(args.config, DEFAULT_CONFIG)
     rinex_dump = pd.read_pickle(args.rinex_dump_fname)

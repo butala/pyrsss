@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 logger = logging.getLogger('pyrsss.mag.fm2iaga')
+from ..util.cli import add_log_options, configure_logging
 
 
 HEADER_TEMPLATE = """\
@@ -128,7 +129,9 @@ def main(argv=None):
                         nargs='+',
                         metavar='fgm_fname',
                         help='FGM format file')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
 
     for fgm_fname in args.fgm_fnames:

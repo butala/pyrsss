@@ -19,6 +19,7 @@ records and validate the expected number of EMTF records were found.
 """
 
 logger = logging.getLogger('pyrsss.usarray_emtf.mirror')
+from ..util.cli import add_log_options, configure_logging
 
 
 def mirror(destination_path,
@@ -93,7 +94,9 @@ def main(argv=None):
     parser.add_argument('expected',
                         type=int,
                         help='number of EMTF records expected across the .zip files')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
     mirror(args.destination_path,
            args.zip_path,

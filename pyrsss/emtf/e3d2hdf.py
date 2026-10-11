@@ -10,6 +10,7 @@ from ..usarray_emtf.index import get_index
 from .calc_e_3d import apply_transfer_function
 
 logger = logging.getLogger('pyrsss.emtf.e3d2hdf')
+from ..util.cli import add_log_options, configure_logging
 
 
 """
@@ -147,7 +148,9 @@ def main(argv=None):
                         type=str,
                         default='.',
                         help='path to search for EMTF repository')
+    add_log_options(parser)
     args = parser.parse_args(argv[1:])
+    configure_logging(args)
 
 
     e3d2hdf(args.hdf_fname,
