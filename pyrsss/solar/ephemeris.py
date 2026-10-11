@@ -38,8 +38,10 @@ EARTH_OBLIQUITY = np.deg2rad(23.4392911)   # for ground-site offsets
 # Registry observer names -> HORIZONS body names.
 HORIZONS_NAMES = {
     'spacecraft:SOHO': 'SOHO',
-    'spacecraft:STEREO-A': 'STEREO-AHEAD',
-    'spacecraft:STEREO-B': 'STEREO-BEHIND',
+    # HORIZONS takes the plain names; 'STEREO-AHEAD'/'STEREO-BEHIND' are
+    # not valid targets there (verified against the service 2026-10)
+    'spacecraft:STEREO-A': 'STEREO-A',
+    'spacecraft:STEREO-B': 'STEREO-B',
     'spacecraft:SDO': 'SDO',
     'spacecraft:PSP': 'PARKER SOLAR PROBE',
     'spacecraft:PUNCH': 'PUNCH',
@@ -114,7 +116,8 @@ def horizons(body, time):
         from astroquery.jplhorizons import Horizons
     except ImportError as e:
         raise ImportError(
-            "HORIZONS needs astroquery: uv sync --extra solar") from e
+            "HORIZONS needs astroquery: `uv sync --extra solar` (or "
+            "`--extra solar-viz` for the FOV scene)") from e
     name = HORIZONS_NAMES.get(body, body)
     t = _to_datetime(time)
     # epochs wants Julian *dates* in a list -- ISO strings give

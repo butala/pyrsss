@@ -50,8 +50,8 @@ emtf = ["cartopy"]                                    # pyrsss.emtf, pyrsss.util
 # import it lazily; install it by hand when you need EMTF work.
 usarray = ["obspy"]                             # pyrsss.usarray.iris
 hdf = ["pyhdf"]                                # pyrsss.l1.hdf4to5
-solar = ["astropy", "beautifulsoup4", "requests", "sunpy"]  # pyrsss.solar (punchbowl stays optional for punch)
-solar-viz = ["astropy", "requests", "pyviz4d @ git+https://github.com/butala/pyviz4d.git"]  # pyrsss.solar.viz4d (4-D FOV scene)
+solar = ["astropy", "astroquery", "beautifulsoup4", "requests", "sunpy"]  # pyrsss.solar (punchbowl stays optional for punch)
+solar-viz = ["astropy", "astroquery", "requests", "pyviz4d @ git+https://github.com/butala/pyviz4d.git"]  # pyrsss.solar.viz4d (4-D FOV scene)
 dev = ["pytest", "pytest-cov"]
 full = ["apexpy", "igrf", "spaceweather", "iri2016", "cartopy", "obspy", "pyhdf", "astropy", "beautifulsoup4", "requests", "sunpy"]
 
