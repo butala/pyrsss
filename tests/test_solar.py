@@ -519,3 +519,48 @@ def test_orbit_interpolator_samples_once_and_interpolates():
     # clamped outside [0, 1]
     np.testing.assert_allclose(fn(-1.0), fn(0.0))
     np.testing.assert_allclose(fn(2.0), fn(1.0))
+
+
+def test_horizons_cache_round_trip(tmp_path, monkeypatch):
+    import json
+    from datetime import datetime
+
+    import numpy as np
+
+    from pyrsss.solar import ephemeris
+
+    monkeypatch.setenv('PYRSSS_EPHEMERIS_CACHE', str(tmp_path / 'eph.json'))
+    calls = []
+    monkeypatch.setattr(
+        ephemeris, '_horizons_query',
+        lambda name, t: calls.append((name, t)) or np.array([1.0, 2.0, 3.0]))
+    t = datetime(2026, 4, 10, 12, 0, 0)
+
+    a = ephemeris.horizons('spacecraft:SOHO', t)
+    b = ephemeris.horizons('spacecraft:SOHO', t)
+    assert len(calls) == 1                       # second call is a hit
+    np.testing.assert_allclose(a, b)
+
+    # the file is the product: fresh reads (a new run) also hit
+    on_disk = json.loads((tmp_path / 'eph.json').read_text())
+    assert on_disk['SOHO'][t.isoformat()] == [1.0, 2.0, 3.0]
+    c = ephemeris.horizons('SOHO', t)            # plain HORIZONS name too
+    np.testing.assert_allclose(c, a)
+    assert len(calls) == 1
+
+    # different time is a miss
+    ephemeris.horizons('spacecraft:SOHO', datetime(2026, 4, 10, 12, 0, 1))
+    assert len(calls) == 2
+
+
+def test_horizons_cache_ignores_corruption(tmp_path, monkeypatch):
+    import numpy as np
+
+    from pyrsss.solar import ephemeris
+
+    monkeypatch.setenv('PYRSSS_EPHEMERIS_CACHE', str(tmp_path / 'eph.json'))
+    (tmp_path / 'eph.json').write_text('not json at all')
+    monkeypatch.setattr(ephemeris, '_horizons_query',
+                        lambda name, t: np.array([4.0, 5.0, 6.0]))
+    xyz = ephemeris.horizons('spacecraft:SOHO', datetime(2026, 4, 10))
+    np.testing.assert_allclose(xyz, [4.0, 5.0, 6.0])

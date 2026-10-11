@@ -19,11 +19,15 @@ matching the registry's ``ephemeris`` field:
 
 Positions are in R_sun, heliocentric ecliptic (the HAE-like frame the SOHO
 orbit files' ``hec`` columns use): x towards the vernal point, z to the
-north ecliptic pole.
+north ecliptic pole. HORIZONS results are cached on disk (see
+:func:`horizons`).
 """
 
+import json
 import logging
+import os
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 
@@ -120,9 +124,10 @@ def orbit_interpolator(observer, t0, t1, n=64):
     times = [t0 + span * k / (n - 1) for k in range(n)]
     table = np.empty((n, 3))
     for k, t in enumerate(times):
-        logger.info('ephemeris %s: %d/%d at %s',
-                    observer, k + 1, n, t.isoformat())
+        logger.debug('ephemeris %s: %d/%d at %s',
+                     observer, k + 1, n, t.isoformat())
         table[k] = observer_position(observer, t)
+    logger.info('sampled ephemeris for %s (%d points)', observer, n)
 
     def fn(u):
         x = min(max(float(u), 0.0), 1.0) * (n - 1)
@@ -146,11 +151,37 @@ def soho_orbit_file(time, dat_path):
         / RSUN_KM                    # km -> R_sun
 
 
-def horizons(body, time):
+def _cache_path():
+    """The ephemeris cache file (``$PYRSSS_EPHEMERIS_CACHE`` overrides)."""
+    import os
+
+    default = Path.home() / '.cache' / 'pyrsss' / 'ephemeris.json'
+    return Path(os.environ.get('PYRSSS_EPHEMERIS_CACHE', default))
+
+
+def _cache_load(path):
+    try:
+        with open(path) as fid:
+            return json.load(fid)
+    except FileNotFoundError:
+        return {}
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning('ignoring unreadable ephemeris cache %s (%s)', path, e)
+        return {}
+
+
+def _cache_store(path, cache):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix('.tmp')
+    with open(tmp, 'w') as fid:
+        json.dump(cache, fid, indent=0, sort_keys=True)
+    os.replace(tmp, path)
+
+
+def _horizons_query(name, t):
     """
-    The accurate position: JPL HORIZONS through astroquery, in the
-    heliocentric ecliptic frame, R_sun. ``body`` is a registry observer
-    name or any HORIZONS name. Needs ``astroquery`` and the network.
+    One HORIZONS round trip: the body's heliocentric ecliptic position
+    in R_sun at *t* (the network call the cache exists to avoid).
     """
     try:
         from astroquery.jplhorizons import Horizons
@@ -158,8 +189,6 @@ def horizons(body, time):
         raise ImportError(
             "HORIZONS needs astroquery: `uv sync --extra solar` (or "
             "`--extra solar-viz` for the FOV scene)") from e
-    name = HORIZONS_NAMES.get(body, body)
-    t = _to_datetime(time)
     # epochs wants Julian *dates* in a list -- ISO strings give
     # "BATVAR: no TLIST values found" from the API itself (verified 2026-10).
     from astropy.time import Time
@@ -171,6 +200,33 @@ def horizons(body, time):
     y = float(vec['y'][0]) * AU_RSUN
     z = float(vec['z'][0]) * AU_RSUN
     return np.array([x, y, z])
+
+
+def horizons(body, time):
+    """
+    The accurate position: JPL HORIZONS through astroquery, in the
+    heliocentric ecliptic frame, R_sun. ``body`` is a registry observer
+    name or any HORIZONS name. Needs ``astroquery`` and the network.
+
+    Positions are cached on disk -- a HORIZONS query is deterministic,
+    so the cache never expires. It lives at
+    ``~/.cache/pyrsss/ephemeris.json`` (``$PYRSSS_EPHEMERIS_CACHE``
+    overrides the path).
+    """
+    name = HORIZONS_NAMES.get(body, body)
+    t = _to_datetime(time)
+    key = t.isoformat()
+    path = _cache_path()
+    cache = _cache_load(path)
+    hit = cache.get(name, {}).get(key)
+    if hit is not None:
+        logger.debug('ephemeris cache hit %s at %s', name, key)
+        return np.array(hit)
+    logger.info('querying HORIZONS for %s at %s', name, key)
+    xyz = _horizons_query(name, t)
+    cache.setdefault(name, {})[key] = [float(v) for v in xyz]
+    _cache_store(path, cache)
+    return xyz
 
 
 def observer_position(observer, time, **kw):
