@@ -70,6 +70,17 @@ with pyviz4d -- source locations and FOV pyramids animated over time
 On the shelf: ASO-S/LST, Aditya-L1 VELC/SUIT, PROBA-3/ASPIICS,
 Solar Orbiter/Metis.
 
+## Solar visualization (pyrsss.solar.viz4d)
+
+The 4-D FOV scene needs the `solar-viz` extra:
+
+    uv sync --python 3.14 --extra solar-viz
+    uv run pyrsss-solar-fov-scene --ids lasco_c2,secchi_cor2 --live
+
+Python 3.14 because `vtk` publishes wheels only up to `cp314` (3.15
+support pending upstream). Registry ids are listed by
+`pyrsss.solar.registry.ids()`.
+
 ## Notebooks
 
 The `notebooks/` directory contains exploratory research notebooks and

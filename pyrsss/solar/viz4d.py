@@ -38,8 +38,12 @@ def _pyviz4d():
         return pyviz4d, series, viz
     except ImportError as e:
         raise ImportError(
-            'the FOV scene needs pyviz4d: uv sync --extra solar-viz '
-            'or set PYTHONPATH to a pyviz4d checkout') from e
+            'the FOV scene needs pyviz4d + vtk: run it as '
+            '`uv run --extra solar-viz pyrsss-solar-fov-scene ...` '
+            'or `uv sync --extra solar-viz` first (note: vtk ships '
+            'wheels only up to CPython 3.14, so the scene wants '
+            '`uv sync --python 3.14 --extra solar-viz` on a 3.15 '
+            'environment; or set PYTHONPATH to a pyviz4d checkout)') from e
 
 
 def orbit_track(position_fn, n=32):
