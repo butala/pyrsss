@@ -564,3 +564,39 @@ def test_horizons_cache_ignores_corruption(tmp_path, monkeypatch):
                         lambda name, t: np.array([4.0, 5.0, 6.0]))
     xyz = ephemeris.horizons('spacecraft:SOHO', datetime(2026, 4, 10))
     np.testing.assert_allclose(xyz, [4.0, 5.0, 6.0])
+
+
+def test_shuttle_frame_grid():
+    from datetime import datetime
+
+    from pyrsss.solar.shuttle import (format_epoch, frame_index, frame_time,
+                                      frame_u)
+
+    assert frame_index(0.0, 5) == 0
+    assert frame_index(0.5, 5) == 2
+    assert frame_index(1.0, 5) == 4
+    assert frame_index(-3.0, 5) == 0
+    assert frame_u(-3, 5) == 0.0
+    assert frame_u(1, 5) == 0.25
+    assert frame_u(99, 5) == 1.0
+    t0, t1 = datetime(2026, 1, 1), datetime(2026, 1, 2)
+    assert frame_time(t0, t1, 0.5) == datetime(2026, 1, 1, 12)
+    assert format_epoch(t0, t1, 0.0) == '2026-01-01 00:00:00'
+    assert format_epoch(t0, t1, 1.0) == '2026-01-02 00:00:00'
+
+
+def test_horizons_cache_ignores_subsecond_jitter(tmp_path, monkeypatch):
+    from datetime import datetime
+
+    import numpy as np
+
+    from pyrsss.solar import ephemeris
+
+    monkeypatch.setenv('PYRSSS_EPHEMERIS_CACHE', str(tmp_path / 'eph.json'))
+    calls = []
+    monkeypatch.setattr(
+        ephemeris, '_horizons_query',
+        lambda name, t: calls.append(t) or np.array([0.0, 0.0, 0.0]))
+    ephemeris.horizons('SOHO', datetime(2026, 4, 10, 12, 0, 0, 500000))
+    ephemeris.horizons('SOHO', datetime(2026, 4, 10, 12, 0, 0, 900000))
+    assert len(calls) == 1                      # one query, one hit

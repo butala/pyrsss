@@ -214,7 +214,9 @@ def horizons(body, time):
     overrides the path).
     """
     name = HORIZONS_NAMES.get(body, body)
-    t = _to_datetime(time)
+    # to the second: sub-second jitter must not cost a cache miss (a
+    # HORIZONS position changes by far less than a metre per second)
+    t = _to_datetime(time).replace(microsecond=0)
     key = t.isoformat()
     path = _cache_path()
     cache = _cache_load(path)

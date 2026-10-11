@@ -29,6 +29,13 @@ logger = logging.getLogger('pyrsss.solar.viz4d')
 from ..util.cli import add_log_options, configure_logging
 
 SUN_COLOR = (0.95, 0.85, 0.35)
+PALETTE = [(0.56, 0.73, 0.88),      # muted blue
+           (0.89, 0.67, 0.55),      # muted orange
+           (0.62, 0.82, 0.62),      # muted green
+           (0.84, 0.62, 0.77),      # muted pink
+           (0.87, 0.82, 0.55),      # muted yellow
+           (0.62, 0.82, 0.82)]      # muted cyan
+"""One subtle colour per instrument: pyramid, rings, track and label share it."""
 SUN_RADIUS_RSUN = 1.0
 
 
@@ -193,6 +200,44 @@ class AnnulusRingsActor:
         self.points.Modified()
 
 
+class ClockActor:
+    """The scene time as screen text (top-left), same clock as the shuttle."""
+
+    def __init__(self, t0, t1):
+        from pyviz4d.ui import create_text_actor
+
+        from .shuttle import format_epoch
+
+        self.t0, self.t1 = t0, t1
+        self.actor = create_text_actor('', 0.02, 0.94, font_size=18)
+        self.update(0.0)
+
+    def update(self, t):
+        from .shuttle import format_epoch
+
+        self.actor.SetInput(format_epoch(self.t0, self.t1, t))
+
+
+class LabelActor:
+    """The instrument id as a billboard riding on its observer."""
+
+    def __init__(self, text, position_fn, color=(0.9, 0.9, 0.9)):
+        import vtk
+
+        self.position_fn = position_fn
+        self.actor = vtk.vtkBillboardTextActor3D()
+        self.actor.SetInput(text)
+        self.actor.SetDisplayOffset(8, 8)
+        prop = self.actor.GetTextProperty()
+        prop.SetColor(*color)
+        prop.SetFontSize(14)
+        prop.SetBold(True)
+        self.update(0.0)
+
+    def update(self, t):
+        self.actor.SetPosition(*self.position_fn(t))
+
+
 def sun_actor(radius=SUN_RADIUS_RSUN, color=SUN_COLOR, opacity=0.95):
     """The Sun: an opaque sphere at the origin, the scene's one landmark."""
     import vtk
@@ -254,7 +299,13 @@ def build_scene(instruments, positions, t0, t1, size=(1400, 900),
             add_moving(rings)
             temporals.append((inst, rings))
         add_moving(ObserverTrackActor(fn, color=color))
+        label = LabelActor(inst.id, fn, color=color)
+        add_moving(label)
+        temporals.append((inst, label))
         logger.info('%s: %s FOV wired', inst.id, inst.fov.kind)
+    clock = ClockActor(t0, t1)
+    add_moving(clock)
+    temporals.append((instruments[0][0], clock))
     # elevated view of the ecliptic, framed on the whole scene (the
     # default VTK camera sits on the Sun's surface at the origin)
     for ren in viewer.renderers:
@@ -312,24 +363,34 @@ def main(argv=None):
     args = parser.parse_args(argv)
     configure_logging(args)
 
-    t1 = datetime.fromisoformat(args.t1) if args.t1 else datetime.now()
-    t0 = datetime.fromisoformat(args.t0) if args.t0 else t1 - timedelta(days=1)
+    # default window: the past week, snapped to the hour so repeated runs
+    # sample identical times and the ephemeris cache can hit
+    t1 = (datetime.fromisoformat(args.t1) if args.t1
+          else datetime.now().replace(minute=0, second=0, microsecond=0))
+    t0 = (datetime.fromisoformat(args.t0) if args.t0
+          else t1 - timedelta(days=7))
 
     from .ephemeris import orbit_interpolator
 
+    from .ephemeris import _cache_path
+
+    logger.info('window [%s, %s]; ephemeris cache: %s',
+                t0.isoformat(), t1.isoformat(), _cache_path())
     instruments, positions = [], {}
-    for name in args.ids.split(','):
+    for k, name in enumerate(args.ids.split(',')):
         inst = registry.get(name.strip())
-        instruments.append((inst, (0.5, 0.8, 1.0)))
+        instruments.append((inst, PALETTE[k % len(PALETTE)]))
         logger.info('building %s (%s, %s)', inst.id, inst.observer, inst.fov.kind)
         positions[inst.id] = orbit_interpolator(inst.observer, t0, t1)
 
     viewer, temporals = build_scene(instruments, positions, t0, t1,
                                     offscreen=not args.live)
     if args.live:
-        logger.info('starting interactive playback '
-                    '(slider and space control the 4-D loop)')
-        viewer.add_playback_ui(1.0)
+        from .shuttle import Shuttle
+
+        logger.info('starting interactive playback (shuttle controls: '
+                    'space, arrows, home/end)')
+        Shuttle(viewer, t0, t1)
         viewer.start()
         return 0
     logger.info('rendering %d stills to %s', args.steps, args.out)
