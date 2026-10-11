@@ -445,3 +445,26 @@ def test_overlap_zoom_crops_the_shared_band(tmp_path):
         overlap_zoom(a, b, band=(50.0, 60.0))
     import matplotlib.pyplot as plt
     plt.close(fig)
+
+
+def test_annulus_ring_is_impact_radius_circle():
+    import numpy as np
+    from pyrsss.solar.fov import AnnulusFOV, annulus_ring
+
+    position = np.array([30.0, 0.0, 0.0])       # R_sun units
+    model = AnnulusFOV(2.0, 6.0)
+    for r in (2.0, 6.0):
+        ring = annulus_ring(position, r, n=64)
+        assert ring.shape == (64, 3)
+        # every ring point is a unit direction from the observer
+        np.testing.assert_allclose(np.linalg.norm(ring, axis=1), 1.0,
+                                   rtol=1e-12)
+        # and its impact parameter is exactly the mask radius
+        for d in ring:
+            assert model.impact(position, d) == pytest.approx(r, rel=1e-12)
+    # the two rings are distinct circles (outer one subtends more)
+    inner = annulus_ring(position, 2.0, n=64)
+    outer = annulus_ring(position, 6.0, n=64)
+    w_in = np.linalg.norm(inner - inner.mean(axis=0), axis=1).mean()
+    w_out = np.linalg.norm(outer - outer.mean(axis=0), axis=1).mean()
+    assert w_in < w_out

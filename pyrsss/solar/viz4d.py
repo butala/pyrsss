@@ -21,7 +21,7 @@ checkout (which is how SphericalCT consumes it) both work.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 
@@ -42,10 +42,13 @@ def _pyviz4d():
             'or set PYTHONPATH to a pyviz4d checkout') from e
 
 
-def orbit_track(position_fn, t0, t1, n=32):
-    """Sampled observer positions over ``[t0, t1]`` as an (n, 3) array."""
-    return np.array([position_fn(t0 + (t1 - t0) * k / (n - 1))
-                     for k in range(n)])
+def orbit_track(position_fn, n=32):
+    """
+    Sampled observer positions over the scene window as an (n, 3) array.
+    ``position_fn`` maps loop coordinates in ``[0, 1]`` to positions (the
+    ``TemporalActor`` convention), so the track is n samples of it.
+    """
+    return np.array([position_fn(k / (n - 1)) for k in range(n)])
 
 
 class FOVPyramidActor:
@@ -86,24 +89,29 @@ class FOVPyramidActor:
         self.update(0.0)
 
     def update(self, t):
-        """Rebuild the five vertices from the observer at loop time *t*."""
+        """
+        Rebuild the five vertices from the observer at loop time *t*.
+        The corners are the model's unit ray directions placed at the
+        observer's distance downrange -- the pyramid's footprint on the
+        Sun plane, which is the scale the scene is drawn at.
+        """
         position = self.position_fn(t)
         apex, corners = self.model.corner_rays(position)
         self.points.SetPoint(0, *apex)
+        scale = np.linalg.norm(apex)
         for i, corner in enumerate(corners, 1):
-            self.points.SetPoint(i, *corner)
+            self.points.SetPoint(i, *(np.asarray(apex) + scale * corner))
         self.points.Modified()
 
 
 class ObserverTrackActor:
     """The orbit track and the moving observer marker (static track, moving point)."""
 
-    def __init__(self, position_fn, t0, t1, color=(1.0, 1.0, 1.0), n=32):
+    def __init__(self, position_fn, color=(1.0, 1.0, 1.0), n=32):
         import vtk
 
         self.position_fn = position_fn
-        self.t0, self.t1 = t0, t1
-        track = orbit_track(position_fn, t0, t1, n=n)
+        track = orbit_track(position_fn, n=n)
         self.points = vtk.vtkPoints()
         for p in track:
             self.points.InsertNextPoint(*p)
@@ -128,6 +136,56 @@ class ObserverTrackActor:
     def update(self, t):
         """The track is static; a temporal actor must still respond."""
         return None
+
+
+class AnnulusRingsActor:
+    """
+    A coronagraph mask's two impact-radius rings as moving circles on the
+    unit direction sphere -- the same depth as the pyramid's far
+    rectangle, so the mask rides over the detector square as the module
+    docstring promises.
+    """
+
+    def __init__(self, model, position_fn, color=(0.4, 0.8, 1.0),
+                 width=1.5, n=64):
+        import vtk
+
+        self.model = model
+        self.position_fn = position_fn
+        self.n = n
+        self.points = vtk.vtkPoints()
+        self.points.SetNumberOfPoints(2 * n)
+        lines = vtk.vtkCellArray()
+        for ring in (0, 1):
+            for i in range(n):
+                line = vtk.vtkLine()
+                line.GetPointIds().SetId(0, ring * n + i)
+                line.GetPointIds().SetId(1, ring * n + (i + 1) % n)
+                lines.InsertNextCell(line)
+        poly = vtk.vtkPolyData()
+        poly.SetPoints(self.points)
+        poly.SetLines(lines)
+        mapper = vtk.vtkPolyDataMapper()
+        mapper.SetInputData(poly)
+        self.actor = vtk.vtkActor()
+        self.actor.SetMapper(mapper)
+        self.actor.GetProperty().SetColor(*color)
+        self.actor.GetProperty().SetLineWidth(width)
+        self.actor.GetProperty().SetLighting(0)
+        self.update(0.0)
+
+    def update(self, t):
+        """Rebuild both rings from the observer at loop time *t*."""
+        from .fov import annulus_ring
+
+        position = self.position_fn(t)
+        scale = np.linalg.norm(position)
+        for ring, r in enumerate((self.model.r_inner_rsun,
+                                  self.model.r_outer_rsun)):
+            for i, point in enumerate(annulus_ring(position, r, n=self.n)):
+                self.points.SetPoint(ring * self.n + i,
+                                     *(np.asarray(position) + scale * point))
+        self.points.Modified()
 
 
 def sun_actor(radius=SUN_RADIUS_RSUN, color=SUN_COLOR, opacity=0.95):
@@ -161,20 +219,45 @@ def build_scene(instruments, positions, t0, t1, size=(1400, 900),
     """
     pyviz4d, series, viz = _pyviz4d()
     from . import registry
-    from .fov import from_registry
+    from .fov import AnnulusFOV, RectPyramid, from_registry
 
     viewer = viz.Viewer4D(size=size, bg_color=(0.08, 0.08, 0.12))
     viewer.ren_win.SetOffScreenRendering(1 if offscreen else 0)
     viewer.add_actor(sun_actor())
+
+    def add_moving(ours):
+        # pyviz4d's add_actor registers series.TemporalActor instances
+        # (no duck typing): adapt ours with a one-method wrapper.
+        wrapper = series.TemporalActor(ours.actor)
+        wrapper.update = ours.update
+        viewer.add_actor(wrapper)
     temporals = []
     for inst, color in instruments:
         model = from_registry(inst.fov)
         fn = positions[inst.id]
-        pyramid = FOVPyramidActor(model, fn, color=color)
-        viewer.add_actor(pyramid)
-        viewer.add_actor(ObserverTrackActor(fn, t0, t1, color=color))
+        if isinstance(model, AnnulusFOV):
+            # a coronagraph is its detector pyramid with the mask over it
+            pyramid_model = RectPyramid.from_plate_scale(
+                inst.fov.plate_scale_arcsec, inst.fov.nx, inst.fov.ny)
+        else:
+            pyramid_model = model
+        pyramid = FOVPyramidActor(pyramid_model, fn, color=color)
+        add_moving(pyramid)
         temporals.append((inst, pyramid))
+        if isinstance(model, AnnulusFOV):
+            rings = AnnulusRingsActor(model, fn, color=color)
+            add_moving(rings)
+            temporals.append((inst, rings))
+        add_moving(ObserverTrackActor(fn, color=color))
         logger.info('%s: %s FOV wired', inst.id, inst.fov.kind)
+    # elevated view of the ecliptic, framed on the whole scene (the
+    # default VTK camera sits on the Sun's surface at the origin)
+    for ren in viewer.renderers:
+        cam = ren.GetActiveCamera()
+        cam.SetPosition(0.0, -1.0, 0.45)
+        cam.SetFocalPoint(0.0, 0.0, 0.0)
+        cam.SetViewUp(0.0, 0.0, 1.0)
+        ren.ResetCamera()
     return viewer, temporals
 
 
@@ -224,8 +307,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     t1 = datetime.fromisoformat(args.t1) if args.t1 else datetime.now()
-    t0 = datetime.fromisoformat(args.t0) if args.t0 else t1.replace(
-        hour=t1.hour - 24)
+    t0 = datetime.fromisoformat(args.t0) if args.t0 else t1 - timedelta(days=1)
 
     def make_fn(inst):
         span = (t1 - t0).total_seconds()

@@ -166,6 +166,23 @@ def from_registry(fov):
     return AnnulusFOV(fov.r_inner_rsun, fov.r_outer_rsun, fov.sector_deg)
 
 
+def annulus_ring(position, r_rsun, n=64):
+    """
+    Points on the unit sphere of directions from *position* whose impact
+    parameter is exactly *r_rsun* [R_sun] -- the ring a coronagraph mask
+    edge projects to (a circle of half-angle ``arcsin(r/R)`` about the
+    boresight, at unit boresight distance so it sits with the pyramid's
+    far rectangle). Returns an ``(n, 3)`` array of scene points.
+    """
+    b, e, n_ = observer_frame(position)
+    R = np.linalg.norm(position)
+    alpha = np.arcsin(np.clip(r_rsun / R, -1.0, 1.0))
+    center = np.cos(alpha) * b
+    radius = np.sin(alpha)
+    th = np.linspace(0.0, 2.0 * np.pi, n, endpoint=False)
+    return center + radius * (np.outer(np.cos(th), e) + np.outer(np.sin(th), n_))
+
+
 def sample_directions(model, position, n=32):
     """
     A grid of unit directions covering *model*'s FOV as seen from
