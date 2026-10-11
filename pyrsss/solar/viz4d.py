@@ -281,6 +281,8 @@ def build_scene(instruments, positions, t0, t1, size=(1400, 900),
         wrapper = series.TemporalActor(ours.actor)
         wrapper.update = ours.update
         viewer.add_actor(wrapper)
+        for extra in getattr(ours, 'extra_actors', ()):
+            viewer.add_actor(extra)
     temporals = []
     for inst, color in instruments:
         model = from_registry(inst.fov)
@@ -306,6 +308,12 @@ def build_scene(instruments, positions, t0, t1, size=(1400, 900),
     clock = ClockActor(t0, t1)
     add_moving(clock)
     temporals.append((instruments[0][0], clock))
+    from .timeline import Timeline
+
+    timeline = Timeline(t0, t1,
+                        bands=[(inst.id, color) for inst, color in instruments])
+    add_moving(timeline)
+    temporals.append((instruments[0][0], timeline))
     # elevated view of the ecliptic, framed on the whole scene (the
     # default VTK camera sits on the Sun's surface at the origin)
     for ren in viewer.renderers:
@@ -314,7 +322,7 @@ def build_scene(instruments, positions, t0, t1, size=(1400, 900),
         cam.SetFocalPoint(0.0, 0.0, 0.0)
         cam.SetViewUp(0.0, 0.0, 1.0)
         ren.ResetCamera()
-    return viewer, temporals
+    return viewer, temporals, timeline
 
 
 def write_stills(viewer, temporals, times, out_dir, prefix='fov'):
@@ -383,14 +391,14 @@ def main(argv=None):
         logger.info('building %s (%s, %s)', inst.id, inst.observer, inst.fov.kind)
         positions[inst.id] = orbit_interpolator(inst.observer, t0, t1)
 
-    viewer, temporals = build_scene(instruments, positions, t0, t1,
-                                    offscreen=not args.live)
+    viewer, temporals, timeline = build_scene(instruments, positions, t0, t1,
+                                                offscreen=not args.live)
     if args.live:
         from .shuttle import Shuttle
 
         logger.info('starting interactive playback (shuttle controls: '
                     'space, arrows, home/end)')
-        Shuttle(viewer, t0, t1)
+        Shuttle(viewer, t0, t1, timeline)
         viewer.start()
         return 0
     logger.info('rendering %d stills to %s', args.steps, args.out)

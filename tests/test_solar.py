@@ -600,3 +600,55 @@ def test_horizons_cache_ignores_subsecond_jitter(tmp_path, monkeypatch):
     ephemeris.horizons('SOHO', datetime(2026, 4, 10, 12, 0, 0, 500000))
     ephemeris.horizons('SOHO', datetime(2026, 4, 10, 12, 0, 0, 900000))
     assert len(calls) == 1                      # one query, one hit
+
+
+def test_timeline_ticks_and_mapping():
+    from datetime import datetime, timedelta
+
+    from pyrsss.solar.timeline import (hit, nice_tick_step, ticks, u_from_x,
+                                       x_from_u)
+
+    t0, t1 = datetime(2026, 1, 1), datetime(2026, 1, 8)
+    assert nice_tick_step(t1 - t0) == timedelta(days=1)
+    ts = ticks(t0, t1)
+    assert ts[0] >= t0 and ts[-1] <= t1
+    assert all(b - a == timedelta(days=1) for a, b in zip(ts, ts[1:]))
+
+    # x and u are round-trip inverses, including zoomed views
+    for view in ((0.0, 1.0), (0.25, 0.5)):
+        for u in (0.25, 0.375, 0.5):
+            x = x_from_u(u, view)
+            assert u_from_x(x, view) == pytest.approx(u)
+        assert 0.0 <= x_from_u(view[0], view) <= 1.0
+
+    # hit test: the strip accepts, the sky does not
+    from pyrsss.solar.timeline import STRIP
+    assert hit(0.5 * (STRIP[0] + STRIP[1]), 0.5 * (STRIP[2] + STRIP[3]))
+    assert not hit(0.5, 0.8)
+
+
+def test_timeline_zoom_keeps_the_window_inside():
+    from datetime import datetime
+
+    from pyrsss.solar.timeline import Timeline
+
+    tl = Timeline(datetime(2026, 1, 1), datetime(2026, 1, 8))
+    tl.update(0.5)
+    tl.zoom(0.5)                       # narrower
+    lo, hi = tl.view
+    assert 0.0 <= lo < hi <= 1.0
+    assert (hi - lo) == pytest.approx(0.5)
+    tl.zoom(4.0)                       # and back, clamped at the edge
+    lo, hi = tl.view
+    assert 0.0 <= lo < hi <= 1.0
+
+
+def test_momentum_step_decays_and_clamps():
+    from pyrsss.solar.shuttle import momentum_step
+
+    u, v = 0.5, 0.1
+    u2, v2 = momentum_step(u, v, 0.1)
+    assert u2 > u                      # moving forward
+    assert abs(v2) < abs(v)            # decaying
+    u3, v3 = momentum_step(0.999, 1.0, 0.5)
+    assert u3 == 1.0                   # clamped at the window end
