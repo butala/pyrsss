@@ -324,7 +324,8 @@ def main(argv=None):
         logger.info('building %s (%s, %s)', inst.id, inst.observer, inst.fov.kind)
         positions[inst.id] = orbit_interpolator(inst.observer, t0, t1)
 
-    viewer, temporals = build_scene(instruments, positions, t0, t1)
+    viewer, temporals = build_scene(instruments, positions, t0, t1,
+                                    offscreen=not args.live)
     if args.live:
         logger.info('starting interactive playback '
                     '(slider and space control the 4-D loop)')
