@@ -32,8 +32,9 @@ SPEED_STEP = 2.0 ** 0.25                    # 25% per key press
 MOMENTUM_TAU = 0.7                          # coast decay time [s]
 MOMENTUM_TICK = 16                          # ms
 FLING_EPS = 2e-3                            # u/s: below this, stop
-HINT = ("space: play/pause   arrows: step   wheel: step   "
-        "drag strip: jog   fling: coast   +/-: zoom   home/end: jump")
+HINT = ("space: play/pause   arrows/wheel: step   "
+        "drag strip: jog   fling: coast   +/-: zoom time   "
+        "t: strip on/off   right-drag: camera zoom")
 
 
 def frame_index(u, n_frames):
@@ -95,14 +96,18 @@ class Shuttle:
         self.hint_label = create_text_actor(HINT, 0.02, 0.02, font_size=12)
         viewer.ren.AddActor(self.hint_label)
 
-        # input
+        # input. Mouse observers run at priority 1.0 -- above the camera
+        # style -- and abort the event when the strip owns it, so a scrub
+        # drag can never also pan/rotate the camera (and the wheel steps
+        # time without dollying).
         iren = viewer.iren
+        self._strip_input = True
         iren.AddObserver('KeyPressEvent', self._on_key)
-        iren.AddObserver('LeftButtonPressEvent', self._on_press)
-        iren.AddObserver('MouseMoveEvent', self._on_motion)
-        iren.AddObserver('LeftButtonReleaseEvent', self._on_release)
-        iren.AddObserver('MouseWheelForwardEvent', self._on_wheel)
-        iren.AddObserver('MouseWheelBackwardEvent', self._on_wheel)
+        iren.AddObserver('LeftButtonPressEvent', self._on_press, 1.0)
+        iren.AddObserver('MouseMoveEvent', self._on_motion, 1.0)
+        iren.AddObserver('LeftButtonReleaseEvent', self._on_release, 1.0)
+        iren.AddObserver('MouseWheelForwardEvent', self._on_wheel, 1.0)
+        iren.AddObserver('MouseWheelBackwardEvent', self._on_wheel, 1.0)
 
         # drag / coast state (one timer and observer for the coast loop)
         self._dragging = False
@@ -148,9 +153,12 @@ class Shuttle:
         return x / max(w - 1, 1), y / max(h - 1, 1)
 
     def _on_press(self, obj, _event):
+        if not self._strip_input:
+            return                      # camera mode: the window is theirs
         x, y = self._norm(obj)
         if not strip_hit(x, y):
             return
+        obj.SetAbortFlag(1)             # the camera style never sees this
         self._coasting = False
         self._dragging = True
         self._samples = [(_time.monotonic(), x)]
@@ -158,7 +166,8 @@ class Shuttle:
 
     def _on_motion(self, obj, _event):
         if not self._dragging:
-            return
+            return                      # free movement: camera as usual
+        obj.SetAbortFlag(1)
         x, _ = self._norm(obj)
         now = _time.monotonic()
         self._samples.append((now, x))
@@ -168,6 +177,7 @@ class Shuttle:
     def _on_release(self, obj, _event):
         if not self._dragging:
             return
+        obj.SetAbortFlag(1)
         self._dragging = False
         # fling: velocity from the last drag samples, in u/s
         if len(self._samples) >= 2:
@@ -194,12 +204,21 @@ class Shuttle:
             self._coasting = False
 
     def _on_wheel(self, obj, event):
+        if not self._strip_input:
+            return                      # camera mode: wheel dollies again
+        obj.SetAbortFlag(1)             # wheel is ours, not the camera dolly
         step = 10 if obj.GetShiftKey() else 1
         self.step(+step if event == 'MouseWheelForwardEvent' else -step)
 
     # ---- keyboard -----------------------------------------------------
     def _on_key(self, obj, _event):
         key = obj.GetKeySym()
+        if key == 't':
+            self._strip_input = not self._strip_input
+            state = 'on' if self._strip_input else 'off'
+            self.hint_label.SetInput(HINT + f'    strip input: {state}')
+            self._update_scene()
+            return
         if key in ('Right', 'period'):
             self.step(+1)
         elif key in ('Left', 'comma'):
