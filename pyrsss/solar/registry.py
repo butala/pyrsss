@@ -209,8 +209,19 @@ _BY_ID = {inst.id: inst for inst in INSTRUMENTS}
 
 
 def get(instrument_id):
-    """The ``Instrument`` for *instrument_id*; raises ``KeyError``."""
-    return _BY_ID[instrument_id]
+    """
+    The ``Instrument`` for *instrument_id*; raises ``KeyError`` naming
+    the known ids (with close matches) when it is not in the table.
+    """
+    try:
+        return _BY_ID[instrument_id]
+    except KeyError:
+        import difflib
+
+        close = difflib.get_close_matches(instrument_id, _BY_ID, n=3)
+        hint = f' (did you mean {", ".join(close)}?)' if close else ''
+        raise KeyError(f'unknown instrument id {instrument_id!r}{hint}; '
+                       f'known ids: {", ".join(_BY_ID)}') from None
 
 
 def by_mission(mission):

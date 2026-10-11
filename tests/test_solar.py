@@ -468,3 +468,17 @@ def test_annulus_ring_is_impact_radius_circle():
     w_in = np.linalg.norm(inner - inner.mean(axis=0), axis=1).mean()
     w_out = np.linalg.norm(outer - outer.mean(axis=0), axis=1).mean()
     assert w_in < w_out
+
+
+def test_registry_get_names_the_known_ids():
+    from pyrsss.solar import registry
+
+    assert registry.get('lasco_c2').instrument == 'LASCO C2'
+    try:
+        registry.get('cor2')
+    except KeyError as e:
+        message = str(e)
+        assert 'secchi_cor2' in message        # close match suggestion
+        assert 'lasco_c2' in message           # known ids listed
+    else:
+        raise AssertionError('expected KeyError')
